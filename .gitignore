@@ -17,6 +17,10 @@ tags
 
 # Created by https://www.gitignore.io/api/gradle
 
+### IntelliJ ###
+.idea
+*.iml
+
 ### Gradle ###
 .gradle
 /build/
@@ -32,6 +36,9 @@ gradle-app.setting
 
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
+
+#temp format file for clustering
+tempFile.aarf
 
 ### Eclipse ###
 
