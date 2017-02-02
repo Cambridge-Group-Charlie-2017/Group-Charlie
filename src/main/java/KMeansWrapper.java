@@ -13,7 +13,8 @@ import weka.core.converters.ConverterUtils;
 // Using KMeans initially purely for test reasons, because it's easy.
 // Will definitely try other algorithms once the basic structure works.
 
-public class KMeansWrapper {
+public class KMeansWrapper extends ClusteringAlgorithmWrapper{
+
 
     public ArrayList<Cluster> run(ArrayList<Vector<Double>> vecs) throws Exception{
         //TODO: convert vecs into aarf format, invoke KMeans with default k=5.
@@ -40,8 +41,6 @@ public class KMeansWrapper {
         }
 
         int dimensionality = vecs.get(0).size();
-        ArrayList<Cluster> clusters = new ArrayList<Cluster>();
-
         Instances clusterStandardDevs = cl.getClusterStandardDevs();
         Instances clusterCentroids = cl.getClusterCentroids();
 

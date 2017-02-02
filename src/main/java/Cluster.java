@@ -4,6 +4,7 @@ import java.util.Vector;
 /**
  * Created by Ben on 01/02/2017.
  */
+
 public class Cluster {
     private String clusterName;
     //private LinkedList<Vector<Double>> vectors;
@@ -21,6 +22,16 @@ public class Cluster {
     public Cluster(Vector<Double> cnt, Vector<Double> std) {
         centroid = cnt;
         stdevs = std;
+    }
+
+    public double getProb(Vector<Double> vec) {
+        //TODO: Use Bayes' classification to identify probability of membership
+        return 0;
+    }
+
+    public double getDistance(Vector<Double> vec) {
+        //TODO: Find the distance to the centroid. Useful for KMeans or XMeans clusters
+        return 0;
     }
 
     //not sure yet if necessary. Possibly list of email IDs instead?
