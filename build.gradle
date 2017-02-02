@@ -23,6 +23,12 @@ dependencies {
     // The production code uses Guava
     compile 'com.google.guava:guava:20.0'
 
+    // Logging frameworks
+    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:slf4j-simple:1.7.22'
+
+    compile 'org.hsqldb:hsqldb:2.3.4'
+
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
 }
