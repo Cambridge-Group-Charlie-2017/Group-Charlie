@@ -11,28 +11,20 @@ public class KMeansWrapperTest {
     //TODO: use pre-loaded vectors, output clusters.
 
 
-    @Test public void main() throws IOException{
+    @Test public void mainTest() throws Exception{
         KMeansWrapper km = new KMeansWrapper();
 
-        Vector<Double> vec = new Vector<Double>();
-        vec.add(1.0);
-        vec.add(2.0);
-        vec.add(3.0);
-        vec.add(4.0);
-        vec.add(5.0);
-
-        Vector<Double> vec2 = new Vector<Double>();
-        vec2.add(5.0);
-        vec2.add(4.0);
-        vec2.add(3.0);
-        vec2.add(2.0);
-        vec2.add(1.0);
-
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
-        vecs.add(vec);
-        vecs.add(vec2);
 
-        km.createAarf(vecs, "tempFile.aarf");
-        //check generated file for results.
+        vecs = km.parseArff("iris-vector.arff");
+
+        km.createArff(vecs, "tempFile.arff");
+        //To be certain, check tempFile.arff and iris-vector.arff. Contents should be identical apart from string attributes.
+
+        ArrayList<Cluster> clusters = km.run(vecs);
+        assertNotNull(clusters);
     }
+
+
+
 }

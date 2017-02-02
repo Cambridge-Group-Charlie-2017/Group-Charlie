@@ -11,9 +11,6 @@ public abstract class ClusteringAlgorithmWrapper {
     //KMeans, XMeans, EM, etc.
     ArrayList<Cluster> clusters = new ArrayList<Cluster>();
 
+    //Only identifies cluster metadata. Clusterer will actually assign emails based on the metadata.
     public abstract ArrayList<Cluster> run(ArrayList<Vector<Double>> vecs) throws Exception;
-
-    private void genClusterNames() {
-
-    }
 }

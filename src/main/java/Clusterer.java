@@ -1,3 +1,6 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -13,7 +16,6 @@ public class Clusterer {
     //private Email_Vectoriser vectoriser;
     private ClusteringAlgorithmWrapper cl = new KMeansWrapper();
 
-    private Email[] emailBuffer;
     private ArrayList<Cluster> clusters;
 
     void initialClusters(ArrayList<Vector<Double>> vecs) {
@@ -35,15 +37,52 @@ public class Clusterer {
         }
 
 
-        //TODO: Now loop over emails, for each assess closeness to each centroid and
+        //TODO: Now loop over emails, call vectoriser on each and then classifyEmail().
+        //TODO: At the same time, try to identify new cluster names.
         return;
     }
 
     void classifyNewEmails() {
-        //TODO: for classification, find closest centroid for an email.
-        //TODO: Once one's identified, THEN use naive Bayes to find the probability
+        //TODO: get new emails, call vectoriser, then call classifyEmail() on it.
+    }
+
+    //Should have an argument. Not sure yet if we should use email ID or Email object.
+    void classifyEmail() {
+        //TODO: For classification, find closest centroid for an email using matchStrength() in Cluster.
+        //TODO: Impose whatever restrictions you like, for example, if KMeans is used you could put an email
+        //TODO: in default 'inbox' if two highest distances are too similar. If EM used, Possibly classify
+        //TODO: as 'inbox' if no probability exceeds a threshold.
     }
 
 
+    //Temp code for generating test vector file.
+    public static void main(String args[]) throws Exception{
+
+        FileWriter writer = new FileWriter("testVecs.arff");
+        BufferedReader in = new BufferedReader(new FileReader("iris.arff"));
+        writer.write("@RELATION vectors \n");
+        for (int i = 0; i < 4; i++) {
+            writer.write("@ATTRIBUTE e" + i + " \n");
+        }
+        writer.write("\n@DATA\n");
+
+        String currLine;
+        try {
+            int i = 0;
+            while (i < 299) {
+                currLine = in.readLine();
+                if (currLine == null)
+                    break;
+                if (!currLine.equals("")) {
+                    String[] tokens = currLine.split(",");
+                    currLine = tokens[0]+","+tokens[1]+","+tokens[2]+","+tokens[3];
+                    writer.write(currLine+"\n");
+                    writer.flush();
+                }
+            }
+        } catch (Exception e) {}
+        writer.close();
+        in.close();
+    }
 
 }
