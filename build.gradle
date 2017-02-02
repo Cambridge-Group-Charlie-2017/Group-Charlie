@@ -19,6 +19,14 @@ repositories {
     jcenter()
 }
 
+test {
+    testLogging {
+        events "PASSED", "STARTED", "FAILED", "SKIPPED"
+        showStandardStreams true
+        exceptionFormat "full"
+    }
+}
+
 dependencies {
     // The production code uses Guava
     compile 'com.google.guava:guava:20.0'
