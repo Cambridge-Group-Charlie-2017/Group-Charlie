@@ -32,7 +32,8 @@ public class Configuration {
 			+ "WHEN NOT MATCHED THEN INSERT VALUES vals.x, vals.y";
 	private static final String DELETE_CONFIG = "DELETE FROM config WHERE key = ?";
 
-	private static final Logger log = LoggerFactory.getLogger(Database.class);
+	private static final Logger log = LoggerFactory
+			.getLogger(Configuration.class);
 
 	private static Configuration instance;
 
