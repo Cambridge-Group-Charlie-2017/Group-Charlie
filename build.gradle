@@ -37,8 +37,14 @@ dependencies {
 
     compile 'org.hsqldb:hsqldb:2.3.4'
 
+    // javax.mail
+    compile 'javax.mail:mail:1.4.7'
+
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
+
+    // Mail server test framework
+    testCompile 'com.icegreen:greenmail:1.5.3'
 }
 
 // Define the main class for the application
