@@ -4,10 +4,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Vector;
+
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
+
+import javax.mail.Message;
 
 /**
  * Created by Ben on 01/02/2017.
@@ -17,9 +20,14 @@ import weka.core.converters.ConverterUtils;
 // Will definitely try other algorithms once the basic structure works.
 
 public class KMeansWrapper extends ClusteringAlgorithmWrapper{
-    private final String DEFAULT_ARFF = "iris-vector.arff";
+    private final String DEFAULT_ARFF = "vectors.arff";
 
-    public ArrayList<Cluster> run(ArrayList<Vector<Double>> vecs) throws Exception{
+    public ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
+
+        //TODO: convert messages into an array of vectors by calling Vectoriser.getVectors(messages).
+        //Not yet implemented so we'll use a substitute for testing:
+        ArrayList<Vector<Double>> vecs = testGetVecs();
+
         // convert vecs into aarf format, invoke KMeans with default k=5.
         try {
             createArff(vecs, DEFAULT_ARFF);
@@ -37,24 +45,30 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
             cl.buildClusterer(data);
             ClusterEvaluation eval = new ClusterEvaluation();
             eval.setClusterer(cl);
-            eval.evaluateClusterer(new Instances(data));
+            //eval.evaluateClusterer(new Instances(data));
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
 
         int dimensionality = vecs.get(0).size();
-        //Instances clusterStandardDevs = cl.getClusterStandardDevs();
         Instances clusterCentroids = cl.getClusterCentroids();
 
+        ArrayList<Vector<Double>> centroids = new ArrayList<Vector<Double>>();
         for (int i = 0; i < cl.numberOfClusters(); i++) {
             Vector<Double> centVec = new Vector<Double>();
             for (int j = 0; j < dimensionality; j++) {
                 centVec.add(clusterCentroids.attributeToDoubleArray(j)[i]);
             }
-            clusters.add(new KMeansCluster(centVec));
+            centroids.add(centVec);
         }
 
+        ArrayList<ArrayList<Message>> msgGroups = new ArrayList<ArrayList<Message>>();
+        //TODO: group messages into msgGroups. Place each in the list at the same index as their closest centroid.
+
+        for (int i = 0; i < centroids.size(); i++) {
+            clusters.add(new KMeansCluster(centroids.get(i), msgGroups.get(i)));
+        }
         return clusters;
     }
 
@@ -118,5 +132,14 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
         } catch (Exception e) {e.printStackTrace();}
 
         return vecs;
+    }
+
+
+
+    //temporary function for testing. Will be made redundant once vectoriser is implemented.
+    private ArrayList<Vector<Double>> testGetVecs() {
+        try {
+            return parseArff("iris-vector.arff");
+        } catch (IOException e) {return null;}
     }
 }

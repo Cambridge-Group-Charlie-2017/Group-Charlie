@@ -4,12 +4,18 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Vector;
 
+import javax.mail.Message;
+
 /**
  * Created by Ben on 01/02/2017.
  */
 
 /*
-* The Clusterer obtains emails from the Mailbox,
+* The Clusterer obtains Messages from the mailbox. Which set of emails it obtains depends on the operation.
+* When clustering, it obtains all messages in unprotected folders (or which the user hasn't manually moved).
+* During classification, it obtains new emails.
+*
+* During clustering,
  */
 
 public class Clusterer {
@@ -18,40 +24,32 @@ public class Clusterer {
 
     private ArrayList<Cluster> clusters;
 
-    void initialClusters(ArrayList<Vector<Double>> vecs) {
-        //TODO: call vectoriser on all emails. This should only run once on the user's pre-existing set of emails.
-        evalClusters(vecs);
-        return;
-    }
 
-    void evalClusters(ArrayList<Vector<Double>> vecs) {
+    void evalClusters(ArrayList<Message> messages) {
         //main method for evaluating clusters.
-        //All emails requiring clustering should already be clustered.
+        //precondition: all Messages in 'message' are clear for clustering i.e. are not in protected folders.
+        //call training methods in Vectoriser. If Vectorising model doesn't require training, these will be blank anyway.
+        //postcondition: 'clusters' contains the new clustering, and all emails are in their new clusters on the server.
+
+        //TODO: call vectoriser on messages
 
         //gets centroids and stdevs of clusters.
         try {
-            clusters = cl.run(vecs);
+            clusters = cl.run(messages);
         } catch (Exception e) {
             e.printStackTrace();
             return;
         }
+        //TODO: generate and assign cluster names.
 
-
-        //TODO: Now loop over emails, call vectoriser on each and then classifyEmail().
-        //TODO: At the same time, try to identify new cluster names.
+        //TODO: update server with new clusters.
         return;
     }
 
-    void classifyNewEmails() {
-        //TODO: get new emails, call vectoriser, then call classifyEmail() on it.
-    }
-
-    //Should have an argument. Not sure yet if we should use email ID or Email object.
-    void classifyEmail() {
-        //TODO: For classification, find closest centroid for an email using matchStrength() in Cluster.
-        //TODO: Impose whatever restrictions you like, for example, if KMeans is used you could put an email
-        //TODO: in default 'inbox' if two highest distances are too similar. If EM used, Possibly classify
-        //TODO: as 'inbox' if no probability exceeds a threshold.
+    void classifyNewEmails(ArrayList<Message> messages) {
+        //TODO: get vectors for the emails.
+        //TODO: For classification, find best cluster for each email using matchStrength().
+        //TODO: Update mailbox accordingly.
     }
 
 

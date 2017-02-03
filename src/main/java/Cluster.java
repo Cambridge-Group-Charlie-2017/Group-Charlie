@@ -1,3 +1,5 @@
+import javax.mail.Message;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Vector;
 
@@ -7,22 +9,19 @@ import java.util.Vector;
 
 public abstract class Cluster {
     protected String clusterName;
+    protected ArrayList<Message> contents;
+    int dimensionality;
+    int clusterSize;
 
     //Returns a value representing how strongly an email fits in a cluster.
     //Method is irrelevant, could be euclidean distance or probability etc. but smaller must mean better match.
-    public abstract double matchStrength(Vector<Double> vec);
+    public abstract double matchStrength(Vector<Double> vec) throws VectorElementMismatchException;
 
 
     void setName(String name) {clusterName = name;}
 
+    //adding a new message to a cluster (during classification) should cause cluster metadata to change accordingly.
+    abstract void addMessage(Message msg);
 
-    //Could possibly just ignore the effect adding an email has on the averages?
-    void addVector(Vector<Double> vec) {
-        //TODO: re-evaluate average and stdev vectors
-    }
-
-
-    //not sure yet if necessary. Possibly update metadata using email IDs instead?
-    //private LinkedList<Vector<Double>> vectors;
-    // LinkedList<Vector<Double>> getVectors() {return vectors;}
+    ArrayList<Message> getContents() {return contents;}
 }

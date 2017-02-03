@@ -21,7 +21,7 @@ public class KMeansWrapperTest {
         km.createArff(vecs, "tempFile.arff");
         //To be certain, check tempFile.arff and iris-vector.arff. Contents should be identical apart from string attributes.
 
-        ArrayList<Cluster> clusters = km.run(vecs);
+        ArrayList<Cluster> clusters = km.run(null);
         assertNotNull(clusters);
     }
 
