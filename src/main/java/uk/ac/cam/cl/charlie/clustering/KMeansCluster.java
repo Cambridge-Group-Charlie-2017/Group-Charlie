@@ -1,3 +1,5 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import javax.mail.Message;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -10,7 +12,7 @@ public class KMeansCluster extends Cluster{
     Vector<Double> getCentroid() {return centroid;}
 
     public void addMessage(Message msg) {
-        //TODO: once vectoriser implemented, replace with genuine getVec method.
+        //once vectoriser implemented, replace with genuine getVec method.
         Vector<Double> vec = testGetVec(msg);
 
         for (int i = 0; i < dimensionality; i++) {
@@ -19,7 +21,7 @@ public class KMeansCluster extends Cluster{
         }
     }
 
-    public double matchStrength(Vector<Double> vec) throws VectorElementMismatchException{
+    public double matchStrength(Vector<Double> vec) throws VectorElementMismatchException {
         if (vec.size() != centroid.size())
             throw new VectorElementMismatchException();
 
@@ -31,17 +33,20 @@ public class KMeansCluster extends Cluster{
         return distanceSquared;
     }
 
-    public KMeansCluster(Vector<Double> cent, ArrayList<Message> initialContents) {
-        this.centroid = cent;
-        this.contents = initialContents;
+    public KMeansCluster(Vector<Double> initialCentroid, ArrayList<Message> initialContents) {
+        super(initialContents);
+        this.centroid = initialCentroid;
     }
 
-    //Temp test function. Delete when Vectoriser implemented.
-    private Vector<Double> testGetVec(Message msg) {
-        Vector<Double> vec = new Vector<Double>();
-        for (int i = 0; i < dimensionality; i++) {
-            vec.add((double)i);
+    //temp test function, for use until Vectoriser is implemented.
+    private Vector<Double> testGetVec(Message message) {
+
+        int dimensionality = 5;
+        Vector<Double> v = new Vector<Double>();
+        for (int j = 0; j < dimensionality; j++) {
+            v.add(java.lang.Math.random() * 3);
         }
-        return vec;
+
+        return v;
     }
 }
