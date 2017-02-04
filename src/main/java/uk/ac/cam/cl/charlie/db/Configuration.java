@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +14,6 @@ import org.slf4j.LoggerFactory;
  * @author Gary Guo
  */
 public class Configuration {
-
-	// SQL statement for checking whether the config table exists
-	private static final String CHECK_CONFIG_TABLE = "SELECT * FROM INFORMATION_SCHEMA.TABLES "
-			+ "WHERE TABLE_SCHEMA = 'PUBLIC' AND UPPER(TABLE_NAME) = 'CONFIG'";
 
 	// SQL statement for creating config table
 	private static final String CREATE_CONFIG_TABLE = "CREATE TABLE config "
@@ -45,38 +40,21 @@ public class Configuration {
 	private Configuration() {
 		db = Database.getInstance();
 
-		Connection conn = db.getConnection();
-
-		try {
-			// Query metadata to check if config table exists or not
-			boolean configTableExists;
-			try (Statement statement = conn.createStatement();
-					ResultSet result = statement
-							.executeQuery(CHECK_CONFIG_TABLE)) {
-				configTableExists = result.next();
-			}
-
-			// Create the table if is not created
-			if (!configTableExists) {
-				log.info("Table config does not exist, creating...");
-				try (Statement statement = conn.createStatement()) {
-					statement.execute(CREATE_CONFIG_TABLE);
-
-					log.info("Table config created");
-				}
-			} else {
-				log.info("Table config exists already");
-			}
-		} catch (SQLException e) {
-			log.error("Failed to create config table", e);
-			throw new Error(e);
+		// Create the table if is not created
+		if (!db.tableExists("config")) {
+			log.info("Table config does not exist, creating...");
+			db.executeUpdate(CREATE_CONFIG_TABLE);
+			log.info("Table config created");
+		} else {
+			log.info("Table config exists already");
 		}
 
 		// Initialize prepared statements
+		Connection conn = db.getConnection();
 		try {
-			selectStmt = db.getConnection().prepareStatement(SELECT_CONFIG);
-			updateStmt = db.getConnection().prepareStatement(UPDATE_CONFIG);
-			deleteStmt = db.getConnection().prepareStatement(DELETE_CONFIG);
+			selectStmt = conn.prepareStatement(SELECT_CONFIG);
+			updateStmt = conn.prepareStatement(UPDATE_CONFIG);
+			deleteStmt = conn.prepareStatement(DELETE_CONFIG);
 		} catch (SQLException e) {
 			log.error("Failed to create prepared statement", e);
 			throw new Error(e);
