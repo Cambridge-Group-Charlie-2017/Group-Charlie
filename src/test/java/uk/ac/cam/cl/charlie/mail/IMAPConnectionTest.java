@@ -22,7 +22,7 @@ public class IMAPConnectionTest {
     private static final String USER_NAME = "GROUP-CHARLIE";
     private static final String USER_EMAIL_ADDRESS  = "GROUP-CHARLIE@cam.ac.uk";
     private static final String USER_PASSWORD = "abcdef123";
-    private static final String LOCALHOST = "localhost";
+    private static final String LOCALHOST = ServerSetup.getLocalHostAddress();
 
     private static IMAPConnection imapConnection;
 
