@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.mail;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,14 +23,16 @@ public class IMAPConnectionTest {
     private static final String USER_NAME = "GROUP-CHARLIE";
     private static final String USER_EMAIL_ADDRESS  = "GROUP-CHARLIE@cam.ac.uk";
     private static final String USER_PASSWORD = "abcdef123";
-    private static final String LOCALHOST = ServerSetup.getLocalHostAddress();
+    private static final String LOCALHOST = "localhost";
+    private static final int PORT = 3993;
+    private static final String PROTOCOL = "imap";
 
     private static IMAPConnection imapConnection;
 
 
     @Before
     public void setUp() throws NoSuchProviderException {
-        mailServer = new GreenMail(ServerSetup.IMAPS);
+        mailServer = new GreenMail(new ServerSetup(PORT, LOCALHOST, PROTOCOL));
         mailServer.start();
 
         mailServer.setUser(USER_EMAIL_ADDRESS, USER_NAME, USER_PASSWORD);
@@ -38,8 +41,8 @@ public class IMAPConnectionTest {
                 LOCALHOST,
                 USER_NAME,
                 USER_PASSWORD,
-                Integer.toString(ServerSetup.IMAPS.getPort()),
-                "imaps"
+                Integer.toString(PORT),
+                PROTOCOL
         );
     }
 
@@ -60,8 +63,8 @@ public class IMAPConnectionTest {
                 LOCALHOST,
                 USER_NAME,
                 "",
-                Integer.toString(ServerSetup.IMAPS.getPort()),
-                "imaps"
+                Integer.toString(PORT),
+                PROTOCOL
         );
 
         wrongConnection.connect();
