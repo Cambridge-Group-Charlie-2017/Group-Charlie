@@ -54,3 +54,4 @@ task downloadWord2Vec (type:Exec) {
 }
 
 build.dependsOn downloadWord2Vec
+test.dependsOn downloadWord2Vec
