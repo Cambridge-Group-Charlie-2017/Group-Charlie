@@ -40,10 +40,10 @@ dependencies {
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
     
-    //deeplearning4j for word2vec model 
-    compile "org.deeplearning4j:deeplearning4j-ui:${dl4j.version}"
-	compile "org.deeplearning4j:deeplearning4j-nlp:${dl4j.version}"
-	compile "org.nd4j:nd4j-native:${nd4j.version}"
+    // deeplearning4j for word2vec model 
+    compile 'org.deeplearning4j:deeplearning4j-ui:0.6.0' // not entirely certain we need this one
+    compile 'org.deeplearning4j:deeplearning4j-nlp:0.7.2'
+    compile 'org.nd4j:nd4j-native:0.7.2'
 }
 
 // Define the main class for the application
