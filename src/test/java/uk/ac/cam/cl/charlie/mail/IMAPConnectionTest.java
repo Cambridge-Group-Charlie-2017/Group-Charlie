@@ -10,7 +10,10 @@ import org.junit.Test;
 
 import javax.mail.*;
 
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test for class {@link IMAPConnection}
@@ -81,7 +84,7 @@ public class IMAPConnectionTest {
     }
 
     @Test
-    public void testAddingFolders() throws MessagingException, FolderAlreadyExistsException, IMAPConnectionClosedException {
+    public void testAddingFolders() throws Exception {
         imapConnection.connect();
 
         String[] newFolderNames = {"Test 1", "Test 2", "Test 3"};
@@ -99,19 +102,49 @@ public class IMAPConnectionTest {
     }
 
     @Test(expected = FolderAlreadyExistsException.class)
-    public void testAddingExistingFolder() throws MessagingException, FolderAlreadyExistsException {
+    public void testAddingExistingFolder() throws Exception {
         imapConnection.connect();
         imapConnection.createFolder("Test 1");
         imapConnection.createFolder("Test 1");
     }
 
     @Test(expected = FolderNotFoundException.class)
-    public void testNonExistentParentFolder() throws MessagingException, FolderAlreadyExistsException {
+    public void testNonExistentParentFolder() throws Exception {
         imapConnection.connect();
         imapConnection.createFolder("Test 1");
         Folder f = imapConnection.getFolder("Test 1");
         f.delete(false);
         imapConnection.createFolder(f, "Test 2");
+    }
+
+    @Test
+    public void testAddingSubfolders() throws Exception {
+        imapConnection.connect();
+        imapConnection.createFolder("Test 1");
+        imapConnection.createFolder("Test 2");
+
+        Folder test1 = imapConnection.getFolder("Test 1");
+        Folder test2 = imapConnection.getFolder("Test 2");
+
+        Folder[] folders = imapConnection.getAllFolders();
+        assertEquals(3, folders.length);
+
+        imapConnection.createFolder(test1, "Test 3");
+        imapConnection.createFolder(test2, "Test 4");
+
+        folders = imapConnection.getAllFolders();
+        assertEquals(5, folders.length);
+
+        assertTrue(Arrays.stream(folders).anyMatch(f -> f.getFullName().equals("Test 1")));
+        assertTrue(Arrays.stream(folders).anyMatch(f -> f.getFullName().equals("Test 2")));
+        assertTrue(Arrays.stream(folders).anyMatch(f -> f.getFullName().equals("Test 1.Test 3")));
+        assertTrue(Arrays.stream(folders).anyMatch(f -> f.getFullName().equals("Test 2.Test 4")));
+    }
+
+    @Test(expected = InvalidFolderNameException.class)
+    public void testAddingSubfoldersInvalidName() throws Exception {
+        imapConnection.connect();
+        imapConnection.createFolder("Test 1.1");
     }
 
 }

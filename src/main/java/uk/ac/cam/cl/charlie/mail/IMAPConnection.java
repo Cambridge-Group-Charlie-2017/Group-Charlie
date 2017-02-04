@@ -76,12 +76,25 @@ public class IMAPConnection {
         return sessionStore.getFolder(name);
     }
 
-    public void createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException {
+    public void createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, InvalidFolderNameException {
         createFolder(sessionStore.getDefaultFolder(), newFolderName);
     }
 
-    public void createFolder(Folder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException {
-        if (!parentFolder.exists()) throw new FolderNotFoundException();
+    public void createFolder(Folder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
+        if (newFolderName.contains(".")) {
+            log.error("Invalid folder name '{}' with parent '{}'", newFolderName, parentFolder.getFullName());
+            throw new InvalidFolderNameException("The folder name can't contain a '.'");
+        }
+
+        if (!parentFolder.exists()) {
+            log.error("Attemted to create subfolder '{}' under non exisiting parent folder '{}'", newFolderName, parentFolder.getFullName());
+            throw new FolderNotFoundException();
+        }
+        if ((parentFolder.getType() & Folder.HOLDS_FOLDERS) == 0) {
+            log.error("Attemted to create subfolder in '{}' under parent folder '{}', which does not hold folders", newFolderName, parentFolder.getFullName());
+            throw new FolderHoldsNoFoldersException();
+        }
+
         try {
             Folder newFolder = parentFolder.getFolder(newFolderName);
             if (newFolder.exists()) throw new FolderAlreadyExistsException();
