@@ -49,3 +49,8 @@ dependencies {
 // Define the main class for the application
 mainClassName = 'App'
 
+task downloadWord2Vec (type:Exec) {
+    commandLine './dlvec.sh'
+}
+
+build.dependsOn downloadWord2Vec
