@@ -151,4 +151,7 @@ flycheck_*.el
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+# WORD2VEC MODEL
+src/main/res/word2vec/wordvectors.bin
+
 # End of https://www.gitignore.io/api/vim,eclipse,java,emacs
