@@ -1,3 +1,5 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -18,22 +20,19 @@ import javax.mail.Message;
 
 // Using KMeans initially purely for test reasons, because it's easy.
 // Will definitely try other algorithms once the basic structure works.
+// Using a default 5 clusters.
 
-public class KMeansWrapper extends ClusteringAlgorithmWrapper{
+public class KMeansClusterer extends Clusterer {
+    //File in which vectors will be stored temporarily prior to clustering.
     private final String DEFAULT_ARFF = "vectors.arff";
 
-    public ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
+    protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
 
-        //TODO: convert messages into an array of vectors by calling Vectoriser.getVectors(messages).
         //Not yet implemented so we'll use a substitute for testing:
-        ArrayList<Vector<Double>> vecs = testGetVecs();
+        vecsForTesting = parseTestFile();
 
         // convert vecs into aarf format, invoke KMeans with default k=5.
-        try {
-            createArff(vecs, DEFAULT_ARFF);
-        } catch (IOException e) {
-            //TODO: deal with
-        }
+        createArff(vecsForTesting, DEFAULT_ARFF);
 
         SimpleKMeans cl;
         try {
@@ -51,10 +50,14 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
             return null;
         }
 
-        int dimensionality = vecs.get(0).size();
+        int dimensionality = vecsForTesting.get(0).size();
         Instances clusterCentroids = cl.getClusterCentroids();
 
+
         ArrayList<Vector<Double>> centroids = new ArrayList<Vector<Double>>();
+        ArrayList<ArrayList<Message>> msgGroups = new ArrayList<ArrayList<Message>>();
+
+        //create centroid vectors from the clustering results.
         for (int i = 0; i < cl.numberOfClusters(); i++) {
             Vector<Double> centVec = new Vector<Double>();
             for (int j = 0; j < dimensionality; j++) {
@@ -63,13 +66,42 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
             centroids.add(centVec);
         }
 
-        ArrayList<ArrayList<Message>> msgGroups = new ArrayList<ArrayList<Message>>();
-        //TODO: group messages into msgGroups. Place each in the list at the same index as their closest centroid.
 
+        //group messages into msgGroups. Place each in the list at the same index as their closest centroid.
+        //Again, use test vectors until Vectoriser is implemented.
+        double bestMatch = Integer.MAX_VALUE;
+        int bestCluster = 0;
+        for (int i = 0; i < messages.size(); i++) {
+            for (int j = 0; j < clusters.size(); j++) {
+                double currMatch = distanceSquared(vecsForTesting.get(i), centroids.get(i));
+                if (currMatch < bestMatch) {
+                    bestMatch = currMatch;
+                    bestCluster = j;
+                }
+            }
+            msgGroups.get(bestCluster).add(messages.get(i));
+        }
+
+        //create uk.ac.cam.cl.charlie.clustering.Cluster objects using these groupings
+        clusters = new ArrayList<Cluster>();
         for (int i = 0; i < centroids.size(); i++) {
             clusters.add(new KMeansCluster(centroids.get(i), msgGroups.get(i)));
         }
+
+        //return current clustering to calling class (probably Client). Could be ignored.
         return clusters;
+    }
+
+    public double distanceSquared(Vector<Double> vec1, Vector<Double> vec2) throws VectorElementMismatchException {
+        if (vec1.size() != vec2.size())
+            throw new VectorElementMismatchException();
+
+        //returns square of distance
+        double distanceSquared = 0;
+        for (int i = 0; i < vec2.size(); i++) {
+            distanceSquared += Math.pow(vec2.get(i) - vec1.get(i), 2.0);
+        }
+        return distanceSquared;
     }
 
     void createArff(ArrayList<Vector<Double>> vecs, String fileName) throws IOException {
@@ -94,6 +126,7 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
         writer.flush();
         writer.close();
     }
+
 
     //Note: this function may not even be needed.
     ArrayList<Vector<Double>> parseArff(String fileName) throws IOException {
@@ -134,10 +167,8 @@ public class KMeansWrapper extends ClusteringAlgorithmWrapper{
         return vecs;
     }
 
-
-
     //temporary function for testing. Will be made redundant once vectoriser is implemented.
-    private ArrayList<Vector<Double>> testGetVecs() {
+    private ArrayList<Vector<Double>> parseTestFile() {
         try {
             return parseArff("iris-vector.arff");
         } catch (IOException e) {return null;}
