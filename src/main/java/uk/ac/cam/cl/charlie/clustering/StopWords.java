@@ -1,3 +1,5 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import java.util.HashSet;
 
 /**

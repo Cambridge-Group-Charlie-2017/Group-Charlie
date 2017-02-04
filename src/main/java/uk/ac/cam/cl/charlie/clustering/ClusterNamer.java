@@ -1,6 +1,7 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import java.security.MessageDigest;
 import java.util.*;
 
 /**
