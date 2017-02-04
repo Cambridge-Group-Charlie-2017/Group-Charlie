@@ -57,7 +57,7 @@ public class Clusterer {
     public static void main(String args[]) throws Exception{
 
         FileWriter writer = new FileWriter("testVecs.arff");
-        BufferedReader in = new BufferedReader(new FileReader("iris.arff"));
+        BufferedReader in = new BufferedReader(new FileReader("iris-vector.arff"));
         writer.write("@RELATION vectors \n");
         for (int i = 0; i < 4; i++) {
             writer.write("@ATTRIBUTE e" + i + " \n");
