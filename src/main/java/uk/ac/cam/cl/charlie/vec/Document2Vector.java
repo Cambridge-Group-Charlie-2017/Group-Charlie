@@ -1,5 +1,8 @@
 package uk.ac.cam.cl.charlie.vec;
 
+import java.util.ArrayList;
+import java.util.Optional;
+
 /*
  * Document2Vector is the interface to be used by Clusterer and Classifier
  * to convert email or/and their attachements to feature vectors in a vector
@@ -17,7 +20,7 @@ public class Document2Vector {
 		this.strategy = strategy;
 	}
 	
-	public double[] word2vec(String word) {
+	public Optional<ArrayList<Double>> word2vec(String word) {
 		return strategy.word2vec(word);
 	}
 	
