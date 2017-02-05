@@ -8,6 +8,7 @@ import java.util.Set;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
+import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.Email;
 import uk.ac.cam.cl.charlie.vec.Vector;
@@ -21,7 +22,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private boolean modelLoaded;
     private String word2vecPath = "src/main/res/word2vec/wordvectors.bin";
     private Tfidf tf = null;
-
+    private Database database = null; //Is this the database we store our results in, according to our meeting 3rd Feb?
+    
     private int vectorDimensions = 300;
 
     public Optional<ArrayList<Double>> word2vec(String word) {
@@ -34,6 +36,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
         	//Do we really not want to attempt to vectorise the word at all?
             return Optional.empty();
         }
+    }
+    
+    public void giveDatabaseInstance(Database database) {
+    	this.database = database;
+    }
+    
+    public boolean hasDatabaseInstance() {
+    	return database != null ? true : false;
     }
 
     @Override
@@ -78,7 +88,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         // don't want to duplicate words -> use a set
         Set<String> words = new HashSet<String>();
 
-        for (String w : text.split(" ")) {
+        for (String w : text.split("[\\W]")) { //this will split on non-word characters
             words.add(w);
         }
 
@@ -114,7 +124,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
         // calculate the number of occurences of word in doc
         int count = 0;
-        for (String w : doc.split(" ")) {
+        for (String w : doc.split("[\\W]")) { //this will split on non-word characters
             if (w.equals(word)) {
                 ++count;
             }

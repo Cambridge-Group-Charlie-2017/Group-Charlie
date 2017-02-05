@@ -3,6 +3,8 @@ package uk.ac.cam.cl.charlie.vec;
 import java.util.ArrayList;
 import java.util.Optional;
 
+import uk.ac.cam.cl.charlie.db.Database;
+
 /*
  * Document2Vector is the interface to be used by Clusterer and Classifier
  * to convert email or/and their attachements to feature vectors in a vector
@@ -14,6 +16,8 @@ import java.util.Optional;
  */
 public class Document2Vector {
 	
+	Database database = null;
+	
 	private VectorisingStrategy strategy;
 	
 	public Document2Vector(final VectorisingStrategy strategy) {
@@ -22,6 +26,10 @@ public class Document2Vector {
 	
 	public Optional<ArrayList<Double>> word2vec(String word) {
 		return strategy.word2vec(word);
+	}
+	
+	public void instantiateDatabase() {
+		database = Database.getInstance();
 	}
 	
 }
