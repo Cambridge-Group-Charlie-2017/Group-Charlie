@@ -8,7 +8,7 @@ package uk.ac.cam.cl.charlie.vec;
  */
 public interface VectorisingStrategy {
 
-	public Vector word2vec(Word word);
+	public double[] word2vec(String word);
 	
 	public Vector doc2vec(Document doc);
 	
