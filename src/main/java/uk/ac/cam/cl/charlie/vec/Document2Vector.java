@@ -17,7 +17,7 @@ public class Document2Vector {
 		this.strategy = strategy;
 	}
 	
-	public Vector word2vec(Word word) {
+	public double[] word2vec(String word) {
 		return strategy.word2vec(word);
 	}
 	

@@ -1,15 +1,17 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
+
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.Email;
 import uk.ac.cam.cl.charlie.vec.Vector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
-
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Created by Shyam Tailor on 04/02/2017.
@@ -22,12 +24,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     private int vectorDimensions = 300;
 
-    public Optional<double[]> word2vec(String word) {
+    public Optional<ArrayList<Double>> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
+    	// ^ we cannot use Optional with double[] as Optional uses generics which require a class.
         if (model.hasWord(word)) {
-            return Optional.of(double[]);
+            return Optional.of(new ArrayList<Double>());
         }
         else {
+        	//Do we really not want to attempt to vectorise the word at all?
             return Optional.empty();
         }
     }
@@ -83,13 +87,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
         // add the vectors for every word which is in the vocab
         for (String w : words) {
-            Optional<double[]> wordVec = word2vec(w);
+            Optional<ArrayList<Double>> wordVec = word2vec(w);
             if (wordVec.isPresent()) {
                 double weighting = calculateTFValue(w, text);
                 totalWeight += weighting;
 
                 for (int i = 0; i < vectorDimensions; ++i) {
-                    docVector[i] += weighting * wordVec.get()[i];
+                    docVector[i] += weighting * wordVec.get().get(i);
                 }
             }
         }
