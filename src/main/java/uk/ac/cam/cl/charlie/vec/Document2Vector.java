@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import uk.ac.cam.cl.charlie.db.Database;
 
-/*
+/**
  * Document2Vector is the interface to be used by Clusterer and Classifier
  * to convert email or/and their attachements to feature vectors in a vector
  * space model (VSM).

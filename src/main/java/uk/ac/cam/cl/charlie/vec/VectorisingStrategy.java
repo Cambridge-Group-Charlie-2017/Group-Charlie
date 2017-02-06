@@ -3,7 +3,7 @@ package uk.ac.cam.cl.charlie.vec;
 import java.util.ArrayList;
 import java.util.Optional;
 
-/*
+/**
  * Any algorithm used to transform words or emails or documents to feature vectors
  * should extend this class.
  * 
@@ -13,8 +13,8 @@ public interface VectorisingStrategy {
 
 	public Optional<ArrayList<Double>> word2vec(String word);
 	
-	public Vector doc2vec(Document doc);
+	public double[] doc2vec(Document doc);
 	
-	public Vector doc2vec(Email doc);
+	public double[] doc2vec(Email doc);
 	
 }

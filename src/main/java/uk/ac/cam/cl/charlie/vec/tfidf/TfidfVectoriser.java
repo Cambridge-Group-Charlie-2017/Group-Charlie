@@ -42,13 +42,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public Vector doc2vec(Document doc) {
+    public double[] doc2vec(Document doc) {
         // todo add any other content to do with names or other meta data
         return calculateDocVector(doc.getContent());
     }
 
     @Override
-    public Vector doc2vec(Email doc) {
+    public double[] doc2vec(Email doc) {
         // todo add anything that is relevant to the email header here.
         return doc2vec(doc.getTextBody());
     }
