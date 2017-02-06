@@ -10,7 +10,7 @@ import java.util.Vector;
 public abstract class Clusterer {
     //Possible implentations:
     //KMeans, XMeans, EM, etc.
-    ArrayList<Cluster> clusters = new ArrayList<Cluster>();
+    private ArrayList<Cluster> clusters = new ArrayList<Cluster>();
 
     //Mailbox is private because only this class should update it, no inheriting class.
     //private Mailbox mailbox;
@@ -41,18 +41,18 @@ public abstract class Clusterer {
         }
     }
 
-    //Only identifies clustering metadata. uk.ac.cam.cl.charlie.clustering.Clusterer will actually assign emails based on the metadata.
+    //Produces clusters of messages. evalClusters() will actually update the IMAP server.
     protected abstract ArrayList<Cluster> run(ArrayList<Message> vecs) throws Exception;
 
 
-    void evalClusters(ArrayList<Message> messages) {
+    public void evalClusters(ArrayList<Message> messages) {
         //main method for evaluating clusters.
         //precondition: all Messages in 'message' are clear for clustering i.e. are not in protected folders.
         //call training methods in Vectoriser. If Vectorising model doesn't require training, these will be blank anyway.
         //postcondition: 'clusters' contains the new clustering, and all emails are in their new clusters on the server.
 
 
-        //gets centroids of clusters.
+        //sets 'clusters' field to new clusters based on the 'messages' input.
         try {
             clusters = run(messages);
         } catch (Exception e) {
@@ -65,58 +65,4 @@ public abstract class Clusterer {
         //TODO: update server with new clusters.
         return;
     }
-
-
-/*
-    //-------------------------------------------------------------------------------
-    //Temp/test code:
-
-    //Temp code for generating test vector file.
-    public static void main(String args[]) throws Exception{
-
-        FileWriter writer = new FileWriter("testVecs.arff");
-        BufferedReader in = new BufferedReader(new FileReader("iris.arff"));
-        writer.write("@RELATION vectors \n");
-        for (int i = 0; i < 4; i++) {
-            writer.write("@ATTRIBUTE e" + i + " \n");
-        }
-        writer.write("\n@DATA\n");
-
-        String currLine;
-        try {
-            int i = 0;
-            while (i < 299) {
-                currLine = in.readLine();
-                if (currLine == null)
-                    break;
-                if (!currLine.equals("")) {
-                    String[] tokens = currLine.split(",");
-                    currLine = tokens[0]+","+tokens[1]+","+tokens[2]+","+tokens[3];
-                    writer.write(currLine+"\n");
-                    writer.flush();
-                }
-            }
-        } catch (Exception e) {}
-        writer.close();
-        in.close();
-    }
-
-
-
-    //temp test function, for use until Vectoriser is implemented.
-    private ArrayList<Vector<Double>> getTestVecs(ArrayList<Message> messages) {
-        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
-
-        int dimensionality = 5;
-        for (int i = 0; i < messages.size(); i++) {
-            Vector<Double> v = new Vector<Double>();
-            for (int j = 0; j < dimensionality; j++) {
-                v.add(java.lang.Math.random() * 3);
-            }
-            vecs.add(v);
-        }
-
-        return vecs;
-    }
-*/
 }

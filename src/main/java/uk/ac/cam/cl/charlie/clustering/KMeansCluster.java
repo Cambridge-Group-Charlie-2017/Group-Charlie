@@ -11,12 +11,13 @@ public class KMeansCluster extends Cluster{
     protected Vector<Double> centroid;
     Vector<Double> getCentroid() {return centroid;}
 
-    public void addMessage(Message msg) {
+    protected void updateMetadataAfterAdding(Message msg) {
         //once vectoriser implemented, replace with genuine getVec method.
         Vector<Double> vec = testGetVec(msg);
 
-        for (int i = 0; i < dimensionality; i++) {
-            double newAvg = (clusterSize * centroid.get(i) + vec.get(i)) / (clusterSize + 1);
+        //Note: clustersize has not been incremented yet at this point.
+        for (int i = 0; i < getDimensionality(); i++) {
+            double newAvg = (getClusterSize() * centroid.get(i) + vec.get(i)) / (getClusterSize() + 1);
             centroid.set(i,newAvg);
         }
     }
@@ -38,15 +39,5 @@ public class KMeansCluster extends Cluster{
         this.centroid = initialCentroid;
     }
 
-    //temp test function, for use until Vectoriser is implemented.
-    private Vector<Double> testGetVec(Message message) {
 
-        int dimensionality = 5;
-        Vector<Double> v = new Vector<Double>();
-        for (int j = 0; j < dimensionality; j++) {
-            v.add(java.lang.Math.random() * 3);
-        }
-
-        return v;
-    }
 }
