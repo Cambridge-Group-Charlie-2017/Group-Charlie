@@ -22,8 +22,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private boolean modelLoaded;
     private String word2vecPath = "src/main/res/word2vec/wordvectors.bin";
     private Tfidf tf = null;
-    private Database database = null; //Is this the database we store our results in, according to our meeting 3rd Feb?
-    
+
     private int vectorDimensions = 300;
 
     public Optional<ArrayList<Double>> word2vec(String word) {
@@ -34,26 +33,24 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
         else {
         	//Do we really not want to attempt to vectorise the word at all?
+            // there's no data so you can't.
+
+            // perhaps need to occasionally update the vocabulary and train the word2vec
+            // model further on the user's stuff
             return Optional.empty();
         }
-    }
-    
-    public void giveDatabaseInstance(Database database) {
-    	this.database = database;
-    }
-    
-    public boolean hasDatabaseInstance() {
-    	return database != null ? true : false;
     }
 
     @Override
     public Vector doc2vec(Document doc) {
-        return null;
+        // todo add any other content to do with names or other meta data
+        return calculateDocVector(doc.getContent());
     }
 
     @Override
     public Vector doc2vec(Email doc) {
-        return null;
+        // todo add anything that is relevant to the email header here.
+        return doc2vec(doc.getTextBody());
     }
 
     public boolean isModelLoaded() {
@@ -130,6 +127,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
             }
         }
 
+        // this is going to cause problems (divide by 0)
+        // need to add words to database frequency count first
         return count * Math.log((double)tf.totalNumberDocuments() / tf.numberOfDocsWithWith(word));
     }
 }

@@ -8,5 +8,9 @@ public class Email {
 		
 	}
 	private EmailHeader header;
+
+	public Document getTextBody() {
+		return textBody;
+	}
 	
 }

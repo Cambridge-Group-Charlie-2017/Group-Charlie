@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.vec.tfidf;
 import java.util.HashMap;
 import java.util.TreeSet;
 
+import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.Vector;
 
@@ -14,6 +15,17 @@ public final class Tfidf {
     // Use singleton pattern to stop subclassing
 
     private static Tfidf instance = null;
+    private Database database; // the database instance should store the word frequencies.
+
+    // TODO note I strongly disagree with this class having:
+    // a) any tables (the data has to be persisted to a database
+    // b) being used by external classes except TfidfVectoriser
+
+    // TODO this implementation with the database
+
+    // TODO I would also suggest aiming for very low coupling with the vectorising class
+    // there are other uses for tfidf ;)
+
     /*
      * The following hash map is represents a table in which we denote the word frequency in a document.
      * A hash map is used as it is more efficient to add documents.
@@ -35,11 +47,6 @@ public final class Tfidf {
             instance = new Tfidf();
         }
         return instance;
-    }
-
-    public Vector getDocumentVector(Document doc){
-    	//TODO use words sets as which component of vector represents what word. Fill component with frequencies.
-    	return null;
     }
 
     public int totalNumberDocuments() {
@@ -76,4 +83,13 @@ public final class Tfidf {
     public void addDocument(Document doc, HashMap<String, Integer> wordfrequency) { // To be used when wordfrequency has already been calculated
     	tfidfTableValues.put(doc.getName(),wordfrequency);
     }
+
+    public void giveDatabaseInstance(Database database) {
+    	this.database = database;
+    }
+
+    public boolean hasDatabaseInstance() {
+    	return database != null ? true : false;
+    }
+
 }
