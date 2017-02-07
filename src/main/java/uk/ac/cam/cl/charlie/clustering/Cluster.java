@@ -1,5 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import org.netlib.util.Dummy;
+
 import javax.mail.Message;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -27,7 +29,7 @@ public abstract class Cluster {
         contents = initialContents;
         clusterSize = initialContents.size();
         //Following statement for finding dimensionality should be replaced once vectoriser is implemented.
-        dimensionality = testGetVec(initialContents.get(0)).size();
+        dimensionality = DummyVectoriser.vectorise(initialContents.get(0)).size();
     }
 
     protected abstract void updateMetadataAfterAdding(Message msg);

@@ -1,7 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import org.junit.Test;
-import weka.clusterers.EM;
 
 import javax.mail.Message;
 import javax.mail.Session;
@@ -26,10 +25,12 @@ public class EMClusteringTest {
         Session sess = Session.getDefaultInstance(new Properties());
 
         ArrayList<Message> messages = new ArrayList<Message>();
-        for (int i = 0; i < 150; i++) {
+        for (int i = 0; i < 250; i++) {
             messages.add(new MimeMessage(sess));
         }
+        DummyVectoriser.train(messages);
         em.evalClusters(messages);
+
         ArrayList<Cluster> clusters = em.getClusters();
 
         // perform various tests on 'clusters'

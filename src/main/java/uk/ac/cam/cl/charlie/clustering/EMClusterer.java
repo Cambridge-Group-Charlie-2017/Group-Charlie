@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.clustering;
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
 import weka.clusterers.SimpleKMeans;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
@@ -16,6 +17,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Vector;
+import java.util.stream.Stream;
+
 /**
  * Probably going to be the final clusterer. Or could try density based clustering.
  */
@@ -26,12 +29,24 @@ public class EMClusterer extends Clusterer{
     protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
 
         //Not yet implemented vectoriser so we'll use a substitute for testing:
-        vecsForTesting = getTestVecs(messages.size());
+        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+        for (int i = 0; i < messages.size(); i++)
+            vecs.add(DummyVectoriser.vectorise(messages.get(i)));
 
         // convert vecs into arff format for the clusterer.
-        //TODO: is there a more efficient way of converting to (dense) Instances?
-        createArff(vecsForTesting, DEFAULT_ARFF);
+        //TODO: is there a more efficient way of converting to (dense) Instances? add(Instance)
+        createArff(vecs, DEFAULT_ARFF);
+/*
+        Instances data = new Instances();
+        for (int i = 0; i < vecsForTesting.size(); i++) {
+            Double[] doubleObjects = (Double[])vecsForTesting.get(i).toArray();
+            double[] doublePrims = new double[doubleObjects.length];
+            for(int j = 0; j < doubleObjects.length; j++)
+                doublePrims[j] = (double) doubleObjects[j];
 
+            Instance inst = new DenseInstance(1.0, doublePrims);
+        }
+*/
         EM cl;
         PrincipalComponents pca;
         try {

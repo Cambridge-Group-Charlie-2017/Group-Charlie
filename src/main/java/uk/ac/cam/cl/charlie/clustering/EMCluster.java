@@ -13,14 +13,16 @@ public class EMCluster extends Cluster {
     private Vector<Double> average;
     private Vector<Double> variance;
 
-    private ArrayList<Vector<Double>> tempTestVecs;
-
     public EMCluster(ArrayList<Message> messages) {
         super(messages);
-        //Once vectoriser is implemented, should get vectors from each message, calculate avg and stdev.
+
+        //calculate avg and variance.
         int dimensionality = getDimensionality();
         int n = getClusterSize();
-        tempTestVecs = getTestVecs(messages.size());
+
+        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+        for (int i = 0; i < n; i++)
+            vecs.add(DummyVectoriser.vectorise(messages.get(i)));
 
         //initialise average and variance vectors.
         average = new Vector<Double>();
@@ -29,7 +31,7 @@ public class EMCluster extends Cluster {
             double sumOfSquares = 0;
             double sum = 0;
             for (int j = 0; j < n; j++) {
-                double xi = tempTestVecs.get(j).get(i);
+                double xi = vecs.get(j).get(i);
                 sum += xi;
                 sumOfSquares += (xi * xi);
             }

@@ -15,6 +15,9 @@ public class StopWords {
         stopWords.add("and");
     }
 
+    //Note from Ben to Matt: here's a bunch more words you could exclude :)
+    //https://en.wikipedia.org/wiki/Most_common_words_in_English
+
     public static HashSet<String> getStopWords(){
         return stopWords;
     }

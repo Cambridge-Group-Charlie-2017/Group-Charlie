@@ -60,7 +60,9 @@ public abstract class Clusterer {
             return;
         }
 
-        //TODO: generate and assign clustering names.
+        //TODO: uncomment naming function when actual emails are used.
+        for (Cluster c : clusters)
+           //ClusterNamer.name(c);
 
         //TODO: update server with new clusters.
         return;
