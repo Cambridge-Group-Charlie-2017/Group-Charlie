@@ -116,22 +116,22 @@ public class LocalIMAPFolder {
         return uid;
     }
 
-    public void moveMessages(LocalMessage[] localMessages, String subFolderName) throws MessagingException {
+    public void moveMessages(String subFolderName, LocalMessage... localMessages) throws MessagingException {
         checkFolderOpen();
-        moveMessages(localMessages, serverFolder.getFolder(subFolderName));
+        moveMessages(serverFolder.getFolder(subFolderName), localMessages);
     }
 
-    public void moveMessages(LocalMessage[] localMessages, Folder f) throws MessagingException {
+    public void moveMessages(Folder f, LocalMessage... localMessages) throws MessagingException {
         Message[] imapMessages = Arrays.stream(localMessages).map(localMessage -> localMessage.getMessage()).toArray(size -> new Message[size]);
-        moveMessages(imapMessages, f);
+        moveMessages(f, imapMessages);
     }
 
-    public void moveMessages(Message[] imapMessages, String subFolderName) throws MessagingException {
+    public void moveMessages(String subFolderName, Message... imapMessages) throws MessagingException {
         checkFolderOpen();
-        moveMessages(imapMessages, serverFolder.getFolder(subFolderName));
+        moveMessages(serverFolder.getFolder(subFolderName), imapMessages);
     }
 
-    public void moveMessages(Message[] imapMessages, Folder f) throws MessagingException {
+    public void moveMessages(Folder f, Message... imapMessages) throws MessagingException {
         checkFolderOpen();
         f.open(Folder.READ_WRITE);
         serverFolder.copyMessages(imapMessages, f);
@@ -139,6 +139,19 @@ public class LocalIMAPFolder {
             m.setFlag(Flags.Flag.DELETED, true);
         }
         f.close(false);
+        serverFolder.close(true);
+    }
+
+    public void deleteMessages(LocalMessage... localMessages) throws MessagingException {
+        Message[] imapMessages = Arrays.stream(localMessages).map(localMessage -> localMessage.getMessage()).toArray(size -> new Message[size]);
+        deleteMessages(imapMessages);
+    }
+
+    public void deleteMessages(Message... imapMessages) throws MessagingException {
+        checkFolderOpen();
+        for (Message m : imapMessages) {
+            m.setFlag(Flags.Flag.DELETED, true);
+        }
         serverFolder.close(true);
     }
 

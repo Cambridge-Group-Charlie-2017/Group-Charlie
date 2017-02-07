@@ -4,6 +4,3 @@ jdk:
 
 before_install:
 - chmod +x gradlew
-
-script:
-  - jdk_switcher use oraclejdk8
