@@ -1,7 +1,6 @@
 package uk.ac.cam.cl.charlie.mail;
 
 import com.sun.mail.imap.IMAPFolder;
-import com.sun.mail.imap.protocol.FLAGS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +8,6 @@ import javax.mail.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /**
  * Created by Simon on 04/02/2017.
