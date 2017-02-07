@@ -25,6 +25,10 @@ public abstract class Cluster {
 
     void setName(String name) {clusterName = name;}
 
+    public String getName(){
+        return clusterName;
+    }
+
     protected Cluster(ArrayList<Message> initialContents) {
         contents = initialContents;
         clusterSize = initialContents.size();
