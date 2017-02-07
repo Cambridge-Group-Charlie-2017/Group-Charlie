@@ -33,7 +33,7 @@ public class EMClusteringTest {
         DummyVectoriser.train(messages);
         em.evalClusters(messages);
 
-        ArrayList<Cluster> clusters = em.getClusters();
+        ClusterGroup clusters = em.getClusters();
         System.out.println("Number of clusters: " + clusters.size());
 
         // perform various tests on 'clusters'

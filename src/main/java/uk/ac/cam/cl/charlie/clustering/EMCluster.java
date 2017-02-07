@@ -2,7 +2,6 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import javax.mail.Message;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.Vector;
 
 /**
@@ -67,9 +66,10 @@ public class EMCluster extends Cluster {
         //Recalculating variance would be expensive. Maybe best not bother and assume it stays constant.
     }
 
-    private final int elementsToCompare = 300;
+    public boolean isHighMatchGood() {return true;}
+    private final int elementsToCompare = 100;
     @Override
-    public double matchStrength (Message msg) throws VectorElementMismatchException{
+    public double matchStrength (Message msg) throws IncompatibleDimensionalityException {
         //return weighted Bayes probability. Assumes each category has equal probability.
         //Note it's not the actual probability - that would require multiplying by irrational numbers, and there's
         //no point. As long as all probabilities are off by the same factor, comparison still works.
@@ -78,7 +78,7 @@ public class EMCluster extends Cluster {
         //probability becomes too small at high dimensions.
         Vector<Double> vec = DummyVectoriser.vectorise(msg);
         if (vec.size() != getDimensionality())
-            throw new VectorElementMismatchException();
+            throw new IncompatibleDimensionalityException();
 
         int dimensionality = getDimensionality();
         int interval = vec.size() / elementsToCompare;

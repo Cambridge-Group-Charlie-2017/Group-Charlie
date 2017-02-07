@@ -2,8 +2,6 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
-import weka.clusterers.SimpleKMeans;
-import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
@@ -25,7 +23,7 @@ public class EMClusterer extends Clusterer{
     private final String DEFAULT_ARFF = "vectors.arff";
 
     //Note: currently set up to train on every vector. If this is uses too much memory, could train on a subset.
-    protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
+    protected ClusterGroup run(ArrayList<Message> messages) throws Exception{
 
         //Not yet implemented vectoriser so use DummyVectoriser for testing:
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
@@ -78,8 +76,8 @@ public class EMClusterer extends Clusterer{
                 msgGroups.get(clusterIndex).add(messages.get(i));
             }
 
-            //Create new EMCluster objects to contain the message groupings.
-            ArrayList<Cluster> clusters = new ArrayList<Cluster>();
+            //Create new Cluster objects in a ClusterGroup to contain the message groupings.
+            ClusterGroup clusters = new ClusterGroup();
             for (int i = 0; i < cl.numberOfClusters(); i++)
                 clusters.add(new EMCluster(msgGroups.get(i)));
 
@@ -91,8 +89,8 @@ public class EMClusterer extends Clusterer{
         }
     }
 
-    public void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException {
-        ArrayList<Cluster> clusters = getClusters();
+    public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
+        ClusterGroup clusters = getClusters();
 
         //For classification, find clustering with highest probability for each email using matchStrength().
         //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.

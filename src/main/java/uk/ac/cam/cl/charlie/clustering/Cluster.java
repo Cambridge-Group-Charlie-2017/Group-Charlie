@@ -1,6 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import javax.mail.Message;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -31,7 +32,8 @@ public abstract class Cluster {
      * Actual implementation varies between implementations. For EMCluster, the output is proportional to
      * the Naive Bayes probability of a match, so higher values are better.
      */
-    protected abstract double matchStrength(Message msg) throws VectorElementMismatchException;
+    protected abstract double matchStrength(Message msg) throws IncompatibleDimensionalityException;
+    public abstract boolean isHighMatchGood();
 
     //Extract relevant metadata from the initial contents.
     protected Cluster(ArrayList<Message> initialContents) {

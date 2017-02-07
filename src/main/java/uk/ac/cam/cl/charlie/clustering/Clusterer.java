@@ -2,23 +2,22 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import javax.mail.Message;
 import java.util.ArrayList;
-import java.util.Vector;
 
 /**
  * Created by Ben on 01/02/2017.
  */
 public abstract class Clusterer {
 
-    private ArrayList<Cluster> clusters = new ArrayList<Cluster>();
+    private ClusterGroup clusters;
     //private Mailbox mailbox;
 
-    public ArrayList<Cluster> getClusters() {return clusters;}
+    public ClusterGroup getClusters() {return clusters;}
 
     //for inserting a list of messages into their appropriate clusters, and updating the server.
-    public abstract void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException;
+    public abstract void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException;
 
     //Produces clusters of messages. evalClusters() will actually update the IMAP server.
-    protected abstract ArrayList<Cluster> run(ArrayList<Message> vecs) throws Exception;
+    protected abstract ClusterGroup run(ArrayList<Message> vecs) throws Exception;
 
 
     public void evalClusters(ArrayList<Message> messages) {

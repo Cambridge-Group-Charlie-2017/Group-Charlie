@@ -40,7 +40,7 @@ public class KMeansClustererTest {
             messages.add(new MimeMessage(sess));
         }
         km.evalClusters(messages);
-        ArrayList<Cluster> clusters = km.getClusters();
+        ClusterGroup clusters = km.getClusters();
 
         // perform various tests on 'clusters'
         assertNotNull(clusters);

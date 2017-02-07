@@ -22,10 +22,11 @@ public class KMeansCluster extends Cluster{
         }
     }
 
-    public double matchStrength(Message msg) throws VectorElementMismatchException {
+    public boolean isHighMatchGood() {return false;}
+    public double matchStrength(Message msg) throws IncompatibleDimensionalityException {
         Vector<Double> vec = DummyVectoriser.vectorise(msg);
         if (vec.size() != centroid.size())
-            throw new VectorElementMismatchException();
+            throw new IncompatibleDimensionalityException();
 
         //returns square of distance
         double distanceSquared = 0;

@@ -27,7 +27,7 @@ public class KMeansClusterer extends Clusterer {
     //File in which vectors will be stored temporarily prior to clustering.
     private final String DEFAULT_ARFF = "vectors.arff";
 
-    protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
+    protected ClusterGroup run(ArrayList<Message> messages) throws Exception{
 
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
 
@@ -91,7 +91,7 @@ public class KMeansClusterer extends Clusterer {
         }
 
         //create uk.ac.cam.cl.charlie.clustering.Cluster objects using these groupings
-        ArrayList<Cluster> clusters = new ArrayList<Cluster>();
+        ClusterGroup clusters = new ClusterGroup();
         for (int i = 0; i < centroids.size(); i++) {
             clusters.add(new KMeansCluster(centroids.get(i), msgGroups.get(i)));
         }
@@ -100,9 +100,9 @@ public class KMeansClusterer extends Clusterer {
         return clusters;
     }
 
-    public double distanceSquared(Vector<Double> vec1, Vector<Double> vec2) throws VectorElementMismatchException {
+    public double distanceSquared(Vector<Double> vec1, Vector<Double> vec2) throws IncompatibleDimensionalityException {
         if (vec1.size() != vec2.size())
-            throw new VectorElementMismatchException();
+            throw new IncompatibleDimensionalityException();
 
         //returns square of distance
         double distanceSquared = 0;
@@ -112,9 +112,9 @@ public class KMeansClusterer extends Clusterer {
         return distanceSquared;
     }
 
-    public void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException {
+    public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
         //gets temp test vectors. Update once Vectoriser is implemented to getVecs(messages) or something.
-        ArrayList<Cluster> clusters = getClusters();
+        ClusterGroup clusters = getClusters();
 
         //For classification, find best clustering for each email using matchStrength().
         //TODO: Update mailbox accordingly.
