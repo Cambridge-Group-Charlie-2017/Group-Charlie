@@ -3,10 +3,12 @@ package uk.ac.cam.cl.charlie.mail;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
-import com.icegreen.greenmail.util.ServerSetupTest;
+import com.sun.mail.imap.IMAPFolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
+import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
 
 import javax.mail.*;
 
@@ -54,14 +56,20 @@ public class IMAPConnectionTest {
         mailServer.stop();
     }
 
+    @Test(expected = StoreClosedException.class)
+    public void testClosingClosedConnection() throws Exception {
+        imapConnection.close();
+        imapConnection.close();
+    }
+
     @Test
-    public void testConnectWithCorrectCredentials() throws MessagingException {
+    public void testConnectWithCorrectCredentials() throws Exception {
         imapConnection.connect();
         imapConnection.close();
     }
 
     @Test(expected = AuthenticationFailedException.class)
-    public void testConnectionWithIncorrectCredentials() throws MessagingException {
+    public void testConnectionWithIncorrectCredentials() throws Exception {
         IMAPConnection wrongConnection = new IMAPConnection(
                 LOCALHOST,
                 USER_NAME,
@@ -75,10 +83,10 @@ public class IMAPConnectionTest {
     }
 
     @Test
-    public void testGetAllFolders() throws IMAPConnectionClosedException, MessagingException {
+    public void testGetAllFolders() throws Exception {
         imapConnection.connect();
 
-        Folder[] folders = imapConnection.getAllFolders();
+        IMAPFolder[] folders = imapConnection.getAllFolders();
         assertEquals(1, folders.length);
         assertEquals("INBOX", folders[0].getFullName());
     }
@@ -93,7 +101,7 @@ public class IMAPConnectionTest {
             imapConnection.createFolder(s);
         }
 
-        Folder[] folders = imapConnection.getAllFolders();
+        IMAPFolder[] folders = imapConnection.getAllFolders();
         assertEquals(1 + newFolderNames.length, folders.length);
         assertEquals("INBOX", folders[0].getFullName());
         for (int i = 0; i < newFolderNames.length; i++) {
@@ -112,7 +120,7 @@ public class IMAPConnectionTest {
     public void testNonExistentParentFolder() throws Exception {
         imapConnection.connect();
         imapConnection.createFolder("Test 1");
-        Folder f = imapConnection.getFolder("Test 1");
+        IMAPFolder f = imapConnection.getFolder("Test 1");
         f.delete(false);
         imapConnection.createFolder(f, "Test 2");
     }
@@ -123,10 +131,10 @@ public class IMAPConnectionTest {
         imapConnection.createFolder("Test 1");
         imapConnection.createFolder("Test 2");
 
-        Folder test1 = imapConnection.getFolder("Test 1");
-        Folder test2 = imapConnection.getFolder("Test 2");
+        IMAPFolder test1 = imapConnection.getFolder("Test 1");
+        IMAPFolder test2 = imapConnection.getFolder("Test 2");
 
-        Folder[] folders = imapConnection.getAllFolders();
+        IMAPFolder[] folders = imapConnection.getAllFolders();
         assertEquals(3, folders.length);
 
         imapConnection.createFolder(test1, "Test 3");

@@ -1,7 +1,11 @@
 package uk.ac.cam.cl.charlie.mail;
 
+import com.sun.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
+import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
 
 import java.util.*;
 import javax.mail.*;
@@ -44,7 +48,7 @@ public class IMAPConnection {
         connectionProperties.put("mail.imaps.ssl.trust", "*");
 
         connectionSession = Session.getDefaultInstance(connectionProperties, null);
-        sessionStore     = connectionSession.getStore(provider);
+        sessionStore = connectionSession.getStore(provider);
     }
 
     public void connect() throws MessagingException {
@@ -58,6 +62,10 @@ public class IMAPConnection {
     }
 
     public void close() throws MessagingException {
+        if (!sessionStore.isConnected()) {
+            log.info("Tried to close an already closed IMAP store");
+            throw new StoreClosedException(sessionStore);
+        }
         try {
             sessionStore.close();
             log.info("Closed connection to '{}' under username '{}'", host, authenticator.getUserName());
@@ -67,20 +75,29 @@ public class IMAPConnection {
         }
     }
 
-    public Folder[] getAllFolders() throws IMAPConnectionClosedException, MessagingException {
-        if (!sessionStore.isConnected()) throw new IMAPConnectionClosedException();
-        return sessionStore.getDefaultFolder().list("*");
+    public IMAPFolder[] getAllFolders() throws MessagingException {
+        return getAllFolders(sessionStore.getDefaultFolder());
+    }
+    public IMAPFolder[] getAllFolders(Folder rootFolder) throws MessagingException {
+        if (!sessionStore.isConnected()) {
+            log.error("Tried to operate on a closed store.");
+            throw new IllegalStateException("Store is closed, connection is not established.");
+        }
+        return (IMAPFolder[]) rootFolder.list("*");
     }
 
-    public Folder getFolder(String name) throws MessagingException {
-        return sessionStore.getFolder(name);
+    public IMAPFolder getDefaultFolder() throws MessagingException {
+        return (IMAPFolder) sessionStore.getDefaultFolder();
+    }
+    public IMAPFolder getFolder(String name) throws MessagingException {
+        return (IMAPFolder) sessionStore.getFolder(name);
     }
 
     public void createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, InvalidFolderNameException {
-        createFolder(sessionStore.getDefaultFolder(), newFolderName);
+        createFolder((IMAPFolder) sessionStore.getDefaultFolder(), newFolderName);
     }
 
-    public void createFolder(Folder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
+    public void createFolder(IMAPFolder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
         if (newFolderName.contains(".")) {
             log.error("Invalid folder name '{}' with parent '{}'", newFolderName, parentFolder.getFullName());
             throw new InvalidFolderNameException("The folder name can't contain a '.'");
@@ -100,8 +117,16 @@ public class IMAPConnection {
             if (newFolder.exists()) throw new FolderAlreadyExistsException();
             newFolder.create(Folder.HOLDS_MESSAGES | Folder.HOLDS_FOLDERS);
         } catch (MessagingException e) {
-            log.error("Error creating folder {} with parent {}", newFolderName, parentFolder.getFullName());
+            log.error("Error creating folder {} with parent {}: {}", newFolderName, parentFolder.getFullName(), e.getMessage());
             throw e;
         }
+    }
+
+    public List<Message> getAllMessagesInFolderTree(IMAPFolder rootFolder) throws MessagingException {
+        List<Message> messages = new ArrayList<>();
+        for (Folder f : getAllFolders(rootFolder)) {
+            Collections.addAll(messages, f.getMessages());
+        }
+        return messages;
     }
 }
