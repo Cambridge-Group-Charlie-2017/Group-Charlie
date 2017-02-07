@@ -1,6 +1,7 @@
 package uk.ac.cam.cl.charlie.vec;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 /**
@@ -13,8 +14,8 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public TextVector doc2vec(Document doc) throws SQLException;
+	public double[] doc2vec(Document doc) throws SQLException;
 	
-	public TextVector doc2vec(Email doc) throws SQLException;
+	public double[] doc2vec(Email doc) throws SQLException;
 	
 }
