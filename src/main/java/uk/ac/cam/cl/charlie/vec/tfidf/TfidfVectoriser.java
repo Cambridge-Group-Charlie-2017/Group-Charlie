@@ -1,12 +1,16 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.deeplearning4j.models.embeddings.loader.VectorsConfiguration;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
+import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
 import uk.ac.cam.cl.charlie.db.Database;
@@ -21,7 +25,7 @@ import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 public class TfidfVectoriser implements VectorisingStrategy {
     private Word2Vec model;
     private boolean modelLoaded;
-    private String word2vecPath = "src/main/res/word2vec/wordvectors.bin.gz";
+    private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
     private Tfidf tf = null;
 
     private int vectorDimensions = 300;
@@ -30,7 +34,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
     	// ^ we cannot use Optional with double[] as Optional uses generics which require a class.
         if (model.hasWord(word)) {
-            return Optional.of(new TextVector(null));
+            return Optional.of(new TextVector(model.getWordVector(word)));
         }
         else {
         	//Do we really not want to attempt to vectorise the word at all?
@@ -69,13 +73,21 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
 
+    // load google model is deprecated in favour of a more general method (which doesn't work!)
+    @SuppressWarnings("deprecation")
     public void loadModel() {
         if (modelLoaded) {
             return;
         }
 
         else {
-            model = WordVectorSerializer.readWord2VecModel(word2vecPath);
+            try {
+                model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                modelLoaded = false;
+                return;
+            }
             modelLoaded = true;
         }
     }
