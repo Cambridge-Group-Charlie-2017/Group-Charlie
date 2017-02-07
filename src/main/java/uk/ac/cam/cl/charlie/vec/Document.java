@@ -4,6 +4,8 @@ public class Document {
 	
 	private String content;
 	private String filename;
+
+	private boolean hasBeenVectorised = false;
 	
 	public Document(String filename, String content) {
 		this.content = content;
@@ -17,4 +19,13 @@ public class Document {
 	public String getContent() {
 		return content;
 	}
+
+	public void setVectorisationStatus(boolean status) {
+		hasBeenVectorised = status;
+	}
+
+	public boolean hasBeenVectorised() {
+	    return hasBeenVectorised;
+    }
+
 }

@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.vec;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 import uk.ac.cam.cl.charlie.db.Database;
@@ -24,7 +23,7 @@ public class Document2Vector {
 		this.strategy = strategy;
 	}
 	
-	public Optional<ArrayList<Double>> word2vec(String word) {
+	public Optional<TextVector> word2vec(String word) {
 		return strategy.word2vec(word);
 	}
 	

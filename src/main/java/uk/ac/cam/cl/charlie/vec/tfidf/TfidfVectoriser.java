@@ -1,6 +1,6 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
-import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -8,10 +8,9 @@ import java.util.Set;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
-import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.Email;
-import uk.ac.cam.cl.charlie.vec.Vector;
+import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
 /**
@@ -21,15 +20,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private Word2Vec model;
     private boolean modelLoaded;
     private String word2vecPath = "src/main/res/word2vec/wordvectors.bin";
-    private Tfidf tf = null;
+    private Tfidf tf = null; // lazy instantiation when needed
 
-    private int vectorDimensions = 300;
+    private static final int vectorDimensions = 300;
 
-    public Optional<ArrayList<Double>> word2vec(String word) {
+    public Optional<TextVector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
-    	// ^ we cannot use Optional with double[] as Optional uses generics which require a class.
         if (model.hasWord(word)) {
-            return Optional.of(new ArrayList<Double>());
+            return Optional.of(new TextVector(model.getWordVector(word)));
         }
         else {
         	//Do we really not want to attempt to vectorise the word at all?
@@ -42,13 +40,16 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public double[] doc2vec(Document doc) {
-        // todo add any other content to do with names or other meta data
-        return calculateDocVector(doc.getContent());
+    public TextVector doc2vec(Document doc) {
+        // todo add any other content to do with names or other meta dataVector
+        if (!doc.hasBeenVectorised()) {
+            tf.addDocument(doc);
+        }
+        return new TextVector(calculateDocVector(doc.getContent()));
     }
 
     @Override
-    public double[] doc2vec(Email doc) {
+    public TextVector doc2vec(Email doc) {
         // todo add anything that is relevant to the email header here.
         return doc2vec(doc.getTextBody());
     }
@@ -74,6 +75,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
 
         else {
+            // todo do we know if this throws any exceptions? It'd be nice to catch this at least
             model = WordVectorSerializer.readWord2VecModel(word2vecPath);
             modelLoaded = true;
         }
@@ -94,13 +96,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
         // add the vectors for every word which is in the vocab
         for (String w : words) {
-            Optional<ArrayList<Double>> wordVec = word2vec(w);
+            Optional<TextVector> wordVec = word2vec(w);
             if (wordVec.isPresent()) {
                 double weighting = calculateTFValue(w, text);
                 totalWeight += weighting;
+                double[] components = wordVec.get().getRawComponents();
 
                 for (int i = 0; i < vectorDimensions; ++i) {
-                    docVector[i] += weighting * wordVec.get().get(i);
+                    docVector[i] += weighting * components[i];
                 }
             }
         }
@@ -116,7 +119,11 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private double calculateTFValue(String word, String doc) {
         // see: https://deeplearning4j.org/bagofwords-tf-idf
         if (tf == null) {
-            tf = Tfidf.getInstance();
+            try {
+                tf = Tfidf.getInstance();
+            } catch (SQLException e) {
+                e.printStackTrace(); // do something with this
+            }
         }
 
         // calculate the number of occurences of word in doc
@@ -127,8 +134,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
             }
         }
 
-        // this is going to cause problems (divide by 0)
-        // need to add words to database frequency count first
+        // this shouldn't cause any divide by zero since doc is always added to the database
+        // before computing any vectors.
         return count * Math.log((double)tf.totalNumberDocuments() / tf.numberOfDocsWithWith(word));
     }
 }

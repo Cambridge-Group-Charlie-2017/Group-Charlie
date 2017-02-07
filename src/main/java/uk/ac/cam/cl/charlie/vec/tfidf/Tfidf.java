@@ -1,11 +1,13 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
+import java.sql.*;
 import java.util.HashMap;
 import java.util.TreeSet;
 
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.vec.Document;
-import uk.ac.cam.cl.charlie.vec.Vector;
+
+import javax.print.Doc;
 
 /**
  * Created by shyam on 05/02/2017. Edited by LP 05/02/2017
@@ -26,23 +28,33 @@ public final class Tfidf {
     // TODO I would also suggest aiming for very low coupling with the vectorising class
     // there are other uses for tfidf ;)
 
-    /*
-     * The following hash map is represents a table in which we denote the word frequency in a document.
-     * A hash map is used as it is more efficient to add documents.
-     * If a word is not in the hashmap for a doc, that means the word frequency = 0.
-     */
-    private HashMap<String, HashMap<String, Integer>> tfidfTableValues; // documents -> words -> frequency
-    /*
-     * The following set represents the order of words when we want to get the vector for a document from this table.
-     */
-    private TreeSet<String> words;
-    
-    private Tfidf() {
-        tfidfTableValues = new HashMap<String, HashMap<String, Integer>>();
-        words = new TreeSet<String>();
+    private Tfidf() throws SQLException {
+        database = Database.getInstance();
+        Connection conn = database.getConnection();
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet checkTableExistenceResult = metaData.getTables(null, null, "WORD_FREQUENCIES", null);
+        if (checkTableExistenceResult.next()) {
+            // there exists a table in this database with word frequencies
+            return;
+        }
+
+        else {
+            // need to create the database table
+            String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,count INTEGER NOT NULL)";
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+
+            // insert a value to represent the number of documents in total:
+            sql = "INSERT INTO WORD_FREQUENCIES(word,count) VALUES (totalNumberOfDocs,0)";
+            stmt.execute(sql);
+
+            stmt.close();
+            conn.commit();
+            conn.close();
+        }
     }
 
-    public static Tfidf getInstance() {
+    public static Tfidf getInstance() throws SQLException {
         if (instance == null) {
             instance = new Tfidf();
         }
@@ -50,46 +62,30 @@ public final class Tfidf {
     }
 
     public int totalNumberDocuments() {
-        return tfidfTableValues.size();
+        return 0;
     }
     
     public int numberOfDocsWithWith(String word) {
-        int count = 0;
-        for(HashMap<String, Integer> doc: tfidfTableValues.values()) {
-        	if(doc.containsKey(word)) { // the word appears at least once in the document vs word frequency table
-        		++count;
-        	}
-        }
-        return count;
+        return 0;
     }
     
-    public void addDocument(Document doc) { //to be able to add documents to the documents vs words frequency table
-    	HashMap<String, Integer> wordfrequency = new HashMap<String, Integer>();
-
-        for (String w : doc.getContent().split("[\\W]")) {
-            if(wordfrequency.containsKey(w)) {
-            	int frequency = wordfrequency.get(w);
-            	frequency++;
-            	wordfrequency.put(w, frequency);
-            } else { //word not yet in the map and set
-            	wordfrequency.put(w, 1);
-            	words.add(w);
-            }
-        }
-        
-        tfidfTableValues.put(doc.getName(),wordfrequency);
+    public void addDocument(Document doc) {
+        // TODO
     }
     
-    public void addDocument(Document doc, HashMap<String, Integer> wordfrequency) { // To be used when wordfrequency has already been calculated
-    	tfidfTableValues.put(doc.getName(),wordfrequency);
+    public void addDocument(Document doc, HashMap<String, Integer> wordfrequency) {
+        // To be used when wordfrequency has already been calculated
     }
 
-    public void giveDatabaseInstance(Database database) {
-    	this.database = database;
-    }
+    public void addDocumentToCounts(Document doc) throws SQLException {
+        if (database == null) {
+            database = Database.getInstance();
+        }
 
-    public boolean hasDatabaseInstance() {
-    	return database != null ? true : false;
+        Connection conn = database.getConnection();
+        Statement sqlstmt = conn.createStatement();
+
+        // check the existence of a the table
     }
 
 }

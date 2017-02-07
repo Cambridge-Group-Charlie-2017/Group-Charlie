@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.vec;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 /**
@@ -11,10 +10,10 @@ import java.util.Optional;
  */
 public interface VectorisingStrategy {
 
-	public Optional<ArrayList<Double>> word2vec(String word);
+	public Optional<TextVector> word2vec(String word);
 	
-	public double[] doc2vec(Document doc);
+	public TextVector doc2vec(Document doc);
 	
-	public double[] doc2vec(Email doc);
+	public TextVector doc2vec(Email doc);
 	
 }
