@@ -83,7 +83,7 @@ public final class Tfidf {
     }
 
     public void addCountToWord(String word) {
-        
+
     }
     
     public void addDocument(Document doc) {
@@ -93,17 +93,6 @@ public final class Tfidf {
     
     public void addDocument(Document doc, HashMap<String, Integer> wordfrequency) {
         // To be used when wordfrequency has already been calculated
-    }
-
-    public void addDocumentToCounts(Document doc) throws SQLException {
-        if (database == null) {
-            database = Database.getInstance();
-        }
-
-        Connection conn = database.getConnection();
-        Statement sqlstmt = conn.createStatement();
-
-        // check the existence of a the table
     }
 
 }
