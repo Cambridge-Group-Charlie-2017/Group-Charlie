@@ -40,7 +40,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public TextVector doc2vec(Document doc) {
+    public TextVector doc2vec(Document doc) throws SQLException {
         // todo add any other content to do with names or other meta dataVector
         if (!doc.hasBeenVectorised()) {
             tf.addDocument(doc);
@@ -49,7 +49,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public TextVector doc2vec(Email doc) {
+    public TextVector doc2vec(Email doc) throws SQLException {
         // todo add anything that is relevant to the email header here.
         return doc2vec(doc.getTextBody());
     }
@@ -81,7 +81,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
 
-    private double[] calculateDocVector(String text) {
+    private double[] calculateDocVector(String text) throws SQLException {
         // weighted average of word vectors using tdidf
 
         // don't want to duplicate words -> use a set
@@ -116,7 +116,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return docVector;
     }
 
-    private double calculateTFValue(String word, String doc) {
+    private double calculateTFValue(String word, String doc) throws SQLException {
         // see: https://deeplearning4j.org/bagofwords-tf-idf
         if (tf == null) {
             try {

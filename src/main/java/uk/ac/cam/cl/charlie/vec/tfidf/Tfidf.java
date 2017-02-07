@@ -45,9 +45,9 @@ public final class Tfidf {
             database.executeUpdate(sql);
 
             // insert a value to represent the number of documents in total:
-            stmt.setString(1, TOTAL_NUMBER_OF_DOCS);
-            stmt.setInt(2, 0);
-            stmt.executeUpdate(sql);
+            insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
+            insertStmt.setInt(2, 0);
+            insertStmt.executeUpdate(sql);
         }
     }
 
@@ -70,7 +70,7 @@ public final class Tfidf {
         }
     }
     
-    public int numberOfDocsWithWith(String word) {
+    public int numberOfDocsWithWith(String word) throws SQLException {
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
         if (rs.next()) {
