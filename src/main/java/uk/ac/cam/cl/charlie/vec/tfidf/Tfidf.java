@@ -30,10 +30,8 @@ public final class Tfidf {
 
     private Tfidf() throws SQLException {
         database = Database.getInstance();
-        Connection conn = database.getConnection();
-        DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet checkTableExistenceResult = metaData.getTables(null, null, "WORD_FREQUENCIES", null);
-        if (checkTableExistenceResult.next()) {
+
+        if (database.tableExists("WORD_FREQUENCIES")) {
             // there exists a table in this database with word frequencies
             return;
         }
