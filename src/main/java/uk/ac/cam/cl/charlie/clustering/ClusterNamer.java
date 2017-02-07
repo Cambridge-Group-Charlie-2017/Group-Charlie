@@ -4,13 +4,14 @@ import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import java.util.*;
-import org.deeplearning4j.text.stopwords.StopWords;
 /**
- * Created by M Boyce on 04/02/2017.
+ * @author M Boyce
  */
 public class ClusterNamer {
-    private static HashSet<String> stopWords = new HashSet<String>();//StopWords.getStopWords());
-    private static double MIN_PROPRTION_CORRECT = 0.8;
+    private static HashSet<String> stopWords = new HashSet<String>();
+    //private static List<String> stopWords = StopWords.getStopWords();
+
+    private static double MIN_PROPORTION_CORRECT = 0.8;
 
     /**
      * Given an cluster of emails generates and sets the name for the cluster based on the emails in that
@@ -93,10 +94,19 @@ public class ClusterNamer {
 
         //Test to see if is a good name for cluster by seeing what proportion of the Cluster this name holds for
         Map.Entry<String,Integer> mostCommonDomain = domains.lastEntry();
-        if(mostCommonDomain.getValue()/messages.size() > MIN_PROPRTION_CORRECT){
+        if(mostCommonDomain.getValue()/messages.size() > MIN_PROPORTION_CORRECT){
             cluster.setName(mostCommonDomain.getKey());
         }else{
             throw new ClusterNamingException("Cannot use sender as folder name");
         }
+    }
+
+    /**
+     * Given a cluster of emails generates and sets the name for the cluster using a textRank based algorithm
+     * (Takes into account how related sentences in the emails are)
+     * @param cluster
+     */
+    public static void textRankNaming(Cluster cluster){
+
     }
 }

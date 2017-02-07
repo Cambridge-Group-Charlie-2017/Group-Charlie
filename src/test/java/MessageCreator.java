@@ -62,6 +62,8 @@ public class MessageCreator {
         messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
         messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
 
+
+
         return messages;
     }
 }
