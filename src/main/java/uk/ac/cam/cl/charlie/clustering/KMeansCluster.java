@@ -13,7 +13,7 @@ public class KMeansCluster extends Cluster{
 
     protected void updateMetadataAfterAdding(Message msg) {
         //once vectoriser implemented, replace with genuine getVec method.
-        Vector<Double> vec = testGetVec(msg);
+        Vector<Double> vec = DummyVectoriser.vectorise(msg);
 
         //Note: clustersize has not been incremented yet at this point.
         for (int i = 0; i < getDimensionality(); i++) {
@@ -22,7 +22,8 @@ public class KMeansCluster extends Cluster{
         }
     }
 
-    public double matchStrength(Vector<Double> vec) throws VectorElementMismatchException {
+    public double matchStrength(Message msg) throws VectorElementMismatchException {
+        Vector<Double> vec = DummyVectoriser.vectorise(msg);
         if (vec.size() != centroid.size())
             throw new VectorElementMismatchException();
 

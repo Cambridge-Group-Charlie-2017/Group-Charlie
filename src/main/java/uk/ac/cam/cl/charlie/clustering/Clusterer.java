@@ -8,38 +8,14 @@ import java.util.Vector;
  * Created by Ben on 01/02/2017.
  */
 public abstract class Clusterer {
-    //Possible implentations:
-    //KMeans, XMeans, EM, etc.
+
     private ArrayList<Cluster> clusters = new ArrayList<Cluster>();
-
-    //Mailbox is private because only this class should update it, no inheriting class.
     //private Mailbox mailbox;
-
-    //the vector array is only temporary until the Vectoriser is implemented.
-    ArrayList<Vector<Double>> vecsForTesting = new ArrayList<Vector<Double>>();
 
     public ArrayList<Cluster> getClusters() {return clusters;}
 
     //for inserting a list of messages into their appropriate clusters, and updating the server.
-    void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException {
-        //gets temp test vectors. Update once Vectoriser is implemented to getVecs(messages) or something.
-        ArrayList<Vector<Double>> vecs = vecsForTesting;
-
-        //For classification, find best clustering for each email using matchStrength().
-        //TODO: Update mailbox accordingly.
-        double bestMatch = Integer.MAX_VALUE;
-        int bestCluster = 0;
-        for (int i = 0; i < messages.size(); i++) {
-            for (int j = 0; j < clusters.size(); j++) {
-                double currMatch = clusters.get(j).matchStrength(vecs.get(i));
-                if (currMatch < bestMatch) {
-                    bestMatch = currMatch;
-                    bestCluster = j;
-                }
-            }
-            clusters.get(bestCluster).addMessage(messages.get(i));
-        }
-    }
+    public abstract void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException;
 
     //Produces clusters of messages. evalClusters() will actually update the IMAP server.
     protected abstract ArrayList<Cluster> run(ArrayList<Message> vecs) throws Exception;
@@ -61,6 +37,7 @@ public abstract class Clusterer {
         }
 
         //TODO: uncomment naming function when actual emails are used.
+        //Could possibly move this into the constructor of Cluster.
         for (Cluster c : clusters)
            //ClusterNamer.name(c);
 

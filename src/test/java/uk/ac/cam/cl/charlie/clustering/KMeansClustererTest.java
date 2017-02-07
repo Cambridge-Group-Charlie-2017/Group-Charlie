@@ -54,7 +54,7 @@ public class KMeansClustererTest {
         vec.add(1.0);
         vec.add(1.0);
         for (int i = 0; i < clusters.size(); i++) {
-            double currMatch = clusters.get(i).matchStrength(vec);
+            double currMatch = clusters.get(i).matchStrength(messages.get(i));
             if (currMatch < bestMatch) {
                 bestMatch = currMatch;
                 bestCluster = i;

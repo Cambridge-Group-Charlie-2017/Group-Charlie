@@ -29,11 +29,13 @@ public class KMeansClusterer extends Clusterer {
 
     protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
 
-        //Not yet implemented so we'll use a substitute for testing:
-        vecsForTesting = parseTestFile();
+        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+
+        for (Message m : messages)
+           vecs.add(DummyVectoriser.vectorise(m));
 
         // convert vecs into aarf format, invoke KMeans with default k=5.
-        createArff(vecsForTesting, DEFAULT_ARFF);
+        createArff(vecs, DEFAULT_ARFF);
 
         SimpleKMeans cl;
         try {
@@ -51,8 +53,9 @@ public class KMeansClusterer extends Clusterer {
             return null;
         }
 
-        int dimensionality = vecsForTesting.get(0).size();
+        int dimensionality = vecs.get(0).size();
         Instances clusterCentroids = cl.getClusterCentroids();
+
 
 
         ArrayList<Vector<Double>> centroids = new ArrayList<Vector<Double>>();
@@ -74,11 +77,11 @@ public class KMeansClusterer extends Clusterer {
         //group messages into msgGroups. Place each in the list at the same index as their closest centroid.
         //Again, use test vectors until Vectoriser is implemented.
 
-        for (int i = 0; i < vecsForTesting.size(); i++) {
+        for (int i = 0; i < messages.size(); i++) {
             double bestMatch = Double.MAX_VALUE;
             int bestCluster = Integer.MAX_VALUE;
             for (int j = 0; j < centroids.size(); j++) {
-                double currMatch = distanceSquared(vecsForTesting.get(i), centroids.get(j));
+                double currMatch = distanceSquared(vecs.get(i), centroids.get(j));
                 if (currMatch < bestMatch) {
                     bestMatch = currMatch;
                     bestCluster = j;
@@ -109,6 +112,26 @@ public class KMeansClusterer extends Clusterer {
         return distanceSquared;
     }
 
+    public void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException {
+        //gets temp test vectors. Update once Vectoriser is implemented to getVecs(messages) or something.
+        ArrayList<Cluster> clusters = getClusters();
+
+        //For classification, find best clustering for each email using matchStrength().
+        //TODO: Update mailbox accordingly.
+        double bestMatch = Integer.MAX_VALUE;
+        int bestCluster = 0;
+        for (int i = 0; i < messages.size(); i++) {
+            for (int j = 0; j < clusters.size(); j++) {
+                double currMatch = clusters.get(j).matchStrength(messages.get(i));
+                if (currMatch < bestMatch) {
+                    bestMatch = currMatch;
+                    bestCluster = j;
+                }
+            }
+            clusters.get(bestCluster).addMessage(messages.get(i));
+        }
+    }
+
     void createArff(ArrayList<Vector<Double>> vecs, String fileName) throws IOException {
         FileWriter writer = new FileWriter(fileName);
         int dimensionality = vecs.get(0).size();
@@ -131,7 +154,6 @@ public class KMeansClusterer extends Clusterer {
         writer.flush();
         writer.close();
     }
-
 
     //Note: this function may not even be needed.
     ArrayList<Vector<Double>> parseArff(String fileName) throws IOException {

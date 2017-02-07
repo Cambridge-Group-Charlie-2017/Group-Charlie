@@ -17,7 +17,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Vector;
-import java.util.stream.Stream;
 
 /**
  * Probably going to be the final clusterer. Or could try density based clustering.
@@ -28,32 +27,22 @@ public class EMClusterer extends Clusterer{
     //Note: currently set up to train on every vector. If this is uses too much memory, could train on a subset.
     protected ArrayList<Cluster> run(ArrayList<Message> messages) throws Exception{
 
-        //Not yet implemented vectoriser so we'll use a substitute for testing:
+        //Not yet implemented vectoriser so use DummyVectoriser for testing:
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
-        for (int i = 0; i < messages.size(); i++)
-            vecs.add(DummyVectoriser.vectorise(messages.get(i)));
+
+        for (Message m : messages)
+           vecs.add(DummyVectoriser.vectorise(m));
 
         // convert vecs into arff format for the clusterer.
-        //TODO: is there a more efficient way of converting to (dense) Instances? add(Instance)
+        // is there a more efficient way of converting to (dense) Instances? add(Instance)
         createArff(vecs, DEFAULT_ARFF);
-/*
-        Instances data = new Instances();
-        for (int i = 0; i < vecsForTesting.size(); i++) {
-            Double[] doubleObjects = (Double[])vecsForTesting.get(i).toArray();
-            double[] doublePrims = new double[doubleObjects.length];
-            for(int j = 0; j < doubleObjects.length; j++)
-                doublePrims[j] = (double) doubleObjects[j];
 
-            Instance inst = new DenseInstance(1.0, doublePrims);
-        }
-*/
         EM cl;
         PrincipalComponents pca;
         try {
             //Options: max 5 iterations. 5 clusters.
-            String[] options = {"-I", "5", "-N", "5"};
-            cl = new EM();
 
+            cl = new EM();
             Instances data = ConverterUtils.DataSource.read(DEFAULT_ARFF);
 
             //dimensionality reduction here.
@@ -63,34 +52,36 @@ public class EMClusterer extends Clusterer{
             pca.setInputFormat(data);
             pca.setMaximumAttributes(20);
 
-            //Should it be runFilter()?
+            //apply filter
             data = Filter.useFilter(data, pca);
-            //Can follow the PCA with random projection, aim for about 15D or lower.
+            //If efficiency is a problem, could use random projection instead.
 
-
+            String[] options = {"-I", "5"};
             cl.setOptions(options);
-            //TODO: could initially not set a cluster number, rebuild only if output has a useless number of clusters.
+
+            //TODO: could initially not set a cluster number, rebuild with n=5 if output has a useless number of clusters.
             cl.buildClusterer(data);
             ClusterEvaluation eval = new ClusterEvaluation();
             eval.setClusterer(cl);
             eval.evaluateClusterer(new Instances(data));
 
+            //Create message groupings for each cluster.
             ArrayList<ArrayList<Message>> msgGroups = new ArrayList<ArrayList<Message>>();
             for (int i = 0; i < cl.numberOfClusters(); i++)
                 msgGroups.add(new ArrayList<Message>());
 
+            //For each message, get the corresponding Instance object, and find what cluster it belongs to.
+            //Then add it to the corresponding message grouping.
             for (int i = 0; i < messages.size(); i++) {
-                //use data.get(index) to obtain the reduced Instance for message at element 'index'.
-                //call clusterInstance(Instance instance) to get the index of the cluster. Insert it into that cluster.
                 Instance curr = data.get(i);
                 int clusterIndex = cl.clusterInstance(curr);
                 msgGroups.get(clusterIndex).add(messages.get(i));
             }
 
+            //Create new EMCluster objects to contain the message groupings.
             ArrayList<Cluster> clusters = new ArrayList<Cluster>();
-            for (int i = 0; i < cl.numberOfClusters(); i++) {
+            for (int i = 0; i < cl.numberOfClusters(); i++)
                 clusters.add(new EMCluster(msgGroups.get(i)));
-            }
 
             return clusters;
 
@@ -100,17 +91,41 @@ public class EMClusterer extends Clusterer{
         }
     }
 
+    public void classifyNewEmails(ArrayList<Message> messages) throws VectorElementMismatchException {
+        ArrayList<Cluster> clusters = getClusters();
+
+        //For classification, find clustering with highest probability for each email using matchStrength().
+        //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
+
+        //For each new message,
+        for (int i = 0; i < messages.size(); i++) {
+            double bestMatch = Integer.MAX_VALUE;
+            int bestCluster = 0;
+            //Find the index of the best cluster,
+            for (int j = 0; j < clusters.size(); j++) {
+                double currMatch = clusters.get(j).matchStrength(messages.get(i));
+                if (currMatch > bestMatch) {
+                    bestMatch = currMatch;
+                    bestCluster = j;
+                }
+            }
+            //and insert the message into that cluster.
+            clusters.get(bestCluster).addMessage(messages.get(i));
+        }
+    }
 
     void createArff(ArrayList<Vector<Double>> vecs, String fileName) throws IOException {
         FileWriter writer = new FileWriter(fileName);
         int dimensionality = vecs.get(0).size();
 
+        //header with names for each attribute e0,...,en
         writer.write("@RELATION vectors \n");
         for (int i = 0; i < dimensionality; i++) {
             writer.write("@ATTRIBUTE e" + i + " REAL \n");
         }
         writer.write("\n@DATA\n");
 
+        //Print a line for each vector, with elements separated by a comma.
         for (Vector<Double> v : vecs) {
             String vecString = "";
             for (int i = 0; i < dimensionality; i++) {
@@ -160,28 +175,6 @@ public class EMClusterer extends Clusterer{
             }
         } catch (Exception e) {e.printStackTrace();}
 
-        return vecs;
-    }
-
-    //temporary function for testing. Will be made redundant once vectoriser is implemented.
-    private ArrayList<Vector<Double>> parseTestFile() {
-        try {
-            return parseArff("iris-vector.arff");
-        } catch (IOException e) {return null;}
-    }
-
-
-    //temp testing function, use until vectoriser is implemented.
-    public ArrayList<Vector<Double>> getTestVecs(int num) {
-        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
-
-        for (int i = 0; i < num; i++) {
-            Vector<Double> vec = new Vector<Double>();
-            for (int j = 0; j < 300; j++) {
-                vec.add(Math.random() * 10);
-            }
-            vecs.add(vec);
-        }
         return vecs;
     }
 }

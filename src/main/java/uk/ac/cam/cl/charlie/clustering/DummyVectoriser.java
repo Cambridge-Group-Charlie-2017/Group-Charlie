@@ -9,14 +9,25 @@ import java.util.Vector;
 /**
  * Created by Ben on 07/02/2017.
  */
-public class DummyVectoriser {
-    private static HashMap<Message, Vector<Double>> map = new HashMap<Message, Vector<Double>>();
 
+
+public class DummyVectoriser {
+
+    private static HashMap<Message, Vector<Double>> map = new HashMap<Message, Vector<Double>>();
     private static final int dimensionality = 300;
+    private static HashMap<Message, Integer> actual = new HashMap<Message, Integer>();
+
+    //Return vector associated with 'msg'.
     public static Vector<Double> vectorise(Message msg) {
         return map.get(msg);
     }
 
+    /*
+     * Actual vectoriser will likely have a 'train' function which will be called during the clustering process.
+     * Subsequent calls to vectorise() will cause the vector to be evaluated based on the new training data.
+     * The dummy 'train' function simulated the train() function by assigning each message a vector, and vectorise()
+     * returns that vector.
+     */
     public static void train(ArrayList<Message> messages) {
         //assume 5 clusters.
         if (messages.size() < 250) {
@@ -44,8 +55,8 @@ public class DummyVectoriser {
                 }
                 //and link it to message i*50+j
                 map.put(messages.get(i*50+j), vec);
+                actual.put(messages.get(i*50+j), i);
             }
         }
-        return;
     }
 }

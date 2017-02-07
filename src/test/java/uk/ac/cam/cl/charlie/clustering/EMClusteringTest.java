@@ -1,16 +1,18 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Vector;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+
 
 /**
  * Created by Ben on 06/02/2017.
@@ -32,38 +34,30 @@ public class EMClusteringTest {
         em.evalClusters(messages);
 
         ArrayList<Cluster> clusters = em.getClusters();
+        System.out.println("Number of clusters: " + clusters.size());
 
         // perform various tests on 'clusters'
         assertNotNull(clusters);
         assertNotEquals(clusters.size(), 0);
 
+
         int bestCluster = Integer.MAX_VALUE;
-        double bestMatch = Double.MAX_VALUE;
-        Vector<Double> vec = testGetVec();
+        double bestMatch = 0;
+        Message msg = messages.get(110);
 
         for (int i = 0; i < clusters.size(); i++) {
-            double currMatch = clusters.get(i).matchStrength(vec);
-            if (currMatch < bestMatch) {
+            double currMatch = clusters.get(i).matchStrength(msg);
+            if (currMatch > bestMatch) {
                 bestMatch = currMatch;
                 bestCluster = i;
             }
         }
-        EMCluster cl = (EMCluster) clusters.get(bestCluster);
+        //clusters.get(bestCluster).addMessage(msg);
 
-        //cl.addMessage(null);
+        //Assert.assertEquals(2, bestCluster);
+        System.out.println("Belongs in cluster " + bestCluster);
 
-
+        //if that's the best cluster, it should already be there.
+        assertTrue(clusters.get(bestCluster).contains(msg));
     }
-
-    public static Vector<Double> testGetVec() {
-
-        int dimensionality = 300;
-        Vector<Double> v = new Vector<Double>();
-        for (int j = 0; j < dimensionality; j++) {
-            v.add(java.lang.Math.random() * 4);
-        }
-
-        return v;
-    }
-
 }
