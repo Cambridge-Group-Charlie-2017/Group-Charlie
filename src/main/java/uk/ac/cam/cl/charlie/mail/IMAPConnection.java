@@ -16,7 +16,7 @@ import javax.mail.*;
  * @author Simon Gielen
  */
 
-public class IMAPConnection {
+public class IMAPConnection extends Store {
 
     private static final Logger log = LoggerFactory.getLogger(IMAPConnection.class);
 
@@ -25,30 +25,27 @@ public class IMAPConnection {
     private final String provider;
     private final PasswordAuthentication authenticator;
 
-    private Properties connectionProperties;
-    private Session connectionSession;
-    private Store sessionStore;
+    private final Store sessionStore;
 
     public IMAPConnection(String host, String username, String password, String port, String provider) throws NoSuchProviderException {
+        super(
+                Session.getDefaultInstance(createProperties(provider, host, port)),
+                new URLName(provider, host, Integer.parseInt(port), "", username, password)
+        );
         this.host = host;
         this.authenticator = new PasswordAuthentication(username, password);
         this.port = port;
         this.provider = provider;
 
-        prepareConnection();
+        sessionStore = session.getStore(provider);
     }
 
-    private void prepareConnection() throws NoSuchProviderException {
-        connectionProperties = new Properties();
+    private static Properties createProperties(String provider, String host, String port) {
+        Properties connectionProperties = new Properties();
         connectionProperties.put("mail.store.protocol", provider);
         connectionProperties.put("mail.imap.host", host);
         connectionProperties.put("mail.imap.port", port);
-
-        // Needed for pesky Certificate needs, might need to disable later for safety of the user?
-        connectionProperties.put("mail.imaps.ssl.trust", "*");
-
-        connectionSession = Session.getDefaultInstance(connectionProperties, null);
-        sessionStore = connectionSession.getStore(provider);
+        return connectionProperties;
     }
 
     public void connect() throws MessagingException {
@@ -91,6 +88,11 @@ public class IMAPConnection {
     }
     public IMAPFolder getFolder(String name) throws MessagingException {
         return (IMAPFolder) sessionStore.getFolder(name);
+    }
+
+    @Override
+    public Folder getFolder(URLName url) throws MessagingException {
+        throw new UnsupportedOperationException();
     }
 
     public void createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, InvalidFolderNameException {
