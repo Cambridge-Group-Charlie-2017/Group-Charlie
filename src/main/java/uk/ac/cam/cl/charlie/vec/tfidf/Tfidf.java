@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.vec.tfidf;
 
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeSet;
 
 import uk.ac.cam.cl.charlie.db.Database;
@@ -13,24 +14,19 @@ import uk.ac.cam.cl.charlie.vec.Document;
 public final class Tfidf {
     // Presumably this will have to be stored in the database (which I will leave for later).
     // Use singleton pattern to stop subclassing
-    private static String INSERT_SQL = "INSERT INTO WORD_FREQUENCIES VALUES (?, ?)";
     private static String TOTAL_NUMBER_OF_DOCS = "";
 
     private static String GET_SQL = "SELECT freq FROM WORD_FREQUENCIES WHERE word = ?";
+    private static String INSERT_SQL = "INSERT INTO WORD_FREQUENCIES VALUES (?, ?)";
+
+    // no clue if this works
+    private static String UPDATE_SQL = "UPDATE WORD_FREQUENCIES SET freq = ? WHERE word = ?";
 
     private static Tfidf instance = null;
     private Database database; // the database instance should store the word frequencies.
     private PreparedStatement insertStmt;
     private PreparedStatement getStmt;
-
-    // TODO note I strongly disagree with this class having:
-    // a) any tables (the data has to be persisted to a database
-    // b) being used by external classes except TfidfVectoriser
-
-    // TODO this implementation with the database
-
-    // TODO I would also suggest aiming for very low coupling with the vectorising class
-    // there are other uses for tfidf ;)
+    private PreparedStatement updateStmt;
 
     private Tfidf() throws SQLException {
         database = Database.getInstance();
@@ -38,6 +34,8 @@ public final class Tfidf {
         insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
 
         getStmt = database.getConnection().prepareStatement(GET_SQL);
+
+        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
 
         if (!database.tableExists("WORD_FREQUENCIES")) {
             // need to create the database table
@@ -59,40 +57,80 @@ public final class Tfidf {
     }
 
     public int totalNumberDocuments() throws SQLException {
-        getStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
-        ResultSet rs = getStmt.executeQuery();
-        if (rs.next()) {
-            return rs.getInt(1); // check this line
-        }
-
-        else {
-            throw new SQLException();
-        }
+        // just a special case of getCount
+        return numberOfDocsWithWith(TOTAL_NUMBER_OF_DOCS);
     }
     
     public int numberOfDocsWithWith(String word) throws SQLException {
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
         if (rs.next()) {
+            rs.close();
             return rs.getInt(1); // check this line
         }
 
         else {
+            rs.close();
             throw new SQLException();
         }
     }
 
-    public void addCountToWord(String word) {
-
-    }
-    
+    // The overloaded function has been deleted (deliberately) - all calls should come through here, and here alone
     public void addDocument(Document doc) {
         // Generate a hashmap with all keys in lowercase, then update database
 
+        Map<String, Integer> wordCounts = new HashMap<>();
+
+        String text = doc.getContent();
+        for (String w : text.split("[\\W]")) {
+            w = w.toLowerCase(); // all our keys are in lower case
+            if (wordCounts.containsKey(w)) {
+                wordCounts.put(w, wordCounts.get(w) + 1); // autoboxed
+            }
+            else {
+                wordCounts.put(w, 1);
+            }
+        }
+
+        // iterate over the keys, and call incrementWordBy
+        for (String word : wordCounts.keySet()) {
+            try {
+                incrementWordBy(word, wordCounts.get(word));
+            } catch (SQLException e) {
+                throw new Error(e);
+            }
+        }
     }
     
-    public void addDocument(Document doc, HashMap<String, Integer> wordfrequency) {
-        // To be used when wordfrequency has already been calculated
+    public void incrementWord(String word) throws SQLException {
+        incrementWordBy(word, 1);
     }
 
+    public void incrementWordBy(String word, int n) throws SQLException {
+        getStmt.setString(1, word);
+        ResultSet rs = getStmt.executeQuery();
+
+        if (rs.next()) {
+            // the word is already in the database
+            int count = rs.getInt(1);
+            updateStmt.setInt(1, count + n);
+            updateStmt.setString(2, word);
+            updateStmt.execute();
+        }
+
+        else {
+            insertStmt.setString(1, word);
+            insertStmt.setInt(2, 1); // autoincrement to 1
+            insertStmt.execute();
+        }
+
+        rs.close();
+    }
+
+    public void close() throws SQLException {
+        // do all the cleaning up
+        updateStmt.close();
+        getStmt.close();
+        insertStmt.close();
+    }
 }
