@@ -6,6 +6,8 @@
  * user guide available at https://docs.gradle.org/3.3/userguide/tutorial_java_projects.html
  */
 
+import org.gradle.internal.os.OperatingSystem;
+
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 
@@ -49,9 +51,13 @@ dependencies {
 // Define the main class for the application
 mainClassName = 'App'
 
+if(!OperatingSystem.current().isWindows()){
 task downloadWord2Vec (type:Exec) {
-    commandLine './dlvec.sh'
+	
+    	commandLine './dlvec.sh'
+    
 }
 
 build.dependsOn downloadWord2Vec
 test.dependsOn downloadWord2Vec
+}
