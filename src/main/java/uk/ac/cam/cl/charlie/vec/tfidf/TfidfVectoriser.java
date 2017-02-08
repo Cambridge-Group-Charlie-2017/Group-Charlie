@@ -28,7 +28,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
     private Tfidf tf = null;
 
-    private int vectorDimensions = 300;
+    private final int vectorDimensions = 300;
 
     public Optional<TextVector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
@@ -62,20 +62,26 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return modelLoaded;
     }
 
-    public void persistModel() {
+    public void persistModel() throws TfidfException {
         if (!modelLoaded) {
             return;
         }
 
         else {
-            WordVectorSerializer.writeWord2VecModel(model, word2vecPath);
+            try {
+                WordVectorSerializer.writeWordVectors(model.getLookupTable(), new File(word2vecPath));
+            } catch (IOException e) {
+                e.printStackTrace();
+                modelLoaded = false;
+                throw new TfidfException();
+            }
             modelLoaded = false;
         }
     }
 
     // load google model is deprecated in favour of a more general method (which doesn't work!)
     @SuppressWarnings("deprecation")
-    public void loadModel() {
+    public void loadModel() throws TfidfException {
         if (modelLoaded) {
             return;
         }
@@ -86,7 +92,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
             } catch (IOException e) {
                 e.printStackTrace();
                 modelLoaded = false;
-                return;
+                throw new TfidfException();
             }
             modelLoaded = true;
         }
