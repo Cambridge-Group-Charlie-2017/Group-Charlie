@@ -28,6 +28,8 @@ public final class Tfidf {
     private PreparedStatement getStmt;
     private PreparedStatement updateStmt;
 
+    private boolean isClosed;
+
     private Tfidf() throws SQLException {
         database = Database.getInstance();
 
@@ -51,10 +53,14 @@ public final class Tfidf {
 
         updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
 
+        isClosed = false;
+
     }
 
     public static Tfidf getInstance() throws SQLException {
         if (instance == null) {
+            instance = new Tfidf();
+        } else if (instance.isClosed()) {
             instance = new Tfidf();
         }
         return instance;
@@ -143,5 +149,9 @@ public final class Tfidf {
         updateStmt.close();
         getStmt.close();
         insertStmt.close();
+    }
+
+    public boolean isClosed() {
+        return isClosed;
     }
 }

@@ -28,6 +28,10 @@ public class TfidfVectoriserTest {
             fail();
         }
 
+        finally {
+	        System.gc();
+        }
+
 	}
 
 	@Test
@@ -47,6 +51,9 @@ public class TfidfVectoriserTest {
         } catch (TfidfException e) {
             fail();
         }
+        finally {
+            System.gc();
+        }
     }
 
     @Test(expected = NullPointerException.class)
@@ -61,6 +68,9 @@ public class TfidfVectoriserTest {
             tfidf.persistModel();
         } catch (TfidfException e) {
             fail();
+        }
+        finally {
+            System.gc();
         }
     }
 
