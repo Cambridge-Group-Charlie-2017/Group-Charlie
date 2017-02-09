@@ -1,5 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import javafx.collections.FXCollections;
+
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -8,8 +10,7 @@ import java.util.*;
  * @author M Boyce
  */
 public class ClusterNamer {
-    private static HashSet<String> stopWords = new HashSet<String>();
-    //private static List<String> stopWords = StopWords.getStopWords();
+    private static HashSet<String> stopWords = new HashSet<String>(StopWords.getStopWords());
 
     private static double MIN_PROPORTION_CORRECT = 0.8;
 
@@ -18,10 +19,10 @@ public class ClusterNamer {
      * clusters contents and sets the given clusters name to that
      * @param cluster
      */
-    public static void basicNaming(Cluster cluster){
+    public static void subjectNaming(Cluster cluster) throws ClusterNamingException {
         ArrayList<Message> messages = cluster.getContents();
 
-        TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>();
+        TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
         //TODO: Possibly include body of email in naming
         //TreeMap<String,Integer> wordFrequencyBody = new TreeMap<String,Integer>();
 
@@ -34,7 +35,10 @@ public class ClusterNamer {
                 String[] subjectWords = m.getSubject().toLowerCase().split(" ");
                 for (int j = 0; j < subjectWords.length; j++) {
                     if (!stopWords.contains(subjectWords[j])) {
-                        int count = wordFrequencySubject.get(subjectWords[j]);
+                        int count = 0;
+                        if(wordFrequencySubject.containsKey(subjectWords[j])){
+                            count = wordFrequencySubject.get(subjectWords[j]);
+                        }
                         wordFrequencySubject.put(subjectWords[j], count + 1);
                     }
                 }
@@ -48,11 +52,29 @@ public class ClusterNamer {
 
         }
 
+        //Generate cluster name
+        String clusterName = "";
+        ArrayList<String> wordsToUse = new ArrayList<String>();
+        SortedMap<String,Integer> sortedMap = wordFrequencySubject.descendingMap();
+        Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
+
+        //Generate cut off for number of occurrences
+        int cutOff = (int) (messages.size()*MIN_PROPORTION_CORRECT);
+
+
+        Map.Entry<String,Integer> curEntry = iterator.next();
+        while(curEntry != null && curEntry.getValue() > cutOff){
+            clusterName  += " " + curEntry.getKey();
+            curEntry = iterator.next();
+        }
+
         //Set cluster name
-        if(wordFrequencySubject.lastKey() != null)
-            cluster.setName(wordFrequencySubject.lastKey());
-        else
+        if(cluster != null)
+            cluster.setName(clusterName);
+        else {
             cluster.setName("Error Naming Cluster");
+            throw new ClusterNamingException("Basic naming failed");
+        }
     }
 
     /**
@@ -108,5 +130,26 @@ public class ClusterNamer {
      */
     public static void textRankNaming(Cluster cluster){
 
+    }
+
+
+
+    /**
+     * Generic naming of the cluster that tries simple methods first aand if they are not good enough try more complicated
+     * methods
+     * @param cluster
+     */
+    public static void name(Cluster cluster){
+        try{
+            senderNaming(cluster);
+        } catch (ClusterNamingException e) {
+            //Sender naming method is not good enough
+            try {
+                subjectNaming(cluster);
+            } catch (ClusterNamingException e1) {
+                //subjectNaming method is not good enough
+                e1.printStackTrace();
+            }
+        }
     }
 }
