@@ -14,8 +14,8 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public double[] doc2vec(Document doc) throws SQLException;
+	public TextVector doc2vec(Document doc) throws SQLException;
 	
-	public double[] doc2vec(Email doc) throws SQLException;
+	public TextVector doc2vec(Email doc) throws SQLException;
 	
 }

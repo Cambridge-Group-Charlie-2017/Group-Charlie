@@ -36,6 +36,8 @@ public class TfidfTest {
             assertEquals(nDocs + 1, tf.totalNumberDocuments());
         } catch (SQLException e) {
             fail();
+        } catch (TfidfException e) {
+            fail();
         }
 
     }
