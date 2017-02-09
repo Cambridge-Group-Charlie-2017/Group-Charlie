@@ -47,13 +47,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public double[] doc2vec(Document doc) throws SQLException {
+    public TextVector doc2vec(Document doc) throws SQLException {
         // todo add any other content to do with names or other meta data
-        return calculateDocVector(doc.getContent());
+        return new TextVector(calculateDocVector(doc.getContent()));
     }
 
     @Override
-    public double[] doc2vec(Email doc) throws SQLException {
+    public TextVector doc2vec(Email doc) throws SQLException {
         // todo add anything that is relevant to the email header here.
         return doc2vec(doc.getTextBody());
     }

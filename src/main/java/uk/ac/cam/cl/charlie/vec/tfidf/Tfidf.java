@@ -67,20 +67,17 @@ public final class Tfidf {
     
     public int numberOfDocsWithWith(String word) throws SQLException {
         getStmt.setString(1, word);
-        ResultSet rs = getStmt.executeQuery();
-        if (rs.next()) {
-            rs.close();
-            return rs.getInt(1); // check this line
-        }
-
-        else {
-            rs.close();
-            return 0;
+        try (ResultSet rs = getStmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1); // check this line
+            } else {
+                return 0;
+            }
         }
     }
 
     // The overloaded function has been deleted (deliberately) - all calls should come through here, and here alone
-    public void addDocument(Document doc) {
+    public void addDocument(Document doc) throws TfidfException {
         // Generate a hashmap with all keys in lowercase, then update database
 
         Map<String, Integer> wordCounts = new HashMap<>();
@@ -107,6 +104,12 @@ public final class Tfidf {
             }
 
         }
+
+        try {
+            incrementWord(TOTAL_NUMBER_OF_DOCS);
+        } catch (SQLException e) {
+            throw new TfidfException();
+        }
     }
     
     public void incrementWord(String word) throws SQLException, TfidfException {
@@ -114,10 +117,7 @@ public final class Tfidf {
     }
 
     public void incrementWordBy(String word, int n) throws SQLException, TfidfException {
-        if (word.equals(TOTAL_NUMBER_OF_DOCS)) {
-            // shouldn't happen, if it does, throw an exception
-            throw new TfidfException();
-        }
+
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
 
