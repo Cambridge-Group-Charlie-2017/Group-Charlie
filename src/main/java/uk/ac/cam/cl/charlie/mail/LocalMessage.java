@@ -1,5 +1,9 @@
 package uk.ac.cam.cl.charlie.mail;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
+
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -10,19 +14,24 @@ import java.util.Date;
  * Created by Simon on 05/02/2017.
  */
 public class LocalMessage {
-    private final LocalIMAPFolder localFolder;
-    private final Message message;
+    private static final Logger log = LoggerFactory.getLogger(LocalMessage.class);
 
+
+    private final LocalIMAPFolder localFolder;
     private final String subject;
+
     private final Address[] from;
     private final Address[] recipients;
     private final Date receivedDate;
     private final Object content;
     private final String contentType;
 
+    private long UID;
+    private int messageNumber;
+    private Message message;
     private boolean synchedWithServer;
 
-    public LocalMessage(LocalIMAPFolder folder, Message m) throws MessagingException, IOException {
+    public LocalMessage(LocalIMAPFolder folder, Message m) throws MessagingException, IOException, IMAPConnectionClosedException {
         localFolder = folder;
         message = m;
         subject = m.getSubject();
@@ -31,9 +40,26 @@ public class LocalMessage {
         receivedDate = m.getReceivedDate();
         content = m.getContent();
         contentType = m.getContentType();
+        UID = folder.getUID(message);
+        messageNumber = m.getMessageNumber();
 
         synchedWithServer = false;
     }
+
+    public boolean hasConnection() {
+        return message != null;
+    }
+
+    public void openConnection(Message m) throws MessagingException {
+        message = m;
+    }
+
+    public void closeConnection() throws MessagingException {
+        message = null;
+    }
+
+    public long getUID() { return UID; }
+    public int getMessageNumber() { return messageNumber; }
 
     public boolean getSynchedWithServer() {
         return synchedWithServer;
@@ -45,10 +71,6 @@ public class LocalMessage {
 
     public Message getMessage() {
         return message;
-    }
-
-    public long getUID() throws MessagingException {
-        return localFolder.getUID(message);
     }
 
     public String getSubject() {

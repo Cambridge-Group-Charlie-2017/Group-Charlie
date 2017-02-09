@@ -27,6 +27,8 @@ public class IMAPConnection extends Store {
 
     private final Store sessionStore;
 
+    private ArrayList<LocalIMAPFolder> subscribers;
+
     public IMAPConnection(String host, String username, String password, String port, String provider) throws NoSuchProviderException {
         super(
                 Session.getDefaultInstance(createProperties(provider, host, port)),
@@ -38,6 +40,8 @@ public class IMAPConnection extends Store {
         this.provider = provider;
 
         sessionStore = session.getStore(provider);
+
+        subscribers = new ArrayList<>();
     }
 
     private static Properties createProperties(String provider, String host, String port) {
@@ -58,12 +62,20 @@ public class IMAPConnection extends Store {
         }
     }
 
+    @Override
+    public boolean isConnected() {
+        return sessionStore.isConnected();
+    }
+
     public void close() throws MessagingException {
         if (!sessionStore.isConnected()) {
             log.info("Tried to close an already closed IMAP store");
             throw new StoreClosedException(sessionStore);
         }
         try {
+            for (LocalIMAPFolder f : subscribers) {
+                f.closeConnection();
+            }
             sessionStore.close();
             log.info("Closed connection to '{}' under username '{}'", host, authenticator.getUserName());
         } catch (MessagingException e) {
@@ -130,5 +142,9 @@ public class IMAPConnection extends Store {
             Collections.addAll(messages, f.getMessages());
         }
         return messages;
+    }
+
+    public void subscribe(LocalIMAPFolder folder) {
+        subscribers.add(folder);
     }
 }

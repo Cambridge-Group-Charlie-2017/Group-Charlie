@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.mail.offline;
 
+import uk.ac.cam.cl.charlie.mail.IMAPConnection;
 import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
 
 
@@ -17,7 +18,7 @@ public class FolderMove implements OfflineChange {
     }
 
     @Override
-    public void handleChange() {
+    public void handleChange(IMAPConnection connection) {
 
     }
 }

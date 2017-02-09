@@ -78,11 +78,11 @@ public class LocalIMAPFolderTest {
     @Test
     public void testRetrievingMail() throws Exception {
         imapConnection.connect();
-        createDefaultMailFormat(0, 5 * magnitude);
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        createDefaultMailFormat(user, 0, 5 * magnitude);
+        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
         checkDefaultMailFormat(localFolder.getMessages(), 0, 5 * magnitude);
 
-        createDefaultMailFormat(5 * magnitude, 10 * magnitude);
+        createDefaultMailFormat(user, 5 * magnitude, 10 * magnitude);
         localFolder.sync();
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10 * magnitude);
     }
@@ -91,9 +91,9 @@ public class LocalIMAPFolderTest {
     public void testRetrievingMailAfterMoving() throws Exception {
         imapConnection.connect();
         imapConnection.createFolder("Test 1");
-        createDefaultMailFormat(0, 10 * magnitude);
+        createDefaultMailFormat(user, 0, 10 * magnitude);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
         localFolder.moveMessages(imapConnection.getFolder("Test 1"), toBeMoved);
@@ -111,24 +111,24 @@ public class LocalIMAPFolderTest {
     public void testMovingMail() throws Exception {
         imapConnection.connect();
         imapConnection.createFolder("Test 1");
-        createDefaultMailFormat(0, 10 * magnitude);
+        createDefaultMailFormat(user, 0, 10 * magnitude);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
         localFolder.moveMessages(imapConnection.getFolder("Test 1"), toBeMoved);
         localFolder.sync();
 
         assertEquals(2 * magnitude, imapConnection.getFolder("Test 1").getMessageCount());
-        checkDefaultMailFormat(new LocalIMAPFolder(imapConnection.getFolder("Test 1")).getMessages(), 2 * magnitude, 4 * magnitude);
+        checkDefaultMailFormat(new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Test 1")).getMessages(), 2 * magnitude, 4 * magnitude);
     }
 
     @Test
     public void testDeletingMail() throws Exception {
         imapConnection.connect();
-        createDefaultMailFormat(0, 10);
+        createDefaultMailFormat(user, 0, 10);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
         localFolder.deleteMessages(localFolder.getMessages().get(1), localFolder.getMessages().get(2));
         localFolder.sync();
 
@@ -136,13 +136,54 @@ public class LocalIMAPFolderTest {
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10, 1, 2);
     }
 
-    private void createDefaultMailFormat(int start, int end) throws MessagingException {
-        for (int i = start; i < end; i++) {
-            createFakeEmail("from" + i, "to" + i, "subject " + i, "content " + i);
+    @Test
+    public void testReconnectToFolder() throws Exception {
+        imapConnection.connect();
+        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder[] testFolders = new LocalIMAPFolder[magnitude];
+        for (int i = 0; i < magnitude; i++) {
+            imapConnection.createFolder("Test " + i);
+            testFolders[i] = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Test " + i));
+        }
+        imapConnection.close();
+        imapConnection.connect();
+        inbox.openConnection(imapConnection);
+        inbox.sync();
+        for (LocalIMAPFolder m : testFolders) {
+            m.openConnection(imapConnection);
+            m.sync();
+        }
+
+        assertEquals(0, inbox.getMessages().size());
+        for (int i = 0; i < magnitude; i++) {
+            assertEquals(0, testFolders[0].getMessages().size());
         }
     }
 
-    private void checkDefaultMailFormat(List<LocalMessage> messages, int startMessageNumber, int endMessageNumberExclusive, Integer... exclusions) throws Exception {
+    @Test
+    public void testSynchingAfterReconnect() throws Exception {
+        imapConnection.connect();
+        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+
+        inbox.sync();
+        assertEquals(0, inbox.getMessages().size());
+        imapConnection.close();
+        createDefaultMailFormat(user, 0, magnitude);
+        imapConnection.connect();
+        inbox.openConnection(imapConnection);
+        assertEquals(0, inbox.getMessages().size());
+        inbox.sync();
+
+        checkDefaultMailFormat(inbox.getMessages(), 0, magnitude);
+    }
+
+    public static void createDefaultMailFormat(GreenMailUser user, int start, int end) throws MessagingException {
+        for (int i = start; i < end; i++) {
+            createFakeEmail(user, "from" + i, "to" + i, "subject " + i, "content " + i);
+        }
+    }
+
+    public static void checkDefaultMailFormat(List<LocalMessage> messages, int startMessageNumber, int endMessageNumberExclusive, Integer... exclusions) throws Exception {
         int skippedCount = 0;
         int messageNumber = 0;
         outerloop:
@@ -166,7 +207,7 @@ public class LocalIMAPFolderTest {
         assertEquals(endMessageNumberExclusive - 1, messageNumber);
     }
 
-    private void createFakeEmail(String from, String to, String subject, String content) throws MessagingException {
+    public static void createFakeEmail(GreenMailUser user, String from, String to, String subject, String content) throws MessagingException {
         MimeMessage message = new MimeMessage((Session) null);
         message.setFrom(new InternetAddress(from));
         message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
