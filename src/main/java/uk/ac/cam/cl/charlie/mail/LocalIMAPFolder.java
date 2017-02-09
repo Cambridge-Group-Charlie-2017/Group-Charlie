@@ -54,7 +54,6 @@ public class LocalIMAPFolder {
         for (LocalMessage m : messages) {
             // TODO: what if it can't find a message bc it has moves?
             Message serverMessage = serverFolder.getMessageByUID(m.getUID());
-            System.out.println(serverMessage.getSubject() + "\t" + m.getSubject());
             m.openConnection(serverMessage);
         }
         serverFolder.close(false);
@@ -197,10 +196,7 @@ public class LocalIMAPFolder {
         f.open(Folder.READ_WRITE);
         // TODO: Check presence of all messages in current folder
         serverFolder.copyMessages(imapMessages, f);
-        System.out.println(serverFolder.getMessageCount());
-        System.out.println(f.getMessageCount());
         for (Message m : imapMessages) {
-            System.out.println("Deleting message " + m.getSubject());
             m.setFlag(Flags.Flag.DELETED, true);
         }
         f.close(false);
