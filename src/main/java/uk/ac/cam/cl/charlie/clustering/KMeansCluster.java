@@ -7,10 +7,10 @@ import java.util.Vector;
 /**
  * Created by Ben on 02/02/2017.
  */
-public class KMeansCluster extends Cluster{
+public class KMeansCluster {
     protected Vector<Double> centroid;
     Vector<Double> getCentroid() {return centroid;}
-
+/*
     protected void updateMetadataAfterAdding(Message msg) {
         //once vectoriser implemented, replace with genuine getVec method.
         Vector<Double> vec = DummyVectoriser.vectorise(msg);
@@ -41,5 +41,5 @@ public class KMeansCluster extends Cluster{
         this.centroid = initialCentroid;
     }
 
-
+*/
 }

@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import javax.mail.Message;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -49,6 +48,7 @@ public class GenericClusterGroup implements Iterable<GenericCluster>{
             if (clusters.get(i).contains(co))
                 return i;
 
+        //TODO: could throw exception instead.
         return -1;
     }
 

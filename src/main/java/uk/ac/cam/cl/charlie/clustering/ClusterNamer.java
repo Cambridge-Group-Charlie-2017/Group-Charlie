@@ -23,8 +23,8 @@ public class ClusterNamer {
      * clusters contents and sets the given clusters name to that
      * @param cluster
      */
-    public static void subjectNaming(Cluster cluster) throws ClusterNamingException {
-        ArrayList<Message> messages = cluster.getContents();
+    public static void subjectNaming(GenericCluster cluster) throws ClusterNamingException {
+        ArrayList<ClusterableObject> messages = cluster.getContents();
 
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
         //TODO: Possibly include body of email in naming
@@ -33,7 +33,7 @@ public class ClusterNamer {
 
         //Loop through all emails in a cluster and find word frequencies
         for(int i = 0; i<messages.size();i++){
-            Message m = messages.get(i);
+            Message m = ((ClusterableMessage) messages.get(i)).getMessage();
 
             try {
                 String[] subjectWords = m.getSubject().toLowerCase().split(" ");
@@ -86,16 +86,15 @@ public class ClusterNamer {
      * of the emails in that cluster
      * @param cluster
      */
-    public static void senderNaming(Cluster cluster) throws ClusterNamingException {
-        List<Message> messages = new ArrayList<Message>();
-        messages = cluster.getContents();
+    public static void senderNaming(GenericCluster cluster) throws ClusterNamingException {
+        ArrayList<ClusterableObject> messages = cluster.getContents();
 
         //Map storing number of occurrences of each domain name in the sender address of the messages in the cluster
         TreeMap<String, Integer> domains = new TreeMap<String, Integer>();
 
         for(int i=0; i<messages.size(); i++){
             try {
-                Address[] from = messages.get(i).getFrom();
+                Address[] from = ((ClusterableMessage)messages.get(i)).getMessage().getFrom();
                 String[] address = from[0].toString().split("@");
 
                 //Remove the .com /.net ect
@@ -132,11 +131,11 @@ public class ClusterNamer {
      * (Takes into account how related sentences in the emails are)
      * @param cluster
      */
-    public static void textRankNaming(Cluster cluster){
+    public static void textRankNaming(GenericCluster cluster){
 
     }
 
-    public static void word2VecNaming(Cluster cluster) {
+    public static void word2VecNaming(GenericCluster cluster) {
         ArrayList<Message> messages = new ArrayList<Message>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
@@ -185,7 +184,7 @@ public class ClusterNamer {
      * methods
      * @param cluster
      */
-    public static void name(Cluster cluster){
+    public static void name(GenericCluster cluster){
         try{
             senderNaming(cluster);
         } catch (ClusterNamingException e) {

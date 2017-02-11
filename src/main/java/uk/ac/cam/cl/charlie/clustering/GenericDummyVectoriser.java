@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+
 import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
@@ -16,16 +17,16 @@ import java.util.*;
 
 public class GenericDummyVectoriser {
 
-    private static HashMap<ClusterableObject, Vector<Double>> map = new HashMap<ClusterableObject, Vector<Double>>();
+    private static HashMap<ClusterableObject, TextVector> map = new HashMap<ClusterableObject, TextVector>();
     private static final int dimensionality = 300;
     private static HashMap<ClusterableObject, Integer> actual = new HashMap<ClusterableObject, Integer>();
 
     //Return vector associated with 'msg'.
-    public static Vector<Double> vectorise(Message msg) {
+    public static TextVector vectorise(Message msg) {
         return map.get(msg);
     }
     //Return vector associated with 'msg'.//TODO:Edit to do correct thing
-    public static Vector<Double> vectorise(ClusterableObject msg) {
+    public static TextVector vectorise(ClusterableObject msg) {
         return map.get(msg);
     }
     /*
@@ -54,13 +55,13 @@ public class GenericDummyVectoriser {
             Random rand = new Random();
             //and generate 50 vectors for the cluster
             for (int j = 0; j < 50; j++) {
-                Vector<Double> vec = new Vector<Double>();
+                double[] arr = new double[dimensionality];
                 //each with 300 elements with gaussian distribution, adjusted for mean and variance.
                 for (int k = 0; k < dimensionality; k++) {
-                    vec.add(rand.nextDouble() * stdev[k] + mean[k]);
+                    arr[k] = rand.nextGaussian() * stdev[k] + mean[k];
                 }
                 //and link it to message i*50+j
-                map.put(clusterableObjects.get(i*50+j), vec);
+                map.put(clusterableObjects.get(i*50+j), new TextVector(arr));
                 actual.put(clusterableObjects.get(i*50+j), i);
             }
         }
@@ -92,6 +93,8 @@ public class GenericDummyVectoriser {
             }
         }
 
+        //note from Ben: Is this needed in here? Note that DummyVectoriser was only a temp class
+        //for use until the vectoriser was implemented. It wasn't meant to be anything more.
         //TODO: Check vectorising strategy used
         VectorisingStrategy vectorisingStrategy = new TfidfVectoriser();
 

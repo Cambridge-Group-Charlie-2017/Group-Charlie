@@ -16,6 +16,10 @@ public class TextVector {
         return components.clone(); // encapsulation
     }
 
+    public double get(int index) {return components[index];}
+    //public void set(int index, double component) {components[index] = component;}
+    public int size() {return components.length;}
+
     @Override
     public String toString() {
         return "TextVector{" +

@@ -20,10 +20,10 @@ public class ClusterableWord implements ClusterableObject {
     }
 
     @Override
-    public Vector<Double> getVec() {
+    public TextVector getVec() {
         TfidfVectoriser vectoriser = new TfidfVectoriser();
         vectoriser.word2vec(word);
         //TODO: Implement correct vectorising
-        return DummyVectoriser.vectorise(this);
+        return GenericDummyVectoriser.vectorise(this);
     }
 }

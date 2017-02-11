@@ -23,10 +23,10 @@ import javax.mail.Message;
 // Will definitely try other algorithms once the basic structure works.
 // Using a default 5 clusters.
 
-public class KMeansClusterer extends Clusterer {
+public class KMeansClusterer {
     //File in which vectors will be stored temporarily prior to clustering.
     private final String DEFAULT_ARFF = "vectors.arff";
-
+/*
     protected ClusterGroup run(ArrayList<Message> messages) throws Exception{
 
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
@@ -200,4 +200,5 @@ public class KMeansClusterer extends Clusterer {
             return parseArff("iris-vector.arff");
         } catch (IOException e) {return null;}
     }
+    */
 }

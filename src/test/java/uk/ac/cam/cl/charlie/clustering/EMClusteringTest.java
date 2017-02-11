@@ -30,7 +30,7 @@ public class EMClusteringTest {
         for (int i = 0; i < 250; i++) {
             messages.add(new MimeMessage(sess));
         }
-        DummyVectoriser.train(messages);
+
         em.evalClusters(messages);
 
         ClusterGroup clusters = em.getClusters();

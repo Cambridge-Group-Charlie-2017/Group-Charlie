@@ -1,7 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.vec.TextVector;
 import javax.mail.Message;
-import java.util.Vector;
 
 /**
  * Created by M Boyce on 11/02/2017.
@@ -14,8 +14,8 @@ public class ClusterableMessage implements ClusterableObject {
     }
 
     @Override
-    public Vector<Double> getVec() {
-        return DummyVectoriser.vectorise(message);
+    public TextVector getVec() {
+        return GenericDummyVectoriser.vectorise(message);
     }
 
     public Message getMessage() {

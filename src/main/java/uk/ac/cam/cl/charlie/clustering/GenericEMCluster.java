@@ -1,9 +1,9 @@
 
 package uk.ac.cam.cl.charlie.clustering;
 
-import javax.mail.Message;
 import java.util.ArrayList;
 import java.util.Vector;
+import uk.ac.cam.cl.charlie.vec.TextVector;
 
 /**
  * Created by Ben on 05/02/2017.
@@ -24,7 +24,7 @@ public class GenericEMCluster extends GenericCluster{
         int n = getClusterSize();
 
         //Get the vectors for the messages.
-        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
         for (int i = 0; i < n; i++)
             vecs.add(GenericDummyVectoriser.vectorise(messages.get(i)));
 
@@ -57,7 +57,7 @@ public class GenericEMCluster extends GenericCluster{
     protected void updateMetadataAfterAdding(ClusterableObject msg) {
         //changes variance and average arrays.
         //once vectoriser implemented, replace with genuine getVec method.
-        Vector<Double> vec = DummyVectoriser.vectorise(msg);
+        TextVector vec = GenericDummyVectoriser.vectorise(msg);
 
         //Note: clustersize has not been incremented yet at this point.
         for (int i = 0; i < getDimensionality(); i++) {
@@ -79,7 +79,7 @@ public class GenericEMCluster extends GenericCluster{
 
         //only consider a subset of elements. if all probabilities are multiplied then the resulting
         //probability becomes too small at high dimensions.
-        Vector<Double> vec = GenericDummyVectoriser.vectorise(msg);
+        TextVector vec = GenericDummyVectoriser.vectorise(msg);
         if (vec.size() != getDimensionality())
             throw new IncompatibleDimensionalityException();
 

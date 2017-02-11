@@ -25,7 +25,7 @@ public class ClusterNamerTest {
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
 
-        KMeansCluster c = new KMeansCluster(null,messages);
+        EMCluster c = new EMCluster(messages);
         ClusterNamer.senderNaming(c);
         assert(c.getName().equals("companyname"));
     }
@@ -44,7 +44,7 @@ public class ClusterNamerTest {
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@i-companyname.com","Project X", "",files));
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@j-companyname.com","Project X", "",files));
 
-        KMeansCluster c = new KMeansCluster(null,messages);
+        EMCluster c = new EMCluster(messages);
 
         try {
             ClusterNamer.senderNaming(c);
@@ -69,7 +69,7 @@ public class ClusterNamerTest {
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@i-companyname.com","Project X", "",files));
         messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@j-companyname.com","Project X", "",files));
 
-        KMeansCluster c = new KMeansCluster(null,messages);
+        EMCluster c = new EMCluster(messages);
 
         ClusterNamer.name(c);
         System.out.println(c.getName());

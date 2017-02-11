@@ -6,17 +6,18 @@ import weka.clusterers.EM;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
+import weka.core.pmml.jaxbbindings.TextCorpus;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.PrincipalComponents;
 
 import javax.mail.Message;
+import javax.xml.soap.Text;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
 
 /**
  * Probably going to be the final clusterer. Or could try density based clustering.
@@ -28,8 +29,9 @@ public class GenericEMClusterer extends GenericClusterer{
     protected GenericClusterGroup run(ArrayList<ClusterableObject> clusterableObjects) throws Exception {
 
         //Not yet implemented vectoriser so use DummyVectoriser for testing:
-        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
 
+        GenericDummyVectoriser.train(clusterableObjects);
         for (ClusterableObject co : clusterableObjects)
             vecs.add(GenericDummyVectoriser.vectorise(co));
         // convert vecs into arff format for the clusterer.
@@ -97,6 +99,8 @@ public class GenericEMClusterer extends GenericClusterer{
         //For classification, find clustering with highest probability for each email using matchStrength().
         //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
 
+        //TODO: update to run using clusterGroup.insert()
+
         //For each new message,
         for (int i = 0; i < messages.size(); i++) {
             double bestMatch = Integer.MAX_VALUE;
@@ -115,7 +119,7 @@ public class GenericEMClusterer extends GenericClusterer{
     }
 
 
-    void createArff(ArrayList<Vector<Double>> vecs, String fileName) throws IOException {
+    void createArff(ArrayList<TextVector> vecs, String fileName) throws IOException {
         FileWriter writer = new FileWriter(fileName);
         int dimensionality = vecs.get(0).size();
 
@@ -127,7 +131,7 @@ public class GenericEMClusterer extends GenericClusterer{
         writer.write("\n@DATA\n");
 
         //Print a line for each vector, with elements separated by a comma.
-        for (Vector<Double> v : vecs) {
+        for (TextVector v : vecs) {
             String vecString = "";
             for (int i = 0; i < dimensionality; i++) {
                 vecString += String.format("%f", v.get(i));
@@ -140,14 +144,15 @@ public class GenericEMClusterer extends GenericClusterer{
         writer.close();
     }
 
+/*
     //Note: this function may not even be needed.
-    ArrayList<Vector<Double>> parseArff(String fileName) throws IOException {
+    ArrayList<TextVector> parseArff(String fileName) throws IOException {
         BufferedReader in = new BufferedReader(new FileReader(fileName));
         String currLine;
         //Note: Only numbers can be used as attributes. No strings.
         //Although, could use strings if we consider sentiment analysis for example.
 
-        ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
+        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
         int dimensionality = 0;
 
         while(true) {
@@ -166,7 +171,7 @@ public class GenericEMClusterer extends GenericClusterer{
                     break;
                 if (!currLine.equals("")) {
                     String[] tokens = currLine.split(",");
-                    Vector<Double> v = new Vector<Double>();
+                    TextVector v = new TextVector();
                     for (int i = 0; i < dimensionality; i++) {
                         double element = Double.parseDouble(tokens[i]);
                         v.add(element);
@@ -177,5 +182,66 @@ public class GenericEMClusterer extends GenericClusterer{
         } catch (Exception e) {e.printStackTrace();}
 
         return vecs;
+    }
+*/
+
+    public ArrayList<ArrayList<DemoMessageVector>> demoClusterer(ArrayList<ClusterableObject> messages) throws Exception{
+
+        //Not yet implemented vectoriser so use DummyVectoriser for testing:
+        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
+
+        GenericDummyVectoriser.train(messages);
+        for (ClusterableObject m : messages)
+            vecs.add(GenericDummyVectoriser.vectorise(m));
+
+        // convert vecs into arff format for the clusterer.
+        // is there a more efficient way of converting to (dense) Instances? add(Instance)
+        createArff(vecs, DEFAULT_ARFF);
+
+        EM cl;
+        PrincipalComponents pca;
+        try {
+            cl = new EM();
+            Instances data = ConverterUtils.DataSource.read(DEFAULT_ARFF);
+
+            //dimensionality reduction here.
+            //First use PCA, then use random projection to get to the desired dimensionality.
+            //possible option: -R <num> for proportion of variance to maintain. Default 0.95, could go lower.
+            pca = new PrincipalComponents();
+            pca.setInputFormat(data);
+            pca.setMaximumAttributes(2); //allowing a 2D plot
+
+            //apply filter
+            data = Filter.useFilter(data, pca);
+            //If efficiency is a problem, could use random projection instead.
+
+            String[] options = {"-I", "5"};
+            cl.setOptions(options);
+
+            //TODO: could initially not set a cluster number, rebuild with n=5 if output has a useless number of clusters.
+            cl.buildClusterer(data);
+            ClusterEvaluation eval = new ClusterEvaluation();
+            eval.setClusterer(cl);
+            eval.evaluateClusterer(new Instances(data));
+
+            ArrayList<ArrayList<DemoMessageVector>> results = new ArrayList<ArrayList<DemoMessageVector>>();
+            for (int i = 0; i < cl.numberOfClusters(); i++) {
+                results.add(new ArrayList<DemoMessageVector>());
+            }
+            //For each message, get the corresponding Instance object, and find what cluster it belongs to.
+            //Then add it to the corresponding message grouping.
+            for (int i = 0; i < messages.size(); i++) {
+                Instance curr = data.get(i);
+                int clusterIndex = cl.clusterInstance(curr);
+                //insert corresponding vector
+                results.get(clusterIndex).add(new DemoMessageVector(curr.toDoubleArray(), messages.get(i)));
+            }
+
+            return results;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

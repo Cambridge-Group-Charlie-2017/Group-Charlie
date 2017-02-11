@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import javax.mail.Message;
 import java.util.ArrayList;
 
 /**

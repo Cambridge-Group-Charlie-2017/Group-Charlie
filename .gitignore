@@ -21,6 +21,10 @@ tags
 .idea
 *.iml
 
+###word2vec###
+wordvectors.txt
+src/main/resources/word2vec/wordvectors.txt
+
 ### Gradle ###
 .gradle
 /build/

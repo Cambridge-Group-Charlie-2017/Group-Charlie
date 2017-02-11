@@ -1,10 +1,11 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import java.util.Vector;
+import uk.ac.cam.cl.charlie.vec.TextVector;
+
 
 /**
  * @author M Boyce
  */
 public interface ClusterableObject {
-    public Vector<Double> getVec();
+    public TextVector getVec();
 }
