@@ -1,7 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.Word;
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
 import weka.core.Instance;
@@ -22,17 +21,17 @@ import java.util.Vector;
 /**
  * Probably going to be the final clusterer. Or could try density based clustering.
  */
-public class EMClusterer extends Clusterer{
+public class GenericEMClusterer extends GenericClusterer{
     private final String DEFAULT_ARFF = "vectors.arff";
 
     //Note: currently set up to train on every vector. If this is uses too much memory, could train on a subset.
-    protected ClusterGroup run(ArrayList<Message> messages) throws Exception {
+    protected GenericClusterGroup run(ArrayList<ClusterableObject> clusterableObjects) throws Exception {
 
         //Not yet implemented vectoriser so use DummyVectoriser for testing:
         ArrayList<Vector<Double>> vecs = new ArrayList<Vector<Double>>();
 
-        for (Message m : messages)
-            vecs.add(DummyVectoriser.vectorise(m));
+        for (ClusterableObject co : clusterableObjects)
+            vecs.add(GenericDummyVectoriser.vectorise(co));
         // convert vecs into arff format for the clusterer.
         // is there a more efficient way of converting to (dense) Instances? add(Instance)
         createArff(vecs, DEFAULT_ARFF);
@@ -66,22 +65,22 @@ public class EMClusterer extends Clusterer{
             eval.evaluateClusterer(new Instances(data));
 
             //Create message groupings for each cluster.
-            ArrayList<ArrayList<Message>> msgGroups = new ArrayList<ArrayList<Message>>();
+            ArrayList<ArrayList<ClusterableObject>> objGroups = new ArrayList<ArrayList<ClusterableObject>>();
             for (int i = 0; i < cl.numberOfClusters(); i++)
-                msgGroups.add(new ArrayList<Message>());
+                objGroups.add(new ArrayList<ClusterableObject>());
 
             //For each message, get the corresponding Instance object, and find what cluster it belongs to.
             //Then add it to the corresponding message grouping.
-            for (int i = 0; i < messages.size(); i++) {
+            for (int i = 0; i < clusterableObjects.size(); i++) {
                 Instance curr = data.get(i);
                 int clusterIndex = cl.clusterInstance(curr);
-                msgGroups.get(clusterIndex).add(messages.get(i));
+                objGroups.get(clusterIndex).add(clusterableObjects.get(i));
             }
 
             //Create new Cluster objects in a ClusterGroup to contain the message groupings.
-            ClusterGroup clusters = new ClusterGroup();
+            GenericClusterGroup clusters = new GenericClusterGroup();
             for (int i = 0; i < cl.numberOfClusters(); i++)
-                clusters.add(new EMCluster(msgGroups.get(i)));
+                clusters.add(new GenericEMCluster(objGroups.get(i)));
 
             return clusters;
 
@@ -92,8 +91,8 @@ public class EMClusterer extends Clusterer{
     }
 
 
-    public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
-        ClusterGroup clusters = getClusters();
+    public void classifyNewEmails(ArrayList<ClusterableObject> messages) throws IncompatibleDimensionalityException {
+        GenericClusterGroup clusters = getClusters();
 
         //For classification, find clustering with highest probability for each email using matchStrength().
         //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
@@ -114,6 +113,7 @@ public class EMClusterer extends Clusterer{
             clusters.get(bestCluster).addMessage(messages.get(i));
         }
     }
+
 
     void createArff(ArrayList<Vector<Double>> vecs, String fileName) throws IOException {
         FileWriter writer = new FileWriter(fileName);

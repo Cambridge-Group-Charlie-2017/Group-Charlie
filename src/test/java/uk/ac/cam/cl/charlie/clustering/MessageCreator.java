@@ -1,3 +1,5 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;

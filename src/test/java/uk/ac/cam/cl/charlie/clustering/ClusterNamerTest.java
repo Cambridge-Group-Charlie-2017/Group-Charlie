@@ -1,5 +1,7 @@
+package uk.ac.cam.cl.charlie.clustering;
+
 import org.junit.Test;
-import uk.ac.cam.cl.charlie.clustering.*;
+
 import javax.mail.Message;
 import java.io.File;
 import java.util.ArrayList;

@@ -1,6 +1,10 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import javafx.collections.FXCollections;
+import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.vec.Word;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 import javax.mail.Address;
 import javax.mail.Message;
@@ -132,7 +136,49 @@ public class ClusterNamer {
 
     }
 
+    public static void word2VecNaming(Cluster cluster) {
+        ArrayList<Message> messages = new ArrayList<Message>();
+        TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
+        for (int i = 0; i < messages.size(); i++) {
+            Message m = messages.get(i);
+
+            try {
+                String[] subjectWords = m.getSubject().toLowerCase().split(" ");
+                for (int j = 0; j < subjectWords.length; j++) {
+                    if (!stopWords.contains(subjectWords[j])) {
+                        int count = 0;
+                        if (wordFrequencySubject.containsKey(subjectWords[j])) {
+                            count = wordFrequencySubject.get(subjectWords[j]);
+                        }
+                        wordFrequencySubject.put(subjectWords[j], count + 1);
+                    }
+                }
+
+            } catch (MessagingException e) {
+                System.out.println(e.getMessage());
+
+            }
+        }
+
+        //TODO: Check vectorising strategy used
+        VectorisingStrategy vectorisingStrategy = new TfidfVectoriser();
+
+
+        HashMap<WordAndOccurences,TextVector> wordVectorMap = new HashMap<WordAndOccurences,TextVector>();
+        Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
+        while(iterator.hasNext()){
+            Map.Entry<String,Integer> entry = iterator.next();
+            WordAndOccurences w = new WordAndOccurences(entry.getKey(),entry.getValue());
+            Optional<TextVector> t = vectorisingStrategy.word2vec(entry.getKey());
+            if(t.isPresent()) {
+                wordVectorMap.put(w, t.get());
+            }
+        }
+
+        GenericEMClusterer clusterer = new GenericEMClusterer();
+
+    }
 
     /**
      * Generic naming of the cluster that tries simple methods first aand if they are not good enough try more complicated

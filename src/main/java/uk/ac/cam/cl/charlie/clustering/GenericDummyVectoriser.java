@@ -10,14 +10,15 @@ import java.util.*;
 
 /**
  * Created by Ben on 07/02/2017.
+ * @author M Boyce
  */
 
 
-public class DummyVectoriser {
+public class GenericDummyVectoriser {
 
-    private static HashMap<Message, Vector<Double>> map = new HashMap<Message, Vector<Double>>();
+    private static HashMap<ClusterableObject, Vector<Double>> map = new HashMap<ClusterableObject, Vector<Double>>();
     private static final int dimensionality = 300;
-    private static HashMap<Message, Integer> actual = new HashMap<Message, Integer>();
+    private static HashMap<ClusterableObject, Integer> actual = new HashMap<ClusterableObject, Integer>();
 
     //Return vector associated with 'msg'.
     public static Vector<Double> vectorise(Message msg) {
@@ -33,9 +34,9 @@ public class DummyVectoriser {
      * The dummy 'train' function simulated the train() function by assigning each message a vector, and vectorise()
      * returns that vector.
      */
-    public static void train(ArrayList<Message> messages) {
+    public static void train(ArrayList<ClusterableObject> clusterableObjects) {
         //assume 5 clusters.
-        if (messages.size() < 250) {
+        if (clusterableObjects.size() < 250) {
             System.err.println("Please supply 250 Message objects for testing");
             return;
         }
@@ -59,8 +60,8 @@ public class DummyVectoriser {
                     vec.add(rand.nextDouble() * stdev[k] + mean[k]);
                 }
                 //and link it to message i*50+j
-                map.put(messages.get(i*50+j), vec);
-                actual.put(messages.get(i*50+j), i);
+                map.put(clusterableObjects.get(i*50+j), vec);
+                actual.put(clusterableObjects.get(i*50+j), i);
             }
         }
     }
