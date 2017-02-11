@@ -160,23 +160,43 @@ public class ClusterNamer {
             }
         }
 
-        //TODO: Check vectorising strategy used
-        VectorisingStrategy vectorisingStrategy = new TfidfVectoriser();
 
-
-        HashMap<WordAndOccurences,TextVector> wordVectorMap = new HashMap<WordAndOccurences,TextVector>();
+        //Map to array list
+        ArrayList<ClusterableObject> words = new ArrayList<ClusterableObject>();
         Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
         while(iterator.hasNext()){
             Map.Entry<String,Integer> entry = iterator.next();
-            WordAndOccurences w = new WordAndOccurences(entry.getKey(),entry.getValue());
-            Optional<TextVector> t = vectorisingStrategy.word2vec(entry.getKey());
-            if(t.isPresent()) {
-                wordVectorMap.put(w, t.get());
-            }
+            ClusterableWordAndOccurence w = new ClusterableWordAndOccurence(entry.getKey(),entry.getValue());
+            words.add(new ClusterableWordAndOccurence(entry.getKey(),entry.getValue()));
         }
 
         GenericEMClusterer clusterer = new GenericEMClusterer();
+        clusterer.evalClusters(words);
+        GenericClusterGroup clusters = clusterer.getClusters();
 
+        String folderName = "";
+        int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
+
+        for(int i = 0; i<clusters.size();i++){
+            GenericCluster gc = clusters.get(i);
+            ArrayList<ClusterableObject> w = gc.getContents();
+
+            //Get most common word in a cluster
+            int mostCommonOccurences = 0;
+            String mostCommonWord = "";
+            for(int j=0; j<w.size();j++){
+                ClusterableWordAndOccurence word = (ClusterableWordAndOccurence) w.get(j);
+                if(word.getOccurences() > mostCommonOccurences){
+                    mostCommonOccurences = word.getOccurences();
+                    mostCommonWord = word.getWord();
+                }
+            }
+            folderName += mostCommonWord + " ";
+        }
+
+
+        //Set folderName
+        cluster.setName(folderName);
     }
 
     /**
