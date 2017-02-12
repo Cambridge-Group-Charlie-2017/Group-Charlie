@@ -65,11 +65,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return doc2vec(doc.getTextBody());
     }
 
-    public boolean isModelLoaded() {
-        return modelLoaded;
-    }
-
-    public void persistModel() throws TfidfException {
+    @Override
+    public void close() {
         if (!modelLoaded) {
             return;
         }
@@ -78,17 +75,17 @@ public class TfidfVectoriser implements VectorisingStrategy {
             try {
                 WordVectorSerializer.writeWordVectors(model.getLookupTable(), new File(word2vecPath));
             } catch (IOException e) {
-                e.printStackTrace();
                 modelLoaded = false;
-                throw new TfidfException();
+                throw new Error(e);
             }
             modelLoaded = false;
         }
     }
 
     // load google model is deprecated in favour of a more general method (which doesn't work!)
+    @Override
     @SuppressWarnings("deprecation")
-    public void loadModel() throws TfidfException {
+    public void load() {
         if (modelLoaded) {
             return;
         }
@@ -97,12 +94,15 @@ public class TfidfVectoriser implements VectorisingStrategy {
             try {
                 model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
             } catch (IOException e) {
-                e.printStackTrace();
                 modelLoaded = false;
-                throw new TfidfException();
+                throw new Error(e);
             }
             modelLoaded = true;
         }
+    }
+
+    public boolean ready() {
+        return modelLoaded;
     }
 
     private double[] calculateDocVector(String text) throws SQLException {
