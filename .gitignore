@@ -43,7 +43,7 @@ gradle-app.setting
 
 
 #temp format file for clustering
-tempFile.aarf
+*.aarf
 
 ### IntelliJ ###
 .idea/

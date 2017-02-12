@@ -1,15 +1,16 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import javafx.collections.FXCollections;
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
-import uk.ac.cam.cl.charlie.vec.Word;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import java.util.*;
 /**
  * @author M Boyce
  */
