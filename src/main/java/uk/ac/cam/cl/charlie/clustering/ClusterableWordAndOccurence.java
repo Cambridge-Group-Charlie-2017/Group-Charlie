@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 import java.util.Vector;
@@ -23,10 +24,10 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
     public int getOccurences(){return occurences;}
 
     @Override
-    public Vector<Double> getVec() {
+    public TextVector getVec() {
         TfidfVectoriser vectoriser = new TfidfVectoriser();
         vectoriser.word2vec(word);
         //TODO: Implement correct vectorising
-        return DummyVectoriser.vectorise(this);
+        return GenericDummyVectoriser.vectorise(this);
     }
 }
