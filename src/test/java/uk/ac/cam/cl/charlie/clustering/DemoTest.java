@@ -19,13 +19,13 @@ public class DemoTest {
 
     @Test
     public void mainTest() throws Exception{
-        EMClusterer em = new EMClusterer();
+        GenericEMClusterer em = new GenericEMClusterer();
 
         Session sess = Session.getDefaultInstance(new Properties());
 
-        ArrayList<Message> messages = new ArrayList<Message>();
+        ArrayList<ClusterableObject> messages = new ArrayList<ClusterableObject>();
         for (int i = 0; i < 250; i++) {
-            messages.add(new MimeMessage(sess));
+            messages.add(new ClusterableMessage(new MimeMessage(sess)));
         }
 
 

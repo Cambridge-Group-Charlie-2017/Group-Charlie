@@ -41,8 +41,13 @@ gradle-app.setting
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
 
+
 #temp format file for clustering
 tempFile.aarf
+
+### IntelliJ ###
+.idea/
+
 
 ### Eclipse ###
 

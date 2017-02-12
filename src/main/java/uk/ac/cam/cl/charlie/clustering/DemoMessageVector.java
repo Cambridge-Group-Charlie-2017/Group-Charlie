@@ -1,7 +1,5 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import javax.mail.Message;
-
 /**
  * Created by Ben on 11/02/2017.
  */

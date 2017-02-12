@@ -12,39 +12,25 @@ import java.util.ArrayList;
 public class ClusterNamerTest {
 
     @Test public void senderNameTest1() throws Exception{
-        ArrayList<Message> messages= new ArrayList<Message>();
+        ArrayList<ClusterableObject> messages= new ArrayList<ClusterableObject>();
         ArrayList<File> files = new ArrayList<File>();
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        for (int i = 0; i < 10; i++)
+            messages.add(new ClusterableMessage(MessageCreator.createMessage(
+               "blabla@gmail.com","Bob@companyname.com","Project X", "",files)));
 
-        EMCluster c = new EMCluster(messages);
+        GenericEMCluster c = new GenericEMCluster(messages);
         ClusterNamer.senderNaming(c);
         assert(c.getName().equals("companyname"));
     }
 
     @Test public void senderNameTest2(){
-        ArrayList<Message> messages= new ArrayList<Message>();
+        ArrayList<ClusterableObject> messages= new ArrayList<ClusterableObject>();
         ArrayList<File> files = new ArrayList<File>();
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@a-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@b-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@c-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@d-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@e-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@f-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@g-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@h-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@i-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@j-companyname.com","Project X", "",files));
+        for (char letter = 'a'; letter <= 'j'; letter++)
+            messages.add(new ClusterableMessage(MessageCreator.createMessage(
+               "blabla@gmail.com","Bob@"+letter+"-companyname.com","Project X", "",files)));
 
-        EMCluster c = new EMCluster(messages);
+        GenericEMCluster c = new GenericEMCluster(messages);
 
         try {
             ClusterNamer.senderNaming(c);
@@ -56,20 +42,20 @@ public class ClusterNamerTest {
     }
 
     @Test public void nameTest(){
-        ArrayList<Message> messages= new ArrayList<Message>();
+        ArrayList<ClusterableObject> messages= new ArrayList<ClusterableObject>();
         ArrayList<File> files = new ArrayList<File>();
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@a-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@b-companyname.com","Project X another", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@c-companyname.com","Project X request", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@d-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@e-companyname.com","Project X blaa", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@f-companyname.com","Project X ", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@g-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@h-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@i-companyname.com","Project X", "",files));
-        messages.add(MessageCreator.createMessage("blabla@gmail.com","Bob@j-companyname.com","Project X", "",files));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@a-companyname.com","Project X", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@b-companyname.com","Project X another", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@c-companyname.com","Project X request", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@d-companyname.com","Project X", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@e-companyname.com","Project X blaa", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@f-companyname.com","Project X ", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@g-companyname.com","Project X", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@h-companyname.com","Project X", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@i-companyname.com","Project X", "",files)));
+        messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com","Bob@j-companyname.com","Project X", "",files)));
 
-        EMCluster c = new EMCluster(messages);
+        GenericEMCluster c = new GenericEMCluster(messages);
 
         ClusterNamer.name(c);
         System.out.println(c.getName());

@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import org.deeplearning4j.clustering.cluster.Cluster;
 import org.junit.Assert;
 import org.junit.Test;
 import static org.junit.Assert.assertNotEquals;
@@ -21,19 +22,19 @@ public class EMClusteringTest {
 
     @Test
     public void mainTest() throws Exception{
-        EMClusterer em = new EMClusterer();
+        GenericEMClusterer em = new GenericEMClusterer();
 
 
         Session sess = Session.getDefaultInstance(new Properties());
 
-        ArrayList<Message> messages = new ArrayList<Message>();
+        ArrayList<ClusterableObject> messages = new ArrayList<ClusterableObject>();
         for (int i = 0; i < 250; i++) {
-            messages.add(new MimeMessage(sess));
+            messages.add(new ClusterableMessage(new MimeMessage(sess)));
         }
 
         em.evalClusters(messages);
 
-        ClusterGroup clusters = em.getClusters();
+        GenericClusterGroup clusters = em.getClusters();
         System.out.println("Number of clusters: " + clusters.size());
 
         // perform various tests on 'clusters'
@@ -43,7 +44,7 @@ public class EMClusteringTest {
 
         int bestCluster = Integer.MAX_VALUE;
         double bestMatch = 0;
-        Message msg = messages.get(110);
+        ClusterableObject msg = messages.get(110);
 
         for (int i = 0; i < clusters.size(); i++) {
             double currMatch = clusters.get(i).matchStrength(msg);
