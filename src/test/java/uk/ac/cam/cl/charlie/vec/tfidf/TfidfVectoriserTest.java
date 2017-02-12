@@ -21,9 +21,7 @@ public class TfidfVectoriserTest {
 	private TfidfVectoriser tfidf;
 
 	public TfidfVectoriserTest() {
-	    try {
-            tfidf = new TfidfVectoriser();
-        } catch (SQLException e) {}
+        tfidf = new TfidfVectoriser();
 
 	}
 	

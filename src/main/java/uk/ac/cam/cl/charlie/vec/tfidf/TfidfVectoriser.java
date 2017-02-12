@@ -3,21 +3,14 @@ package uk.ac.cam.cl.charlie.vec.tfidf;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import org.deeplearning4j.models.embeddings.loader.VectorsConfiguration;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
-import uk.ac.cam.cl.charlie.db.Database;
-import uk.ac.cam.cl.charlie.vec.Document;
-import uk.ac.cam.cl.charlie.vec.Email;
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.vec.*;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -30,10 +23,18 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private Word2Vec model;
     private boolean modelLoaded;
     private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
-    private Tfidf tf = null;
     private String regexSplit = "[^a-zA-Z0-9']+";
+    private Tfidf tf;
 
     private final int vectorDimensions = 300;
+
+    public TfidfVectoriser() {
+        try {
+            tf = Tfidf.getInstance();
+        } catch (SQLException e) {
+            throw new Error(e);
+        }
+    }
 
     public Optional<TextVector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
@@ -49,10 +50,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
             // model further on the user's stuff
             return Optional.empty();
         }
-    }
-
-    public TfidfVectoriser() throws SQLException{
-        tf = Tfidf.getInstance();
     }
 
     @Override
@@ -71,7 +68,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     
     //Provide a method for batching vectorisation, which calls load() and close().
     @Override
-    public Set<TextVector> doc2vec(Set<Message> emailBatch) {
+    public Set<TextVector> doc2vec(Set<Message> emailBatch) throws BatchSizeTooSmallException {
     	if(emailBatch == null) { return null; }
     	try {
     		
@@ -97,10 +94,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
             return vectorBatch;
         } catch (MessagingException | IOException | TfidfException | SQLException e) {
             return null;
-        } catch (BatchSizeTooSmallException e) {
-			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
-			return null;
-		}
+        }
     }
     
     public TextVector doc2vec(Message msg) {
@@ -130,8 +124,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
         else {
             try {
-                WordVectorSerializer.writeWordVectors(model.getLookupTable(), new File(word2vecPath));
-            } catch (IOException e) {
+                File writeTo = new File(word2vecPath + ".bak");
+                WordVectorSerializer.writeWordVectors(model.getLookupTable(), writeTo);
+                File original = new File (word2vecPath);
+                original.delete();
+                writeTo.renameTo(original);
+
+                tf.close();
+            } catch (IOException | SQLException e) {
                 modelLoaded = false;
                 throw new Error(e);
             }
@@ -143,13 +143,18 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     @SuppressWarnings("deprecation")
     public void load() {
-        if (modelLoaded) {
+        if (modelLoaded && !tf.isClosed()) {
             return;
         }
         else {
             try {
-                model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
-            } catch (IOException e) {
+                if (!modelLoaded) {
+                    model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
+                }
+                if (tf.isClosed()) {
+                    tf = Tfidf.getInstance();
+                }
+            } catch (IOException | SQLException e) {
                 modelLoaded = false;
                 throw new Error(e);
             }
@@ -158,7 +163,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     public boolean ready() {
-        return modelLoaded;
+        return modelLoaded && !tf.isClosed();
     }
 
     private double[] calculateDocVector(String text) throws SQLException {

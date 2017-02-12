@@ -34,29 +34,7 @@ public final class Tfidf {
 
     private Tfidf() throws SQLException {
         database = Database.getInstance();
-
-
-        if (!database.tableExists("WORD_FREQUENCIES")) {
-            // need to create the database table
-            String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
-            database.executeUpdate(sql);
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
-
-            // insert a value to represent the number of documents in total:
-            insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
-            insertStmt.setInt(2, 0);
-            insertStmt.executeUpdate(sql);
-        }
-        else {
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
-        }
-
-        getStmt = database.getConnection().prepareStatement(GET_SQL);
-
-        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
-
-        isClosed = false;
-
+        open();
     }
 
     public static Tfidf getInstance() throws SQLException {
@@ -152,6 +130,29 @@ public final class Tfidf {
         updateStmt.close();
         getStmt.close();
         insertStmt.close();
+    }
+
+    public void open() throws SQLException {
+        if (!database.tableExists("WORD_FREQUENCIES")) {
+            // need to create the database table
+            String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
+            database.executeUpdate(sql);
+            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
+
+            // insert a value to represent the number of documents in total:
+            insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
+            insertStmt.setInt(2, 0);
+            insertStmt.executeUpdate(sql);
+        }
+        else {
+            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
+        }
+
+        getStmt = database.getConnection().prepareStatement(GET_SQL);
+
+        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
+
+        isClosed = false;
     }
 
     public boolean isClosed() {
