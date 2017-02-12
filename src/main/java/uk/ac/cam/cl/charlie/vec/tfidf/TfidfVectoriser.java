@@ -1,12 +1,16 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.deeplearning4j.models.embeddings.loader.VectorsConfiguration;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
+import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
 import uk.ac.cam.cl.charlie.db.Database;
@@ -15,22 +19,27 @@ import uk.ac.cam.cl.charlie.vec.Email;
 import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMultipart;
+
 /**
  * Created by Shyam Tailor on 04/02/2017.
  */
 public class TfidfVectoriser implements VectorisingStrategy {
     private Word2Vec model;
     private boolean modelLoaded;
-    private String word2vecPath = "src/main/res/word2vec/wordvectors.bin.gz";
+    private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
     private Tfidf tf = null;
+    private String regexSplit = "[^a-zA-Z0-9']+";
 
-    private int vectorDimensions = 300;
+    private final int vectorDimensions = 300;
 
     public Optional<TextVector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an "exceptional" case
     	// ^ we cannot use Optional with double[] as Optional uses generics which require a class.
         if (model.hasWord(word)) {
-            return Optional.of(new TextVector(null));
+            return Optional.of(new TextVector(model.getWordVector(word)));
         }
         else {
         	//Do we really not want to attempt to vectorise the word at all?
@@ -42,42 +51,114 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
 
+    public TfidfVectoriser() throws SQLException{
+        tf = Tfidf.getInstance();
+    }
+
     @Override
-    public double[] doc2vec(Document doc) throws SQLException {
+    public TextVector doc2vec(Document doc) {
         // todo add any other content to do with names or other meta data
-        return calculateDocVector(doc.getContent());
+        try {
+            tf.addDocument(doc);
+            return new TextVector(calculateDocVector(doc.getContent()));
+        } catch (TfidfException e) {
+            throw new Error(e);
+        } catch (SQLException e) {
+            throw new Error(e);
+        }
+    }
+
+    
+    //Provide a method for batching vectorisation, which calls load() and close().
+    @Override
+    public Set<TextVector> doc2vec(Set<Message> emailBatch) {
+    	if(emailBatch == null) { return null; }
+    	try {
+    		
+    		this.load();
+    		Set<TextVector> vectorBatch = new HashSet<TextVector>();
+    		Set<Document> intermediateBatch = new HashSet<Document>();
+            //not sure if msg.getFileName() is appropriate here. Feel free to change to msg.getSubject() or something.
+            //Also, for the actual Message objects we're going to use (if we don't use MimeMessage),
+            //there may be different method calls for getting the body content as a String.
+    		for(Message msg: emailBatch) {
+            	MimeMultipart content = (MimeMultipart)msg.getContent();
+            	String body = (String)content.getBodyPart(0).getContent();
+            	Document doc = new Document(msg.getSubject(), body);
+            	tf.addDocument(doc);
+            	intermediateBatch.add(doc);
+    		}
+    		//Checks if sufficient emails are in the database
+    		if(tf.totalNumberDocuments() < 20) { throw new BatchSizeTooSmallException(); }
+    		for(Document doc: intermediateBatch) {
+    			vectorBatch.add(new TextVector(calculateDocVector(doc.getContent())));
+    		}
+    		this.close();
+            return vectorBatch;
+        } catch (MessagingException | IOException | TfidfException | SQLException e) {
+            return null;
+        } catch (BatchSizeTooSmallException e) {
+			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
+			return null;
+		}
+    }
+    
+    public TextVector doc2vec(Message msg) {
+        // todo add anything that is relevant to the email header here.
+        try {
+            //not sure if msg.getFileName() is appropriate here. Feel free to change to msg.getSubject() or something.
+            //Also, for the actual Message objects we're going to use (if we don't use MimeMessage),
+            //there may be different method calls for getting the body content as a String.
+            MimeMultipart content = (MimeMultipart)msg.getContent();
+            String body = (String)content.getBodyPart(0).getContent();
+            //Checks if sufficient emails are in the database
+    		if(tf.totalNumberDocuments() < 20) { throw new BatchSizeTooSmallException(); }
+            return doc2vec(new Document(msg.getSubject(), body));
+        } catch (MessagingException | IOException |SQLException e) {
+            return null;
+		} catch (BatchSizeTooSmallException e) {
+			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
+			return null;
+		}
     }
 
     @Override
-    public double[] doc2vec(Email doc) throws SQLException {
-        // todo add anything that is relevant to the email header here.
-        return doc2vec(doc.getTextBody());
-    }
-
-    public boolean isModelLoaded() {
-        return modelLoaded;
-    }
-
-    public void persistModel() {
+    public void close() {
         if (!modelLoaded) {
             return;
         }
 
         else {
-            WordVectorSerializer.writeWord2VecModel(model, word2vecPath);
+            try {
+                WordVectorSerializer.writeWordVectors(model.getLookupTable(), new File(word2vecPath));
+            } catch (IOException e) {
+                modelLoaded = false;
+                throw new Error(e);
+            }
             modelLoaded = false;
         }
     }
 
-    public void loadModel() {
+    // load google model is deprecated in favour of a more general method (which doesn't work!)
+    @Override
+    @SuppressWarnings("deprecation")
+    public void load() {
         if (modelLoaded) {
             return;
         }
-
         else {
-            model = WordVectorSerializer.readWord2VecModel(word2vecPath);
+            try {
+                model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
+            } catch (IOException e) {
+                modelLoaded = false;
+                throw new Error(e);
+            }
             modelLoaded = true;
         }
+    }
+
+    public boolean ready() {
+        return modelLoaded;
     }
 
     private double[] calculateDocVector(String text) throws SQLException {
@@ -86,13 +167,15 @@ public class TfidfVectoriser implements VectorisingStrategy {
         // don't want to duplicate words -> use a set
         Set<String> words = new HashSet<String>();
 
-        for (String w : text.split("[\\W]")) { //this will split on non-word characters
+        for (String w : text.split(regexSplit)) { //this will split on non-word characters
             words.add(w);
         }
+        words.remove(""); //empty string should not be included.
 
         double[] docVector = new double[vectorDimensions];
         double totalWeight = 0.0;
 
+        //TODO: Should take case into account. Convert to lower case?
         // add the vectors for every word which is in the vocab
         for (String w : words) {
             Optional<TextVector> wordVec = word2vec(w);
@@ -122,14 +205,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
         // calculate the number of occurences of word in doc
         int count = 0;
-        for (String w : doc.split("[\\W]")) { //this will split on non-word characters
+        for (String w : doc.split(regexSplit)) { //this will split on non-word characters (hopefully)
             if (w.equals(word)) {
                 ++count;
             }
         }
 
-        // this is going to cause problems (divide by 0)
-        // need to add words to database frequency count first
         return count * Math.log((double)tf.totalNumberDocuments() / tf.numberOfDocsWithWith(word));
     }
 }

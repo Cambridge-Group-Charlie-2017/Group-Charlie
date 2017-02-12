@@ -1,8 +1,8 @@
 package uk.ac.cam.cl.charlie.vec;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
+import javax.mail.Message;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Any algorithm used to transform words or emails or documents to feature vectors
@@ -14,8 +14,13 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public double[] doc2vec(Document doc) throws SQLException;
+	public TextVector doc2vec(Document doc);
 	
-	public double[] doc2vec(Email doc) throws SQLException;
+	public Set<TextVector> doc2vec(Set<Message> batch);
+
+	// load and close need to be called before the above functions work
+	public void load();
+	public void close();
+	public boolean ready();
 	
 }
