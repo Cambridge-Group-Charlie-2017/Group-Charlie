@@ -14,8 +14,13 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public TextVector doc2vec(Document doc) throws SQLException;
+	public TextVector doc2vec(Document doc);
 	
-	public TextVector doc2vec(Email doc) throws SQLException;
+	public TextVector doc2vec(Email doc);
+
+	// load and close need to be called before the above functions work
+	public void load();
+	public void close();
+	public boolean ready();
 	
 }

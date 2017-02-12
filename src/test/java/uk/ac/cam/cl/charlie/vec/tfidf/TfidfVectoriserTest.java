@@ -21,13 +21,12 @@ public class TfidfVectoriserTest {
 	@Test
 	public void testModelLoad() {
 	    try {
-            tfidf.loadModel();
-		    assertEquals(true, tfidf.isModelLoaded());
-		    tfidf.persistModel();
-        } catch (TfidfException e) {
+            tfidf.load();
+		    assertEquals(true, tfidf.ready());
+		    tfidf.close();
+        } catch (Error e) {
             fail();
         }
-
         finally {
 	        System.gc();
         }
@@ -36,19 +35,15 @@ public class TfidfVectoriserTest {
 
 	@Test
     public void testWord2Vec() {
-        try {
-            tfidf.loadModel();
-        } catch (TfidfException e) {
-            fail();
-        }
+        tfidf.load();
 
         assertNotSame(Optional.empty(), tfidf.word2vec("hello"));
 		// Check nothing bad happens with null strings or empty strings
         tfidf.word2vec("");
 
         try {
-            tfidf.persistModel();
-        } catch (TfidfException e) {
+            tfidf.close();
+        } catch (Error e) {
             fail();
         }
         finally {
@@ -58,15 +53,11 @@ public class TfidfVectoriserTest {
 
     @Test(expected = NullPointerException.class)
     public void testWord2VecNull () {
-        try {
-            tfidf.loadModel();
-        } catch (TfidfException e) {
-            fail();
-        }
+        tfidf.load();
         tfidf.word2vec(null);
         try {
-            tfidf.persistModel();
-        } catch (TfidfException e) {
+            tfidf.close();
+        } catch (Error e) {
             fail();
         }
         finally {
