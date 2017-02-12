@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.vec;
 
+import javax.mail.Message;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -16,7 +17,7 @@ public interface VectorisingStrategy {
 	
 	public TextVector doc2vec(Document doc);
 	
-	public TextVector doc2vec(Email doc);
+	public TextVector doc2vec(Message msg);
 
 	// load and close need to be called before the above functions work
 	public void load();

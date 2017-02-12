@@ -48,6 +48,9 @@ dependencies {
     compile 'org.deeplearning4j:deeplearning4j-ui_2.11:0.7.2' // not entirely certain we need this one
     compile 'org.deeplearning4j:deeplearning4j-nlp:0.7.2'
     compile 'org.nd4j:nd4j-native-platform:0.7.2'
+	
+	// javax.mail
+	compile 'javax.mail:mail:1.4.7'
 }
 
 // Define the main class for the application

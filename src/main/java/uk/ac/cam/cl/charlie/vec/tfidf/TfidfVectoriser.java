@@ -19,6 +19,10 @@ import uk.ac.cam.cl.charlie.vec.Email;
 import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMultipart;
+
 /**
  * Created by Shyam Tailor on 04/02/2017.
  */
@@ -46,6 +50,10 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
 
+    public TfidfVectoriser() throws SQLException{
+        tf = Tfidf.getInstance();
+    }
+
     @Override
     public TextVector doc2vec(Document doc) {
         // todo add any other content to do with names or other meta data
@@ -59,10 +67,22 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
 
+    //TODO: Could provide a method for batching vectorisation, which calls load() and close().
+
     @Override
-    public TextVector doc2vec(Email doc) {
+    public TextVector doc2vec(Message msg) {
         // todo add anything that is relevant to the email header here.
-        return doc2vec(doc.getTextBody());
+        try {
+            //not sure if msg.getFileName() is appropriate here. Feel free to change to msg.getSubject() or something.
+            //Also, for the actual Message objects we're going to use (if we don't use MimeMessage),
+            //there may be different method calls for getting the body content as a String.
+            MimeMultipart content = (MimeMultipart)msg.getContent();
+            String body = (String)content.getBodyPart(0).getContent();
+
+            return doc2vec(new Document(msg.getSubject(), body));
+        } catch (MessagingException | IOException e) {
+            return null;
+        }
     }
 
     @Override
@@ -89,7 +109,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
         if (modelLoaded) {
             return;
         }
-
         else {
             try {
                 model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
@@ -114,10 +133,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
         for (String w : text.split("[\\W]")) { //this will split on non-word characters
             words.add(w);
         }
+        words.remove(""); //empty string should not be included.
 
         double[] docVector = new double[vectorDimensions];
         double totalWeight = 0.0;
 
+        //TODO: Should take case into account. Convert to lower case?
         // add the vectors for every word which is in the vocab
         for (String w : words) {
             Optional<TextVector> wordVec = word2vec(w);

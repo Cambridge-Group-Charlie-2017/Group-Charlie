@@ -98,6 +98,7 @@ public final class Tfidf {
                 wordCounts.put(w, 1);
             }
         }
+        wordCounts.remove("");
 
         // iterate over the keys, and call incrementWordBy
         for (String word : wordCounts.keySet()) {
