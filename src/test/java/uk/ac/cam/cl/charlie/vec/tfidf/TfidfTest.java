@@ -14,6 +14,14 @@ import static org.junit.Assert.fail;
 public class TfidfTest {
     private Tfidf tf;
 
+    public TfidfTest () {
+        try {
+            tf = Tfidf.getInstance();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Test
     public void checkInit() {
         try {
@@ -37,6 +45,47 @@ public class TfidfTest {
         } catch (SQLException e) {
             fail();
         } catch (TfidfException e) {
+            fail();
+        } finally {
+        }
+
+    }
+
+    @Test
+    public void checkAddWord() {
+        if (tf == null) {
+            checkInit();
+        }
+
+        String testWord = "Hello";
+        try {
+            int count = tf.numberOfDocsWithWith(testWord);
+            tf.incrementWord(testWord);
+            assertEquals(count + 1, tf.numberOfDocsWithWith(testWord));
+            tf.incrementWordBy(testWord, 3);
+            assertEquals(count + 4, tf.numberOfDocsWithWith(testWord));
+
+        } catch (SQLException e) {
+            fail();
+        } catch (TfidfException e) {
+            fail();
+        }
+
+
+    }
+
+    @Test (expected = Error.class)
+    public void checkClose() {
+        try {
+            tf = Tfidf.getInstance();
+
+            tf.totalNumberDocuments(); // quick call to check the database is loaded
+
+            tf.close();
+            tf.close(); // shouldn't do anything bad
+
+            tf.totalNumberDocuments();
+        } catch (SQLException e) {
             fail();
         }
 

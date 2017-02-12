@@ -47,13 +47,20 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public TextVector doc2vec(Document doc) throws SQLException {
+    public TextVector doc2vec(Document doc) {
         // todo add any other content to do with names or other meta data
-        return new TextVector(calculateDocVector(doc.getContent()));
+        try {
+            tf.addDocument(doc);
+            return new TextVector(calculateDocVector(doc.getContent()));
+        } catch (TfidfException e) {
+            throw new Error(e);
+        } catch (SQLException e) {
+            throw new Error(e);
+        }
     }
 
     @Override
-    public TextVector doc2vec(Email doc) throws SQLException {
+    public TextVector doc2vec(Email doc) {
         // todo add anything that is relevant to the email header here.
         return doc2vec(doc.getTextBody());
     }
@@ -146,8 +153,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
             }
         }
 
-        // this is going to cause problems (divide by 0)
-        // need to add words to database frequency count first
         return count * Math.log((double)tf.totalNumberDocuments() / tf.numberOfDocsWithWith(word));
     }
 }
