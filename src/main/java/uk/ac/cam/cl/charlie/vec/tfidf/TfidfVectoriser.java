@@ -168,7 +168,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         Set<String> words = new HashSet<String>();
 
         for (String w : text.split(regexSplit)) { //this will split on non-word characters
-            words.add(w);
+            words.add(w.toLowerCase());
         }
         words.remove(""); //empty string should not be included.
 
@@ -211,6 +211,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
             }
         }
 
-        return count * Math.log((double)tf.totalNumberDocuments() / tf.numberOfDocsWithWith(word));
+        double totalDocs = (double)tf.totalNumberDocuments();
+        double totalDocsWith = (double)tf.numberOfDocsWithWith(word);
+        return count * Math.log(totalDocs / totalDocsWith);
     }
 }
