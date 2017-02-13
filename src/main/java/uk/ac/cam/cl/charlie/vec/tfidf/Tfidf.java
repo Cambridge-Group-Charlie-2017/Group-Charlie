@@ -24,22 +24,17 @@ public final class Tfidf {
 
     private static Tfidf instance = null;
     private Database database; // the database instance should store the word frequencies.
-    private PreparedStatement insertStmt;
-    private PreparedStatement getStmt;
-    private PreparedStatement updateStmt;
 
     private final String regexSplit = "[^a-zA-Z']+";
 
     private Tfidf() throws SQLException {
         database = Database.getInstance();
-        open();
+        init();
     }
 
     public static Tfidf getInstance() throws SQLException {
         if (instance == null) {
             instance = new Tfidf();
-        } else if (instance.isClosed()) {
-            instance.open();
         }
         return instance;
     }
@@ -50,9 +45,7 @@ public final class Tfidf {
     }
     
     public int numberOfDocsWithWith(String word) throws SQLException {
-        if (isClosed()) {
-            open();
-        }
+        PreparedStatement getStmt = database.getConnection().prepareStatement(GET_SQL);
         getStmt.setString(1, word);
         try (ResultSet rs = getStmt.executeQuery()) {
             if (rs.next()) {
@@ -65,14 +58,6 @@ public final class Tfidf {
 
     // The overloaded function has been deleted (deliberately) - all calls should come through here, and here alone
     public void addDocument(Document doc) throws TfidfException {
-
-        if (isClosed()) {
-            try {
-                open();
-            } catch (SQLException e) {
-                throw new Error(e);
-            }
-        }
         // Generate a hashmap with all keys in lowercase, then update database
 
         Map<String, Integer> wordCounts = new HashMap<>();
@@ -113,22 +98,23 @@ public final class Tfidf {
     }
 
     public void incrementWordBy(String word, int n) throws SQLException, TfidfException {
-        if (isClosed()) {
-            open();
-        }
-
+        PreparedStatement getStmt = database.getConnection().prepareStatement(GET_SQL);
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
+        getStmt.close();
 
         if (rs.next()) {
             // the word is already in the database
             int count = rs.getInt(1);
+            PreparedStatement updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
             updateStmt.setInt(1, count + n);
             updateStmt.setString(2, word);
             updateStmt.execute();
+            updateStmt.close();
         }
 
         else {
+            PreparedStatement insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
             insertStmt.setString(1, word);
             insertStmt.setInt(2, 1); // autoincrement to 1
             insertStmt.execute();
@@ -137,39 +123,18 @@ public final class Tfidf {
         rs.close();
     }
 
-    public void close() throws SQLException {
-        // do all the cleaning up
-        updateStmt.close();
-        getStmt.close();
-        insertStmt.close();
-    }
-
-    public void open() throws SQLException {
+    private void init() throws SQLException {
         if (!database.tableExists("WORD_FREQUENCIES")) {
             // need to create the database table
             String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
             database.executeUpdate(sql);
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
+            PreparedStatement insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
 
             // insert a value to represent the number of documents in total:
             insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
             insertStmt.setInt(2, 0);
-            insertStmt.executeUpdate(sql);
-        }
-        else {
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
-        }
-
-        getStmt = database.getConnection().prepareStatement(GET_SQL);
-
-        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
-    }
-
-    public boolean isClosed() {
-        try {
-            return getStmt.isClosed() || insertStmt.isClosed() || updateStmt.isClosed();
-        } catch (SQLException e) {
-            throw new Error(e);
+            insertStmt.execute();
+            insertStmt.close();
         }
     }
 }
