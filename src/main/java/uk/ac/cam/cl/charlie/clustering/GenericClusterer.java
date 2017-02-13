@@ -65,6 +65,9 @@ public abstract class GenericClusterer {
 
         //sets 'clusters' field to new clusters based on the 'messages' input.
         try {
+            ClusterableObjectGroup cmg = new ClusterableMessageGroup(clusterableMessages);
+            ArrayList<ClusterableObject> contents = cmg.getContents();
+
             clusters = run(new ClusterableMessageGroup(clusterableMessages));
         } catch (Exception e) {
             e.printStackTrace();
