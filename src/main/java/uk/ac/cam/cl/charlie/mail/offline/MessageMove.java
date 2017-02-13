@@ -24,6 +24,6 @@ public class MessageMove implements OfflineChange {
 
     @Override
     public void handleChange(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException {
-        sourceFolder.moveMessages(destinationFolder.getFolder(), messageToMove);
+        sourceFolder.moveMessages(destinationFolder, messageToMove);
     }
 }

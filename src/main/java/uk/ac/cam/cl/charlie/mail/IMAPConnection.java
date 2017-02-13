@@ -7,8 +7,11 @@ import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
 import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
 
-import java.util.*;
 import javax.mail.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * Class for creating and manipulating an IMAP connection
@@ -27,7 +30,7 @@ public class IMAPConnection extends Store {
 
     private final Store sessionStore;
 
-    private ArrayList<LocalIMAPFolder> subscribers;
+    private LocalMailRepresentation mailRepresentation;
 
     public IMAPConnection(String host, String username, String password, String port, String provider) throws NoSuchProviderException {
         super(
@@ -41,7 +44,7 @@ public class IMAPConnection extends Store {
 
         sessionStore = session.getStore(provider);
 
-        subscribers = new ArrayList<>();
+        mailRepresentation = null;
     }
 
     private static Properties createProperties(String provider, String host, String port) {
@@ -73,9 +76,7 @@ public class IMAPConnection extends Store {
             throw new StoreClosedException(sessionStore);
         }
         try {
-            for (LocalIMAPFolder f : subscribers) {
-                f.closeConnection();
-            }
+            if (mailRepresentation != null) mailRepresentation.connectionClosed();
             sessionStore.close();
             log.info("Closed connection to '{}' under username '{}'", host, authenticator.getUserName());
         } catch (MessagingException e) {
@@ -107,11 +108,11 @@ public class IMAPConnection extends Store {
         throw new UnsupportedOperationException();
     }
 
-    public void createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, InvalidFolderNameException {
-        createFolder((IMAPFolder) sessionStore.getDefaultFolder(), newFolderName);
+    public IMAPFolder createFolder(String newFolderName) throws MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, InvalidFolderNameException {
+        return createFolder((IMAPFolder) sessionStore.getDefaultFolder(), newFolderName);
     }
 
-    public void createFolder(IMAPFolder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
+    public IMAPFolder createFolder(IMAPFolder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
         if (newFolderName.contains(".")) {
             log.error("Invalid folder name '{}' with parent '{}'", newFolderName, parentFolder.getFullName());
             throw new InvalidFolderNameException("The folder name can't contain a '.'");
@@ -127,9 +128,10 @@ public class IMAPConnection extends Store {
         }
 
         try {
-            Folder newFolder = parentFolder.getFolder(newFolderName);
+            IMAPFolder newFolder = (IMAPFolder) parentFolder.getFolder(newFolderName);
             if (newFolder.exists()) throw new FolderAlreadyExistsException();
             newFolder.create(Folder.HOLDS_MESSAGES | Folder.HOLDS_FOLDERS);
+            return newFolder;
         } catch (MessagingException e) {
             log.error("Error creating folder {} with parent {}: {}", newFolderName, parentFolder.getFullName(), e.getMessage());
             throw e;
@@ -144,7 +146,7 @@ public class IMAPConnection extends Store {
         return messages;
     }
 
-    public void subscribe(LocalIMAPFolder folder) {
-        subscribers.add(folder);
+    public void setLocalMailRepresentation(LocalMailRepresentation r) {
+        mailRepresentation = r;
     }
 }

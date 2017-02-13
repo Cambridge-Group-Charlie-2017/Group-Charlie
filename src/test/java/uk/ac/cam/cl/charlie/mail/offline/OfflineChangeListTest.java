@@ -11,13 +11,7 @@ import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
 import uk.ac.cam.cl.charlie.mail.LocalIMAPFolderTest;
 import uk.ac.cam.cl.charlie.mail.LocalMessage;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by Simon on 07/02/2017.
@@ -62,14 +56,15 @@ public class OfflineChangeListTest {
     @After
     public void tearDown() throws Exception {
         if (imapConnection.isConnected()) imapConnection.close();
+        mailServer.stop();
     }
 
     @Test
     public void testMessageMove() throws Exception {
         imapConnection.connect();
         LocalIMAPFolderTest.createDefaultMailFormat(user, 0, 1);
-        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
-        LocalIMAPFolder test1 = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Test 1"));
+        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder test1 = new LocalIMAPFolder(imapConnection.getFolder("Test 1"));
         LocalMessage message = inbox.getMessages().get(0);
 
         imapConnection.close();
@@ -83,6 +78,24 @@ public class OfflineChangeListTest {
 
         assertEquals(0, inbox.getMessages().size());
         assertEquals(1, test1.getMessages().size());
+    }
+
+    @Test
+    public void testMessageDelete() throws Exception {
+        imapConnection.connect();
+        LocalIMAPFolderTest.createDefaultMailFormat(user, 0, 1);
+        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        assertEquals(1, inbox.getMessages().size());
+        LocalMessage message = inbox.getMessages().get(0);
+
+        imapConnection.close();
+        offlineChangeList.addChange(new MessageDelete(inbox, message));
+        imapConnection.connect();
+        inbox.openConnection(imapConnection);
+        offlineChangeList.performChanges(imapConnection);
+        inbox.sync();
+
+        assertEquals(0, inbox.getMessages().size());
     }
 
 }

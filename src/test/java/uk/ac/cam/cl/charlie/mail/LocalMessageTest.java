@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import javax.mail.NoSuchProviderException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by Simon on 09/02/2017.
@@ -25,11 +25,12 @@ public class LocalMessageTest {
     private static final int PORT = 3993;
     private static final String PROTOCOL = "imap";
 
-    private static IMAPConnection imapConnection;
+    private IMAPConnection imapConnection;
+    private LocalMailRepresentation mailRepresentation;
 
 
     @Before
-    public void setUp() throws NoSuchProviderException {
+    public void setUp() throws Exception {
         mailServer = new GreenMail(new ServerSetup(PORT, LOCALHOST, PROTOCOL));
         mailServer.start();
         user = mailServer.setUser(USER_EMAIL_ADDRESS, USER_NAME, USER_PASSWORD);
@@ -41,6 +42,8 @@ public class LocalMessageTest {
                 Integer.toString(PORT),
                 PROTOCOL
         );
+        imapConnection.connect();
+        mailRepresentation = new LocalMailRepresentation(imapConnection);
     }
 
     @After
@@ -50,10 +53,8 @@ public class LocalMessageTest {
 
     @Test
     public void testCorrectMessageAfterReconnect() throws Exception {
-        imapConnection.connect();
         LocalIMAPFolderTest.createDefaultMailFormat(user, 0, 1);
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
-        localFolder.sync();
+        LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
         LocalMessage message = localFolder.getMessages().get(0);
         assertEquals(true, message.hasConnection());
 
@@ -61,7 +62,7 @@ public class LocalMessageTest {
         assertEquals(false, message.hasConnection());
 
         imapConnection.connect();
-        localFolder.openConnection(imapConnection);
+        mailRepresentation.setConnection(imapConnection);
         assertEquals(true, message.hasConnection());
     }
 

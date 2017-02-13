@@ -2,6 +2,11 @@ package uk.ac.cam.cl.charlie.mail.offline;
 
 import uk.ac.cam.cl.charlie.mail.IMAPConnection;
 import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
+import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
+
+import javax.mail.MessagingException;
 
 
 /**
@@ -18,7 +23,7 @@ public class FolderMove implements OfflineChange {
     }
 
     @Override
-    public void handleChange(IMAPConnection connection) {
-
+    public void handleChange(IMAPConnection connection) throws IMAPConnectionClosedException, MessagingException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
+        folderToMove.moveFolder(newParentFolder);
     }
 }

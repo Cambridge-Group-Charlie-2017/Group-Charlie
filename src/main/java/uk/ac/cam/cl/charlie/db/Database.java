@@ -1,17 +1,15 @@
 package uk.ac.cam.cl.charlie.db;
 
+import org.hsqldb.util.DatabaseManagerSwing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.ac.cam.cl.charlie.util.OS;
+
+import javax.swing.*;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-import javax.swing.JFrame;
-
-import org.hsqldb.util.DatabaseManagerSwing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import uk.ac.cam.cl.charlie.util.OS;
 
 /**
  * Class for connecting to the database

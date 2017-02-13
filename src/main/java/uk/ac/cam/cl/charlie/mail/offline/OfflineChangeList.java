@@ -1,7 +1,8 @@
 package uk.ac.cam.cl.charlie.mail.offline;
 
 import uk.ac.cam.cl.charlie.mail.IMAPConnection;
-import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
+import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
 
 import javax.mail.MessagingException;
@@ -23,7 +24,7 @@ public class OfflineChangeList {
         changes = new Stack<>();
     }
 
-    public void performChanges(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException {
+    public void performChanges(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
         while (!changes.isEmpty()) {
             changes.pop().handleChange(connection);
         }
@@ -35,9 +36,5 @@ public class OfflineChangeList {
 
     public void clearChanges() {
         changes.clear();
-    }
-
-    public void clearCacheForFolder(LocalIMAPFolder f) {
-
     }
 }
