@@ -19,7 +19,7 @@ public class TfidfVectoriserTest {
 	private TfidfVectoriser tfidf;
 
 	public TfidfVectoriserTest() {
-        tfidf = new TfidfVectoriser();
+        tfidf = TfidfVectoriser.getVectoriser();
 
 	}
 	
