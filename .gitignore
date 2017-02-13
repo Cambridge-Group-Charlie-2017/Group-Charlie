@@ -66,6 +66,8 @@ local.properties
 # Eclipse Core
 .project
 
+wordvectors.txt
+
 # External tool builders
 .externalToolBuilders/
 

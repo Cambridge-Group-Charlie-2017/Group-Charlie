@@ -1,8 +1,8 @@
 package uk.ac.cam.cl.charlie.vec;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
+import javax.mail.Message;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Any algorithm used to transform words or emails or documents to feature vectors
@@ -14,9 +14,9 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public TextVector doc2vec(Document doc);
+	public TextVector doc2vec(Document doc) throws BatchSizeTooSmallException;
 	
-	public TextVector doc2vec(Email doc);
+	public Set<TextVector> doc2vec(Set<Message> batch) throws BatchSizeTooSmallException;
 
 	// load and close need to be called before the above functions work
 	public void load();
