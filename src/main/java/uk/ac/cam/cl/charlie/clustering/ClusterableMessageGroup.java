@@ -13,11 +13,14 @@ import java.util.Set;
  */
 public class ClusterableMessageGroup extends ClusterableObjectGroup {
 
-    protected ArrayList<ClusterableMessage> contents;
+    //protected ArrayList<ClusterableMessage> contents;
 
     public ClusterableMessageGroup(ArrayList<ClusterableMessage> messages) {
-        contents = messages;
+        contents = new ArrayList<ClusterableObject>();
+        for(int i = 0; i<messages.size(); i++)
+            contents.add((ClusterableObject) messages.get(i));
     }
+
 
     @Override
     public ArrayList<TextVector> getVecs() {
