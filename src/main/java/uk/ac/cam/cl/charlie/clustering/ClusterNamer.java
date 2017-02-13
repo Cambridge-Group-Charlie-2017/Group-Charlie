@@ -1,12 +1,8 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import org.apache.commons.lang.WordUtils;
+
+import java.util.*;
 
 import javax.mail.Address;
 import javax.mail.Message;
@@ -27,7 +23,11 @@ public class ClusterNamer {
     public static void subjectNaming(GenericCluster cluster) throws ClusterNamingException {
         ArrayList<ClusterableObject> messages = cluster.getContents();
 
-        TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
+        HashMap<String, Integer> wordFrequencySubject = new HashMap<String, Integer>();
+        HashMap<String, Integer> wordTotalPositionMap = new HashMap<String, Integer>();
+        // NOTE: wordAveragePositionMap contains sum of position in subject line to start with later
+        //divide by its frequency to get aveage position for word ordering
+
         //TODO: Possibly include body of email in naming
         //TreeMap<String,Integer> wordFrequencyBody = new TreeMap<String,Integer>();
 
@@ -41,10 +41,13 @@ public class ClusterNamer {
                 for (int j = 0; j < subjectWords.length; j++) {
                     if (!stopWords.contains(subjectWords[j])) {
                         int count = 0;
+                        int curPosTotal = 0;
                         if(wordFrequencySubject.containsKey(subjectWords[j])){
                             count = wordFrequencySubject.get(subjectWords[j]);
+                            curPosTotal = wordTotalPositionMap.get(subjectWords[j]);
                         }
                         wordFrequencySubject.put(subjectWords[j], count + 1);
+                        wordTotalPositionMap.put(subjectWords[j],curPosTotal + j);
                     }
                 }
 
@@ -60,22 +63,50 @@ public class ClusterNamer {
         //Generate cluster name
         String clusterName = "";
         ArrayList<String> wordsToUse = new ArrayList<String>();
-        SortedMap<String,Integer> sortedMap = wordFrequencySubject.descendingMap();
-        Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
+
+        Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).iterator();
 
         //Generate cut off for number of occurrences
         int cutOff = (int) (messages.size()*MIN_PROPORTION_CORRECT);
 
 
         Map.Entry<String,Integer> curEntry = iterator.next();
-        while(curEntry != null && curEntry.getValue() > cutOff){
-            clusterName  += " " + curEntry.getKey();
+        int count = 0;
+        while(curEntry != null && curEntry.getValue() > cutOff && count < 5){
+            wordsToUse.add(curEntry.getKey());
             curEntry = iterator.next();
+            count++;
+        }
+
+        int[] averagePositions = new int[wordsToUse.size()];
+
+        //Calculate Relative positions
+        for(int i=0;i<averagePositions.length; i++){
+            averagePositions[i] = wordTotalPositionMap.get(wordsToUse.get(i)) /
+                        wordFrequencySubject.get(wordsToUse.get(i));
+        }
+
+        //Sort words to use based on Average positions
+        for(int i = 0; i< averagePositions.length; i++){
+            int tempPos = averagePositions[i];
+            String tempString = wordsToUse.get(i);
+            for(int j = i - 1; j>=0 && tempPos < averagePositions[j]; j--){
+                averagePositions[j+1] = averagePositions[j];
+                averagePositions[j] = tempPos;
+                wordsToUse.set(j+1,wordsToUse.get(j));
+                wordsToUse.set(j,tempString);
+            }
+        }
+
+        //Create clusterName
+        for(int i=0; i < wordsToUse.size();i++){
+            clusterName += wordsToUse.get(i) + " ";
         }
 
         //Set cluster name
         if(cluster != null)
-            cluster.setName(clusterName);
+            cluster.setName(WordUtils.capitalize(clusterName));
         else {
             cluster.setName("Error Naming Cluster");
             throw new ClusterNamingException("Basic naming failed");
@@ -130,13 +161,12 @@ public class ClusterNamer {
     /**
      * Given a cluster of emails generates and sets the name for the cluster using a textRank based algorithm
      * (Takes into account how related sentences in the emails are)
-     * @param cluster
-     */
+     * @param cluster     */
     public static void textRankNaming(GenericCluster cluster){
 
     }
 
-    public static void word2VecNaming(GenericCluster cluster) throws Exception{
+    public static void word2VecNaming(GenericCluster cluster) {
         ArrayList<Message> messages = new ArrayList<Message>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
@@ -163,7 +193,7 @@ public class ClusterNamer {
 
 
         //Map to array list
-        ArrayList<ClusterableWordAndOccurence> words = new ArrayList<>();
+        ArrayList<ClusterableObject> words = new ArrayList<ClusterableObject>();
         Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
         while(iterator.hasNext()){
             Map.Entry<String,Integer> entry = iterator.next();
@@ -172,8 +202,8 @@ public class ClusterNamer {
         }
 
         GenericEMClusterer clusterer = new GenericEMClusterer();
-        ClusterableObjectGroup wordGroup = new ClusterableWordGroup(words);
-        GenericClusterGroup clusters = clusterer.run(wordGroup);
+        //clusterer.evalClusters(words);//TODO:
+        GenericClusterGroup clusters = clusterer.getClusters();
 
         String folderName = "";
         int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
