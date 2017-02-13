@@ -255,10 +255,10 @@ public class TfidfVectoriserTest {
         System.out.println(body);
 
         //Test the vectorisation.
-        tfidf.load();
+       // tfidf.load();
         Set<TextVector> vecs = tfidf.doc2vec(messages);
         double[] components = ((TextVector)vecs.toArray()[0]).getRawComponents();
-        tfidf.close();
+        //tfidf.close();
         assertNotNull(components);
         //System.out.println(Arrays.toString(components));
     }
