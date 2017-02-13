@@ -28,7 +28,15 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     private final int vectorDimensions = 300;
 
-    public TfidfVectoriser() {
+    //Using singleton pattern.
+    private static TfidfVectoriser singleton;
+    public static TfidfVectoriser getVectoriser() {
+        if (singleton == null)
+            singleton = new TfidfVectoriser();
+        return singleton;
+    }
+
+    private TfidfVectoriser() {
         try {
             tf = Tfidf.getInstance();
         } catch (SQLException e) {
