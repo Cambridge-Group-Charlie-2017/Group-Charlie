@@ -1,5 +1,8 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+
 import java.util.ArrayList;
 
 /**
@@ -9,6 +12,9 @@ public abstract class GenericClusterer {
 
     private GenericClusterGroup clusters;
     //private Mailbox mailbox;
+
+    private static VectorisingStrategy vectoriser = new TfidfVectoriser();
+    public static VectorisingStrategy getVectoriser() {return vectoriser;}
 
     public GenericClusterGroup getClusters() {return clusters;}
 

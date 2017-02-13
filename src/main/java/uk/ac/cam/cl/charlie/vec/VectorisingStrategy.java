@@ -18,6 +18,8 @@ public interface VectorisingStrategy {
 	
 	public Set<TextVector> doc2vec(Set<Message> batch) throws BatchSizeTooSmallException;
 
+	public TextVector doc2vec(Message msg) throws BatchSizeTooSmallException;
+
 	// load and close need to be called before the above functions work
 	public void load();
 	public void close();

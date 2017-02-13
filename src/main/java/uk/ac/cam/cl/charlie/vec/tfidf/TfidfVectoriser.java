@@ -100,7 +100,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
             this.close();
         }
     }
-    
+
+    @Override
     public TextVector doc2vec(Message msg) throws BatchSizeTooSmallException {
         // todo add anything that is relevant to the email header here.
         try {

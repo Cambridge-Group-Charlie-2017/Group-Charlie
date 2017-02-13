@@ -25,9 +25,7 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
 
     @Override
     public TextVector getVec() {
-        TfidfVectoriser vectoriser = new TfidfVectoriser();
-        vectoriser.word2vec(word);
-        //TODO: Implement correct vectorising
-        return GenericDummyVectoriser.vectorise(this);
+        //TODO: Deal with possibility that word does not exist, NoSuchElementException thrown.
+        return GenericClusterer.getVectoriser().word2vec(word).get();
     }
 }
