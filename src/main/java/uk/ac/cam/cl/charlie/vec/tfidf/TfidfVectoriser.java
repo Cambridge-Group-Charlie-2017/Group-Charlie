@@ -74,7 +74,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
     public Set<TextVector> doc2vec(Set<Message> emailBatch) {
     	if(emailBatch == null) { return null; }
     	try {
-    		
     		this.load();
     		Set<TextVector> vectorBatch = new HashSet<TextVector>();
     		Set<Document> intermediateBatch = new HashSet<Document>();
@@ -93,19 +92,22 @@ public class TfidfVectoriser implements VectorisingStrategy {
     		for(Document doc: intermediateBatch) {
     			vectorBatch.add(new TextVector(calculateDocVector(doc.getContent())));
     		}
-    		this.close();
+
             return vectorBatch;
         } catch (MessagingException | IOException | TfidfException | SQLException e) {
             return null;
         } catch (BatchSizeTooSmallException e) {
 			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
 			return null;
-		}
+		} finally {
+            this.close();
+        }
     }
     
     public TextVector doc2vec(Message msg) {
         // todo add anything that is relevant to the email header here.
         try {
+            load();
             //not sure if msg.getFileName() is appropriate here. Feel free to change to msg.getSubject() or something.
             //Also, for the actual Message objects we're going to use (if we don't use MimeMessage),
             //there may be different method calls for getting the body content as a String.
@@ -113,13 +115,16 @@ public class TfidfVectoriser implements VectorisingStrategy {
             String body = (String)content.getBodyPart(0).getContent();
             //Checks if sufficient emails are in the database
     		if(tf.totalNumberDocuments() < 20) { throw new BatchSizeTooSmallException(); }
+
             return doc2vec(new Document(msg.getSubject(), body));
         } catch (MessagingException | IOException |SQLException e) {
             return null;
 		} catch (BatchSizeTooSmallException e) {
 			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
 			return null;
-		}
+		} finally {
+            close();
+        }
     }
 
     @Override
