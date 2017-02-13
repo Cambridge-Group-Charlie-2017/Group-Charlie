@@ -10,8 +10,10 @@ import org.junit.Test;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
 import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
 
-import javax.mail.*;
-
+import javax.mail.AuthenticationFailedException;
+import javax.mail.FolderNotFoundException;
+import javax.mail.NoSuchProviderException;
+import javax.mail.StoreClosedException;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
