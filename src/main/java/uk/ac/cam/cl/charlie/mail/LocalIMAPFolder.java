@@ -227,22 +227,22 @@ public class LocalIMAPFolder {
         return uid;
     }
 
-    public void moveMessages(String subFolderName, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void moveMessages(String subFolderName, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         checkFolderOpen();
         moveMessages(this.getFolder(subFolderName), localMessages);
     }
 
-    public void moveMessages(LocalIMAPFolder f, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void moveMessages(LocalIMAPFolder f, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         Message[] imapMessages = Arrays.stream(localMessages).map(LocalMessage::getMessage).toArray(Message[]::new);
         moveMessages(f, imapMessages);
     }
 
-    public void moveMessages(String subFolderName, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void moveMessages(String subFolderName, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         checkFolderOpen();
         moveMessages(this.getFolder(subFolderName), imapMessages);
     }
 
-    public void moveMessages(LocalIMAPFolder f, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void moveMessages(LocalIMAPFolder f, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         checkFolderOpen();
         f.checkFolderOpen();
         // TODO: Check presence of all messages in current folder
@@ -252,19 +252,21 @@ public class LocalIMAPFolder {
         }
         f.closeFolder(false);
         serverFolder.close(true);
+        checkForMovedOrDeletedMessages();
     }
 
-    public void deleteMessages(LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void deleteMessages(LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         Message[] imapMessages = Arrays.stream(localMessages).map(LocalMessage::getMessage).toArray(Message[]::new);
         deleteMessages(imapMessages);
     }
 
-    public void deleteMessages(Message... imapMessages) throws MessagingException, IMAPConnectionClosedException {
+    public void deleteMessages(Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
         checkFolderOpen();
         for (Message m : imapMessages) {
             m.setFlag(Flags.Flag.DELETED, true);
         }
         serverFolder.close(true);
+        checkForMovedOrDeletedMessages();
     }
 
     public void moveFolder(LocalIMAPFolder newParentFolder) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {

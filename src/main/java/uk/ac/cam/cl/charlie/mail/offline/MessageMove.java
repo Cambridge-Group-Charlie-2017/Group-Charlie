@@ -6,6 +6,7 @@ import uk.ac.cam.cl.charlie.mail.LocalMessage;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
 
 import javax.mail.MessagingException;
+import java.io.IOException;
 
 /**
  * Created by Simon on 07/02/2017.
@@ -23,7 +24,7 @@ public class MessageMove implements OfflineChange {
     }
 
     @Override
-    public void handleChange(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException {
+    public void handleChange(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException, IOException {
         sourceFolder.moveMessages(destinationFolder, messageToMove);
     }
 }

@@ -5,6 +5,8 @@ import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
 import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
+import uk.ac.cam.cl.charlie.mail.offline.OfflineChange;
+import uk.ac.cam.cl.charlie.mail.offline.OfflineChangeList;
 
 import javax.mail.MessagingException;
 import java.io.IOException;
@@ -16,11 +18,13 @@ public class LocalMailRepresentation {
 
     private LocalIMAPFolder rootFolder;
     private IMAPConnection imapConnection;
+    private OfflineChangeList offlineChanges;
 
     public LocalMailRepresentation(IMAPConnection imapConnection) throws MessagingException, IOException, IMAPConnectionClosedException {
         rootFolder = new LocalIMAPFolder(imapConnection.getDefaultFolder());
         imapConnection.setLocalMailRepresentation(this);
         this.imapConnection = imapConnection;
+        offlineChanges = new OfflineChangeList();
     }
 
     private void checkConnection() throws IMAPConnectionClosedException {
@@ -68,11 +72,12 @@ public class LocalMailRepresentation {
         imapConnection = null;
     }
 
-    public void setConnection(IMAPConnection imapConnection) throws IMAPConnectionClosedException, MessagingException, IOException {
+    public void setConnection(IMAPConnection imapConnection) throws IMAPConnectionClosedException, MessagingException, IOException, FolderHoldsNoFoldersException, FolderAlreadyExistsException {
         this.imapConnection = imapConnection;
         rootFolder.openConnection(imapConnection);
         openConnectionRecursive(rootFolder);
         syncRecursive(rootFolder);
+        offlineChanges.performChanges(imapConnection);
     }
 
     private void openConnectionRecursive(LocalIMAPFolder rootFolder) throws IMAPConnectionClosedException, MessagingException, IOException {
@@ -80,5 +85,9 @@ public class LocalMailRepresentation {
         for (LocalIMAPFolder f : rootFolder.getSubfolders().values()) {
             openConnectionRecursive(f);
         }
+    }
+
+    public void addOfflineChange(OfflineChange change) {
+        offlineChanges.addChange(change);
     }
 }

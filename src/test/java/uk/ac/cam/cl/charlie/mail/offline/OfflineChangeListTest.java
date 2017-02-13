@@ -6,10 +6,7 @@ import com.icegreen.greenmail.util.ServerSetup;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import uk.ac.cam.cl.charlie.mail.IMAPConnection;
-import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
-import uk.ac.cam.cl.charlie.mail.LocalIMAPFolderTest;
-import uk.ac.cam.cl.charlie.mail.LocalMessage;
+import uk.ac.cam.cl.charlie.mail.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -27,8 +24,8 @@ public class OfflineChangeListTest {
     private static final int PORT = 3993;
     private static final String PROTOCOL = "imap";
 
-    private static IMAPConnection imapConnection;
-    private static OfflineChangeList offlineChangeList;
+    private IMAPConnection imapConnection;
+    private LocalMailRepresentation mailRepresentation;
 
 
     @Before
@@ -46,11 +43,9 @@ public class OfflineChangeListTest {
                 PROTOCOL
         );
         imapConnection.connect();
-        imapConnection.createFolder("Test 1");
-        imapConnection.createFolder("Test 2");
-        imapConnection.close();
-        offlineChangeList = OfflineChangeList.getInstance();
-        offlineChangeList.clearChanges();
+        mailRepresentation = new LocalMailRepresentation(imapConnection);
+        mailRepresentation.createFolder("Test 1");
+        mailRepresentation.createFolder("Test 2");
     }
 
     @After
@@ -61,18 +56,16 @@ public class OfflineChangeListTest {
 
     @Test
     public void testMessageMove() throws Exception {
-        imapConnection.connect();
         LocalIMAPFolderTest.createDefaultMailFormat(user, 0, 1);
-        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
-        LocalIMAPFolder test1 = new LocalIMAPFolder(imapConnection.getFolder("Test 1"));
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
         LocalMessage message = inbox.getMessages().get(0);
 
         imapConnection.close();
-        offlineChangeList.addChange(new MessageMove(inbox, test1, message));
+
+        mailRepresentation.addOfflineChange(new MessageMove(inbox, test1, message));
         imapConnection.connect();
-        inbox.openConnection(imapConnection);
-        test1.openConnection(imapConnection);
-        offlineChangeList.performChanges(imapConnection);
+        mailRepresentation.setConnection(imapConnection);
         inbox.sync();
         test1.sync();
 
@@ -82,20 +75,15 @@ public class OfflineChangeListTest {
 
     @Test
     public void testMessageDelete() throws Exception {
-        imapConnection.connect();
         LocalIMAPFolderTest.createDefaultMailFormat(user, 0, 1);
-        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
         assertEquals(1, inbox.getMessages().size());
         LocalMessage message = inbox.getMessages().get(0);
 
         imapConnection.close();
-        offlineChangeList.addChange(new MessageDelete(inbox, message));
+        mailRepresentation.addOfflineChange(new MessageDelete(inbox, message));
         imapConnection.connect();
-        inbox.openConnection(imapConnection);
-        offlineChangeList.performChanges(imapConnection);
-        inbox.sync();
-
+        mailRepresentation.setConnection(imapConnection);
         assertEquals(0, inbox.getMessages().size());
     }
-
 }
