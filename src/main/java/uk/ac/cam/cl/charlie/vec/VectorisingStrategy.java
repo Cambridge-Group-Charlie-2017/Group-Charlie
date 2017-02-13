@@ -14,7 +14,7 @@ public interface VectorisingStrategy {
 
 	public Optional<TextVector> word2vec(String word);
 	
-	public TextVector doc2vec(Document doc);
+	public TextVector doc2vec(Document doc) throws BatchSizeTooSmallException;
 	
 	public Set<TextVector> doc2vec(Set<Message> batch) throws BatchSizeTooSmallException;
 

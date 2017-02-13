@@ -28,8 +28,6 @@ public final class Tfidf {
     private PreparedStatement getStmt;
     private PreparedStatement updateStmt;
 
-    private boolean isClosed;
-    
     private final String regexSplit = "[^a-zA-Z']+";
 
     private Tfidf() throws SQLException {
@@ -41,7 +39,7 @@ public final class Tfidf {
         if (instance == null) {
             instance = new Tfidf();
         } else if (instance.isClosed()) {
-            instance = new Tfidf();
+            instance.open();
         }
         return instance;
     }
@@ -52,6 +50,9 @@ public final class Tfidf {
     }
     
     public int numberOfDocsWithWith(String word) throws SQLException {
+        if (isClosed()) {
+            open();
+        }
         getStmt.setString(1, word);
         try (ResultSet rs = getStmt.executeQuery()) {
             if (rs.next()) {
@@ -64,6 +65,14 @@ public final class Tfidf {
 
     // The overloaded function has been deleted (deliberately) - all calls should come through here, and here alone
     public void addDocument(Document doc) throws TfidfException {
+
+        if (isClosed()) {
+            try {
+                open();
+            } catch (SQLException e) {
+                throw new Error(e);
+            }
+        }
         // Generate a hashmap with all keys in lowercase, then update database
 
         Map<String, Integer> wordCounts = new HashMap<>();
@@ -104,6 +113,9 @@ public final class Tfidf {
     }
 
     public void incrementWordBy(String word, int n) throws SQLException, TfidfException {
+        if (isClosed()) {
+            open();
+        }
 
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
@@ -151,11 +163,13 @@ public final class Tfidf {
         getStmt = database.getConnection().prepareStatement(GET_SQL);
 
         updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
-
-        isClosed = false;
     }
 
     public boolean isClosed() {
-        return isClosed;
+        try {
+            return getStmt.isClosed() || insertStmt.isClosed() || updateStmt.isClosed();
+        } catch (SQLException e) {
+            throw new Error(e);
+        }
     }
 }

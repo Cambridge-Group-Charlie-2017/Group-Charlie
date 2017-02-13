@@ -97,7 +97,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
     }
     
-    public TextVector doc2vec(Message msg) {
+    public TextVector doc2vec(Message msg) throws BatchSizeTooSmallException {
         // todo add anything that is relevant to the email header here.
         try {
             //not sure if msg.getFileName() is appropriate here. Feel free to change to msg.getSubject() or something.
@@ -110,9 +110,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
             return doc2vec(new Document(msg.getSubject(), body));
         } catch (MessagingException | IOException |SQLException e) {
             return null;
-		} catch (BatchSizeTooSmallException e) {
-			System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
-			return null;
 		}
     }
 

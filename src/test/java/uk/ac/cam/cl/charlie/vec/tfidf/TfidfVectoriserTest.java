@@ -260,7 +260,7 @@ public class TfidfVectoriserTest {
         double[] components = ((TextVector)vecs.toArray()[0]).getRawComponents();
         tfidf.close();
         assertNotNull(components);
-        System.out.println(Arrays.toString(components));
+        //System.out.println(Arrays.toString(components));
     }
 
     // todo add tests for the doc2vec functionality
