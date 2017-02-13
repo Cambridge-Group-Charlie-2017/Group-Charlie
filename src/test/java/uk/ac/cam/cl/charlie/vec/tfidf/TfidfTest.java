@@ -74,7 +74,6 @@ public class TfidfTest {
 
     }
 
-    @Test (expected = Error.class)
     public void checkClose() {
         try {
             tf = Tfidf.getInstance();
@@ -84,7 +83,6 @@ public class TfidfTest {
             tf.close();
             tf.close(); // shouldn't do anything bad
 
-            tf.totalNumberDocuments();
         } catch (SQLException e) {
             fail();
         }

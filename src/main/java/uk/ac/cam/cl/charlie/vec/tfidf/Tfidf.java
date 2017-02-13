@@ -28,42 +28,18 @@ public final class Tfidf {
     private PreparedStatement getStmt;
     private PreparedStatement updateStmt;
 
-    private boolean isClosed;
-    
     private final String regexSplit = "[^a-zA-Z']+";
 
     private Tfidf() throws SQLException {
         database = Database.getInstance();
-
-
-        if (!database.tableExists("WORD_FREQUENCIES")) {
-            // need to create the database table
-            String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
-            database.executeUpdate(sql);
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
-
-            // insert a value to represent the number of documents in total:
-            insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
-            insertStmt.setInt(2, 0);
-            insertStmt.executeUpdate(sql);
-        }
-        else {
-            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
-        }
-
-        getStmt = database.getConnection().prepareStatement(GET_SQL);
-
-        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
-
-        isClosed = false;
-
+        open();
     }
 
     public static Tfidf getInstance() throws SQLException {
         if (instance == null) {
             instance = new Tfidf();
         } else if (instance.isClosed()) {
-            instance = new Tfidf();
+            instance.open();
         }
         return instance;
     }
@@ -74,6 +50,9 @@ public final class Tfidf {
     }
     
     public int numberOfDocsWithWith(String word) throws SQLException {
+        if (isClosed()) {
+            open();
+        }
         getStmt.setString(1, word);
         try (ResultSet rs = getStmt.executeQuery()) {
             if (rs.next()) {
@@ -86,6 +65,14 @@ public final class Tfidf {
 
     // The overloaded function has been deleted (deliberately) - all calls should come through here, and here alone
     public void addDocument(Document doc) throws TfidfException {
+
+        if (isClosed()) {
+            try {
+                open();
+            } catch (SQLException e) {
+                throw new Error(e);
+            }
+        }
         // Generate a hashmap with all keys in lowercase, then update database
 
         Map<String, Integer> wordCounts = new HashMap<>();
@@ -126,6 +113,9 @@ public final class Tfidf {
     }
 
     public void incrementWordBy(String word, int n) throws SQLException, TfidfException {
+        if (isClosed()) {
+            open();
+        }
 
         getStmt.setString(1, word);
         ResultSet rs = getStmt.executeQuery();
@@ -154,7 +144,32 @@ public final class Tfidf {
         insertStmt.close();
     }
 
+    public void open() throws SQLException {
+        if (!database.tableExists("WORD_FREQUENCIES")) {
+            // need to create the database table
+            String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
+            database.executeUpdate(sql);
+            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
+
+            // insert a value to represent the number of documents in total:
+            insertStmt.setString(1, TOTAL_NUMBER_OF_DOCS);
+            insertStmt.setInt(2, 0);
+            insertStmt.executeUpdate(sql);
+        }
+        else {
+            insertStmt = database.getConnection().prepareStatement(INSERT_SQL);
+        }
+
+        getStmt = database.getConnection().prepareStatement(GET_SQL);
+
+        updateStmt = database.getConnection().prepareStatement(UPDATE_SQL);
+    }
+
     public boolean isClosed() {
-        return isClosed;
+        try {
+            return getStmt.isClosed() || insertStmt.isClosed() || updateStmt.isClosed();
+        } catch (SQLException e) {
+            throw new Error(e);
+        }
     }
 }
