@@ -146,8 +146,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
                 original.delete();
                 writeTo.renameTo(original);
 
-                tf.close();
-            } catch (IOException | SQLException e) {
+            } catch (IOException e) {
                 modelLoaded = false;
                 throw new Error(e);
             }
@@ -159,7 +158,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     @SuppressWarnings("deprecation")
     public void load() {
-        if (modelLoaded && !tf.isClosed()) {
+        if (modelLoaded) {
             return;
         }
         else {
@@ -167,10 +166,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
                 if (!modelLoaded) {
                     model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
                 }
-                if (tf.isClosed()) {
-                    tf = Tfidf.getInstance();
-                }
-            } catch (IOException | SQLException e) {
+            } catch (IOException e) {
                 modelLoaded = false;
                 throw new Error(e);
             }
@@ -179,7 +175,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     public boolean ready() {
-        return modelLoaded && !tf.isClosed();
+        return modelLoaded;
     }
 
     private double[] calculateDocVector(String text) throws SQLException {

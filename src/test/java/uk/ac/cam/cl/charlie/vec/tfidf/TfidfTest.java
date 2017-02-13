@@ -1,6 +1,7 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
 import org.junit.Test;
+import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.vec.Document;
 
 import java.sql.SQLException;
@@ -16,10 +17,26 @@ public class TfidfTest {
 
     public TfidfTest () {
         try {
+            wipe();
             tf = Tfidf.getInstance();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void wipe() {
+        Database d = Database.getInstance();
+        if (d.tableExists("WORD_FREQUENCIES")) {
+            // drop table
+            try {
+                d.getConnection().prepareStatement("DROP TABLE WORD_FREQUENCIES").execute();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                System.err.println("Couldn't drop word frequencies table");
+            }
+        }
+        String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
+        d.executeUpdate(sql);
     }
 
     @Test
@@ -74,19 +91,12 @@ public class TfidfTest {
 
     }
 
-    public void checkClose() {
+    @Test
+    public void checkTotalIdempotent() {
         try {
-            tf = Tfidf.getInstance();
-
-            tf.totalNumberDocuments(); // quick call to check the database is loaded
-
-            tf.close();
-            tf.close(); // shouldn't do anything bad
-
+            assertEquals(tf.totalNumberDocuments(), tf.totalNumberDocuments());
         } catch (SQLException e) {
             fail();
         }
-
     }
-
 }
