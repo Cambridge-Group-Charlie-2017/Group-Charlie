@@ -19,8 +19,7 @@ public class ClusterNamerTest {
                "blabla@gmail.com","Bob@companyname.com","Project X", "A",files)));
         GenericDummyVectoriser.train(messages);
 
-        GenericEMCluster c = new GenericEMCluster(messages);
-        ClusterNamer.senderNaming(c);
+        GenericEMCluster c = new GenericEMCluster(messages);ClusterNamer.senderNaming(c);
         assert(c.getName().equals("companyname"));
     }
 
@@ -90,7 +89,7 @@ public class ClusterNamerTest {
 
         ClusterNamer.name(c);
         System.out.println(c.getName());
-        assert (c.getName().equals("Project X"));
+        assert (c.getName().equals("Project X "));
     }
 
 }
