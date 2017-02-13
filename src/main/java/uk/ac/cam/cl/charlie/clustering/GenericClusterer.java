@@ -59,16 +59,19 @@ public abstract class GenericClusterer {
         //postcondition: 'clusters' contains the new clustering, and all emails are in their new clusters on the server.
 
         ArrayList<ClusterableMessage> clusterableMessages = new ArrayList<>();
+        ArrayList<ClusterableObject> clusterableObject = new ArrayList<>();
         for (Message m : messages) {
-            clusterableMessages.add(new ClusterableMessage(m));
+            ClusterableMessage clusterableMessage = new ClusterableMessage(m);
+            clusterableMessages.add(clusterableMessage);
+            clusterableObject.add(clusterableMessage);
         }
+
+        //TODO: Replace with real vectoriser training if needed
+        GenericDummyVectoriser.train(clusterableObject);
 
         //sets 'clusters' field to new clusters based on the 'messages' input.
         try {
-            ClusterableObjectGroup cmg = new ClusterableMessageGroup(clusterableMessages);
-            ArrayList<ClusterableObject> contents = cmg.getContents();
-
-            clusters = run(new ClusterableMessageGroup(clusterableMessages));
+           clusters = run(new ClusterableMessageGroup(clusterableMessages));
         } catch (Exception e) {
             e.printStackTrace();
             return;
