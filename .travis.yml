@@ -1,5 +1,4 @@
 language: java
-<<<<<<< HEAD
 sudo: true
 
 jdk:

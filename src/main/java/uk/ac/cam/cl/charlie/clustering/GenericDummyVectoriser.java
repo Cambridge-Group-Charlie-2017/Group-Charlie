@@ -1,13 +1,22 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.TreeMap;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import java.util.*;
+
+import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 /**
  * Created by Ben on 07/02/2017.
@@ -69,7 +78,7 @@ public class GenericDummyVectoriser {
 
 
     private static HashSet<String> stopWords = new HashSet<String>(StopWords.getStopWords());
-    public static HashMap<WordAndOccurences, TextVector> vectoriseWords(ArrayList<Message> messages) {
+    public static HashMap<ClusterableWordAndOccurence, TextVector> vectoriseWords(ArrayList<Message> messages) {
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
         for (int i = 0; i < messages.size(); i++) {
@@ -98,11 +107,11 @@ public class GenericDummyVectoriser {
         //TODO: Check vectorising strategy used
         VectorisingStrategy vectorisingStrategy = new TfidfVectoriser();
 
-        HashMap<WordAndOccurences,TextVector> wordVectorMap = new HashMap<WordAndOccurences,TextVector>();
+        HashMap<ClusterableWordAndOccurence,TextVector> wordVectorMap = new HashMap<ClusterableWordAndOccurence,TextVector>();
         Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
         while(iterator.hasNext()){
             Map.Entry<String,Integer> entry = iterator.next();
-            WordAndOccurences w = new WordAndOccurences(entry.getKey(),entry.getValue());
+            ClusterableWordAndOccurence w = new ClusterableWordAndOccurence(entry.getKey(),entry.getValue());
             Optional<TextVector> t = vectorisingStrategy.word2vec(entry.getKey());
             if(t.isPresent()) {
                 wordVectorMap.put(w, t.get());

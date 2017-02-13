@@ -21,7 +21,7 @@ repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
-	mavenCentral()
+    mavenCentral()
 }
 
 test {
@@ -33,21 +33,27 @@ test {
 }
 
 dependencies {
-    // The production code uses Guava
-    compile 'com.google.guava:guava:20.0'
-	
-	//weka clustering algorithms
-	compile "nz.ac.waikato.cms.weka:XMeans:1.0.4"
-	compile "nz.ac.waikato.cms.weka:weka-dev:3.9.1"
-	
-	//Java mail
-	compile 'javax.mail:mail:1.5.0-b01'
+    //weka clustering algorithms
+    compile "nz.ac.waikato.cms.weka:XMeans:1.0.4"
+    compile "nz.ac.waikato.cms.weka:weka-dev:3.9.1"
+
+    //Java mail
+    compile 'javax.mail:mail:1.5.0-b01'
 
     // Logging frameworks
     compile 'org.slf4j:slf4j-api:1.7.21'
     compile 'org.slf4j:slf4j-simple:1.7.22'
 
+    // Database
     compile 'org.hsqldb:hsqldb:2.3.4'
+    
+    // Web UI services
+    compile 'com.sparkjava:spark-core:2.5.4'
+    compile 'com.google.code.gson:gson:2.8.0'
+
+    // Native interface
+    compile 'net.java.dev.jna:jna:4.3.0'
+    compile 'net.java.dev.jna:jna-platform:4.3.0'
 
     // javax.mail
     compile 'javax.mail:mail:1.4.7'
@@ -55,12 +61,9 @@ dependencies {
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
 
-
-	// deeplearning4j for word2vec model
-	compile 'org.deeplearning4j:deeplearning4j-ui:0.6.0' // not entirely certain we need this one
-	compile 'org.deeplearning4j:deeplearning4j-nlp:0.7.2'
-	compile 'org.nd4j:nd4j-native:0.7.2'
-
+    // deeplearning4j for word2vec model
+    compile 'org.deeplearning4j:deeplearning4j-nlp:0.7.2'
+    compile 'org.nd4j:nd4j-native:0.7.2'
 
     // Mail server test framework
     testCompile 'com.icegreen:greenmail:1.5.3'
