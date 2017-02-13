@@ -78,6 +78,8 @@ public class GenericDummyVectoriser {
 
 
     private static HashSet<String> stopWords = new HashSet<String>(StopWords.getStopWords());
+
+    /*
     public static HashMap<ClusterableWordAndOccurence, TextVector> vectoriseWords(ArrayList<Message> messages) {
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
@@ -120,4 +122,5 @@ public class GenericDummyVectoriser {
 
         return wordVectorMap;
     }
+    */
 }

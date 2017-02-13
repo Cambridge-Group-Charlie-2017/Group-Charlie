@@ -18,6 +18,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 /**
  * Probably going to be the final clusterer. Or could try density based clustering.
@@ -26,14 +27,10 @@ public class GenericEMClusterer extends GenericClusterer{
     private final String DEFAULT_ARFF = "vectors.arff";
 
     //Note: currently set up to train on every vector. If this is uses too much memory, could train on a subset.
-    protected GenericClusterGroup run(ArrayList<ClusterableObject> clusterableObjects) throws Exception {
+    public GenericClusterGroup run(ClusterableObjectGroup objects) throws Exception {
 
-        //Not yet implemented vectoriser so use DummyVectoriser for testing:
-        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
+        ArrayList<TextVector> vecs = objects.getVecs();
 
-        GenericDummyVectoriser.train(clusterableObjects);
-        for (ClusterableObject co : clusterableObjects)
-            vecs.add(GenericDummyVectoriser.vectorise(co));
         // convert vecs into arff format for the clusterer.
         // is there a more efficient way of converting to (dense) Instances? add(Instance)
         createArff(vecs, DEFAULT_ARFF);
@@ -73,10 +70,10 @@ public class GenericEMClusterer extends GenericClusterer{
 
             //For each message, get the corresponding Instance object, and find what cluster it belongs to.
             //Then add it to the corresponding message grouping.
-            for (int i = 0; i < clusterableObjects.size(); i++) {
+            for (int i = 0; i < objects.size(); i++) {
                 Instance curr = data.get(i);
                 int clusterIndex = cl.clusterInstance(curr);
-                objGroups.get(clusterIndex).add(clusterableObjects.get(i));
+                objGroups.get(clusterIndex).add(objects.get(i));
             }
 
             //Create new Cluster objects in a ClusterGroup to contain the message groupings.
@@ -89,32 +86,6 @@ public class GenericEMClusterer extends GenericClusterer{
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }
-    }
-
-
-    public void classifyNewEmails(ArrayList<ClusterableObject> messages) throws IncompatibleDimensionalityException {
-        GenericClusterGroup clusters = getClusters();
-
-        //For classification, find clustering with highest probability for each email using matchStrength().
-        //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
-
-        //TODO: update to run using clusterGroup.insert()
-
-        //For each new message,
-        for (int i = 0; i < messages.size(); i++) {
-            double bestMatch = Integer.MAX_VALUE;
-            int bestCluster = 0;
-            //Find the index of the best cluster,
-            for (int j = 0; j < clusters.size(); j++) {
-                double currMatch = clusters.get(j).matchStrength(messages.get(i));
-                if (currMatch > bestMatch) {
-                    bestMatch = currMatch;
-                    bestCluster = j;
-                }
-            }
-            //and insert the message into that cluster.
-            clusters.get(bestCluster).addMessage(messages.get(i));
         }
     }
 

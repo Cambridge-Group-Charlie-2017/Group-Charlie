@@ -23,11 +23,11 @@ public class GenericEMClusteringTest {
 
         Session sess = Session.getDefaultInstance(new Properties());
 
-        ArrayList<ClusterableObject> messages = new ArrayList<ClusterableObject>();
+        ArrayList<Message> messages = new ArrayList<>();
         for (int i = 0; i < 250; i++) {
-            messages.add(new ClusterableMessage(new MimeMessage(sess)));
+            messages.add(new MimeMessage(sess));
         }
-        GenericDummyVectoriser.train(messages);
+
         em.evalClusters(messages);
 
         GenericClusterGroup clusters = em.getClusters();
@@ -40,10 +40,10 @@ public class GenericEMClusteringTest {
 
         int bestCluster = Integer.MAX_VALUE;
         double bestMatch = 0;
-        ClusterableObject msg =  messages.get(110);
+        Message msg =  messages.get(110);
 
         for (int i = 0; i < clusters.size(); i++) {
-            double currMatch = clusters.get(i).matchStrength(msg);
+            double currMatch = clusters.get(i).matchStrength(new ClusterableMessage(msg));
             if (currMatch > bestMatch) {
                 bestMatch = currMatch;
                 bestCluster = i;
@@ -55,6 +55,6 @@ public class GenericEMClusteringTest {
         System.out.println("Belongs in cluster " + bestCluster);
 
         //if that's the best cluster, it should already be there.
-        assertTrue(clusters.get(bestCluster).contains(msg));
+        assertTrue(clusters.get(bestCluster).containsMessage(msg));
     }
 }

@@ -1,6 +1,12 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
+import uk.ac.cam.cl.charlie.vec.TextVector;
+
+import javax.mail.Message;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class GenericCluster {
 
@@ -17,8 +23,12 @@ public abstract class GenericCluster {
     //Naming is a separate process to clustering, so the name can be assigned later.
     public void setName(String name) {clusterName = name;}
 
-    public boolean contains(ClusterableObject msg) {
-        return contents.contains(msg);
+    public boolean contains(ClusterableObject obj) {
+        return contents.contains(obj);
+    }
+
+    public boolean containsMessage(Message msg) {
+        return contents.contains(new ClusterableMessage(msg));
     }
 
     /*
@@ -43,6 +53,19 @@ public abstract class GenericCluster {
         updateMetadataAfterAdding(msg);
         contents.add(msg);
         clusterSize++;
+    }
+
+    public Set<TextVector> getContentVecs() {
+        HashSet<Message> messages = new HashSet<>();
+        for (ClusterableObject obj : contents) {
+            messages.add(((ClusterableMessage)obj).getMessage());
+        }
+        try {
+            return GenericClusterer.getVectoriser().doc2vec(messages);
+        } catch (BatchSizeTooSmallException e) {
+            return null;
+        }
+
     }
 
     //updateServer() method? Could take mailbox as argument and use Mailbox to update server. Update could also be in

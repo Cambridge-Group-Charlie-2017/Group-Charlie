@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.clustering;
 import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
+import java.util.NoSuchElementException;
 import java.util.Vector;
 
 /**
@@ -25,7 +26,10 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
 
     @Override
     public TextVector getVec() {
-        //TODO: Deal with possibility that word does not exist, NoSuchElementException thrown.
-        return GenericClusterer.getVectoriser().word2vec(word).get();
+        try {
+            return GenericClusterer.getVectoriser().word2vec(word).get();
+        } catch (NoSuchElementException e) {
+            return null;
+        }
     }
 }

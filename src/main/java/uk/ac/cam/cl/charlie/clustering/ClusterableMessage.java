@@ -1,6 +1,9 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+
 import javax.mail.Message;
 
 /**
@@ -15,7 +18,16 @@ public class ClusterableMessage implements ClusterableObject {
 
     @Override
     public TextVector getVec() {
-        return GenericDummyVectoriser.vectorise(message);
+        try {
+            return GenericClusterer.getVectoriser().doc2vec(message);
+        } catch (BatchSizeTooSmallException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public boolean equals(Object message2) {
+        return message.equals(((ClusterableMessage)message2).getMessage());
     }
 
     public Message getMessage() {

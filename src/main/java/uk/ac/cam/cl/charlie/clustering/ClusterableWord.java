@@ -21,9 +21,8 @@ public class ClusterableWord implements ClusterableObject {
 
     @Override
     public TextVector getVec() {
-        TfidfVectoriser vectoriser = new TfidfVectoriser();
-        vectoriser.word2vec(word);
-        //TODO: Implement correct vectorising
-        return GenericDummyVectoriser.vectorise(this);
+        return GenericClusterer.getVectoriser().word2vec(word).get();
     }
+
+    //TODO: write equals() function
 }

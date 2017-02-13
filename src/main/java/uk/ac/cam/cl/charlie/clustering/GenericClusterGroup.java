@@ -15,6 +15,8 @@ import java.util.Iterator;
  * However, this causes mean and variance vectors to be recomputed. No big deal though, this bit is much quicker than
  * the actual clustering process, as it is only O(m) where m is the number of messages on the server.
  */
+
+//TODO: adapt to use ClusterableObjectGroup?
 public class GenericClusterGroup implements Iterable<GenericCluster>{
     protected ArrayList<GenericCluster> clusters;
     protected int dimensionality;

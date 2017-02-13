@@ -2,6 +2,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.Vector;
 import uk.ac.cam.cl.charlie.vec.TextVector;
 
@@ -24,9 +25,7 @@ public class GenericEMCluster extends GenericCluster{
         int n = getClusterSize();
 
         //Get the vectors for the messages.
-        ArrayList<TextVector> vecs = new ArrayList<TextVector>();
-        for (int i = 0; i < n; i++)
-            vecs.add(GenericDummyVectoriser.vectorise(messages.get(i)));
+        TextVector[] vecs = getContentVecs().toArray(new TextVector[0]);
 
         //initialise average and variance vectors using message vectors.
         average = new Vector<Double>();
@@ -36,7 +35,7 @@ public class GenericEMCluster extends GenericCluster{
             double sum = 0;
             //Calculate sum and sum of squares over all vectors for element i
             for (int j = 0; j < n; j++) {
-                double xi = vecs.get(j).get(i);
+                double xi = vecs[j].get(i);
                 sum += xi;
                 sumOfSquares += (xi * xi);
             }

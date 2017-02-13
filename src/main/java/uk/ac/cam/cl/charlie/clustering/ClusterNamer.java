@@ -136,7 +136,7 @@ public class ClusterNamer {
 
     }
 
-    public static void word2VecNaming(GenericCluster cluster) {
+    public static void word2VecNaming(GenericCluster cluster) throws Exception{
         ArrayList<Message> messages = new ArrayList<Message>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<String, Integer>(Collections.reverseOrder());
 
@@ -163,7 +163,7 @@ public class ClusterNamer {
 
 
         //Map to array list
-        ArrayList<ClusterableObject> words = new ArrayList<ClusterableObject>();
+        ArrayList<ClusterableWordAndOccurence> words = new ArrayList<>();
         Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
         while(iterator.hasNext()){
             Map.Entry<String,Integer> entry = iterator.next();
@@ -172,8 +172,8 @@ public class ClusterNamer {
         }
 
         GenericEMClusterer clusterer = new GenericEMClusterer();
-        clusterer.evalClusters(words);
-        GenericClusterGroup clusters = clusterer.getClusters();
+        ClusterableObjectGroup wordGroup = new ClusterableWordGroup(words);
+        GenericClusterGroup clusters = clusterer.run(wordGroup);
 
         String folderName = "";
         int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
