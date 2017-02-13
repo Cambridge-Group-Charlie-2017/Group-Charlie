@@ -1,7 +1,9 @@
 package uk.ac.cam.cl.charlie.mail.offline;
 
-import uk.ac.cam.cl.charlie.mail.IMAPConnection;
 import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
+import uk.ac.cam.cl.charlie.mail.LocalMailRepresentation;
+
+import javax.mail.MessagingException;
 
 /**
  * Created by Simon on 07/02/2017.
@@ -14,7 +16,7 @@ public class FolderDeletion implements OfflineChange {
     }
 
     @Override
-    public void handleChange(IMAPConnection connection) {
-
+    public void handleChange(LocalMailRepresentation mailRepresentation) throws MessagingException {
+        mailRepresentation.deleteFolder(folderToDelete);
     }
 }

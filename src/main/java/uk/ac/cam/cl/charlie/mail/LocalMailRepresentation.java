@@ -21,7 +21,7 @@ public class LocalMailRepresentation {
     private OfflineChangeList offlineChanges;
 
     public LocalMailRepresentation(IMAPConnection imapConnection) throws MessagingException, IOException, IMAPConnectionClosedException {
-        rootFolder = new LocalIMAPFolder(imapConnection.getDefaultFolder());
+        rootFolder = new LocalIMAPFolder(null, imapConnection.getDefaultFolder());
         imapConnection.setLocalMailRepresentation(this);
         this.imapConnection = imapConnection;
         offlineChanges = new OfflineChangeList();
@@ -49,7 +49,7 @@ public class LocalMailRepresentation {
 
     public LocalIMAPFolder getFolder(String name) throws MessagingException, IOException, IMAPConnectionClosedException {
         LocalIMAPFolder folder = rootFolder.getFolder(name.toLowerCase());
-        folder.sync();
+        if (folder.hasConnection()) folder.sync();
         return folder;
     }
 
@@ -60,7 +60,7 @@ public class LocalMailRepresentation {
     public LocalIMAPFolder createFolder(LocalIMAPFolder parentFolder, String newFolderName) throws MessagingException, FolderHoldsNoFoldersException, FolderAlreadyExistsException, InvalidFolderNameException, IOException, IMAPConnectionClosedException {
         checkConnection();
         IMAPFolder createdFolder = imapConnection.createFolder(parentFolder.getBackingFolder(), newFolderName);
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(createdFolder);
+        LocalIMAPFolder localFolder = new LocalIMAPFolder(parentFolder, createdFolder);
         parentFolder.addSubfolder(localFolder);
 
         return localFolder;
@@ -72,12 +72,12 @@ public class LocalMailRepresentation {
         imapConnection = null;
     }
 
-    public void setConnection(IMAPConnection imapConnection) throws IMAPConnectionClosedException, MessagingException, IOException, FolderHoldsNoFoldersException, FolderAlreadyExistsException {
+    public void setConnection(IMAPConnection imapConnection) throws IMAPConnectionClosedException, MessagingException, IOException, FolderHoldsNoFoldersException, FolderAlreadyExistsException, InvalidFolderNameException {
         this.imapConnection = imapConnection;
         rootFolder.openConnection(imapConnection);
         openConnectionRecursive(rootFolder);
         syncRecursive(rootFolder);
-        offlineChanges.performChanges(imapConnection);
+        offlineChanges.performChanges(this);
     }
 
     private void openConnectionRecursive(LocalIMAPFolder rootFolder) throws IMAPConnectionClosedException, MessagingException, IOException {
@@ -89,5 +89,10 @@ public class LocalMailRepresentation {
 
     public void addOfflineChange(OfflineChange change) {
         offlineChanges.addChange(change);
+    }
+
+    public void deleteFolder(LocalIMAPFolder folderToDelete) throws MessagingException {
+        folderToDelete.getParentFolder().removeSubfolder(folderToDelete);
+        folderToDelete.delete();
     }
 }

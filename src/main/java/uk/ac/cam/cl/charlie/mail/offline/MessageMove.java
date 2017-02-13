@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.mail.offline;
 
 import uk.ac.cam.cl.charlie.mail.IMAPConnection;
 import uk.ac.cam.cl.charlie.mail.LocalIMAPFolder;
+import uk.ac.cam.cl.charlie.mail.LocalMailRepresentation;
 import uk.ac.cam.cl.charlie.mail.LocalMessage;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
 
@@ -24,7 +25,7 @@ public class MessageMove implements OfflineChange {
     }
 
     @Override
-    public void handleChange(IMAPConnection connection) throws MessagingException, IMAPConnectionClosedException, IOException {
+    public void handleChange(LocalMailRepresentation mailRepresentation) throws MessagingException, IMAPConnectionClosedException, IOException {
         sourceFolder.moveMessages(destinationFolder, messageToMove);
     }
 }

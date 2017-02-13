@@ -9,6 +9,8 @@ import org.junit.Test;
 import uk.ac.cam.cl.charlie.mail.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Simon on 07/02/2017.
@@ -85,5 +87,50 @@ public class OfflineChangeListTest {
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
         assertEquals(0, inbox.getMessages().size());
+    }
+
+    @Test
+    public void testFolderMove() throws Exception {
+        LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
+        LocalIMAPFolder test2 = mailRepresentation.getFolder("Test 2");
+
+        imapConnection.close();
+        mailRepresentation.addOfflineChange(new FolderMove(test2, test1));
+        imapConnection.connect();
+        mailRepresentation.setConnection(imapConnection);
+
+        assertTrue(imapConnection.getFolder("Inbox").exists());
+        assertTrue(imapConnection.getFolder("Test 1").exists());
+        assertTrue(imapConnection.getFolder("Test 1.Test 2").exists());
+    }
+
+    @Test
+    public void testFolderCreation() throws Exception {
+        imapConnection.close();
+        LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
+
+        mailRepresentation.addOfflineChange(new FolderCreation(test1, "Test 3"));
+        imapConnection.connect();
+        mailRepresentation.setConnection(imapConnection);
+
+        assertTrue(imapConnection.getFolder("Inbox").exists());
+        assertTrue(imapConnection.getFolder("Test 1").exists());
+        assertTrue(imapConnection.getFolder("Test 1.Test 3").exists());
+    }
+
+    @Test
+    public void testFolderDeletion() throws Exception {
+        imapConnection.close();
+        LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
+        LocalIMAPFolder test2 = mailRepresentation.getFolder("Test 2");
+
+        mailRepresentation.addOfflineChange(new FolderDeletion(test1));
+        mailRepresentation.addOfflineChange(new FolderDeletion(test2));
+        imapConnection.connect();
+        mailRepresentation.setConnection(imapConnection);
+
+        assertTrue(imapConnection.getFolder("Inbox").exists());
+        assertFalse(imapConnection.getFolder("Test 1").exists());
+        assertFalse(imapConnection.getFolder("Test 2").exists());
     }
 }
