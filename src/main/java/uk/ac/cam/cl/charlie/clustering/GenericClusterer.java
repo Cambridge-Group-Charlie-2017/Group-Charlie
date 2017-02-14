@@ -66,9 +66,6 @@ public abstract class GenericClusterer {
             clusterableObject.add(clusterableMessage);
         }
 
-        //TODO: Replace with real vectoriser training if needed
-        GenericDummyVectoriser.train(clusterableObject);
-
         //sets 'clusters' field to new clusters based on the 'messages' input.
         try {
            clusters = run(new ClusterableMessageGroup(clusterableMessages));

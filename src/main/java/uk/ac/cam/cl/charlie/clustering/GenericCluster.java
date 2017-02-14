@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 import javax.mail.Message;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public abstract class GenericCluster {
     protected GenericCluster(ArrayList<ClusterableObject> initialContents) {
         contents = initialContents;
         clusterSize = initialContents.size();
-        dimensionality = GenericDummyVectoriser.vectorise(initialContents.get(0)).size();
+        dimensionality = initialContents.get(0).getVec().size();
     }
 
     protected abstract void updateMetadataAfterAdding(ClusterableObject msg);
