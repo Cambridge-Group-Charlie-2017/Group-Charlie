@@ -12,7 +12,7 @@ import uk.ac.cam.cl.charlie.db.Database;
  *
  * @author Gary Guo
  */
-public class PersistantWordCounter extends WordCounter {
+public class PersistentWordCounter extends WordCounter {
 
     private static String GET_SQL = "SELECT freq FROM WORD_FREQUENCIES WHERE word = ?";
     private static String INSERT_SQL = "INSERT INTO WORD_FREQUENCIES VALUES (?, ?)";
@@ -22,15 +22,15 @@ public class PersistantWordCounter extends WordCounter {
     private PreparedStatement insertStmt;
     private PreparedStatement updateStmt;
 
-    private static PersistantWordCounter instance = null;
+    private static PersistentWordCounter instance = null;
     private Database database;
 
-    private PersistantWordCounter() {
+    private PersistentWordCounter() {
 	database = Database.getInstance();
 
 	// Create table if it does not exist
 	if (!database.tableExists("WORD_FREQUENCIES")) {
-	    String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL,freq INTEGER NOT NULL)";
+	    String sql = "CREATE TABLE WORD_FREQUENCIES(word VARCHAR(50) NOT NULL PRIMARY KEY,freq INTEGER NOT NULL)";
 	    database.executeUpdate(sql);
 	}
 
@@ -43,9 +43,9 @@ public class PersistantWordCounter extends WordCounter {
 	}
     }
 
-    public static PersistantWordCounter getInstance() {
+    public static PersistentWordCounter getInstance() {
 	if (instance == null) {
-	    instance = new PersistantWordCounter();
+	    instance = new PersistentWordCounter();
 	}
 	return instance;
     }

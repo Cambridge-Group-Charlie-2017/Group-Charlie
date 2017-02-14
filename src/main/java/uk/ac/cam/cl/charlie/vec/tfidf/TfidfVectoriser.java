@@ -50,7 +50,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	// added load() to constructor for performance reasons for testing.
 	load();
 
-	globalCounter = new CachedWordCounter(PersistantWordCounter.getInstance());
+	globalCounter = new CachedWordCounter(PersistentWordCounter.getInstance());
     }
 
     @Override

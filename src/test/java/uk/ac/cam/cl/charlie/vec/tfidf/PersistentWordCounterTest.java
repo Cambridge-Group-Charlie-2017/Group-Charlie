@@ -7,17 +7,17 @@ import org.junit.Test;
 import uk.ac.cam.cl.charlie.db.Database;
 
 /**
- * Test for class {@link PersistantWordCounter}
+ * Test for class {@link PersistentWordCounter}
  *
  * @author Shyam Tailor, Gary Guo
  *
  */
-public class PersistantWordCounterTest {
-    private PersistantWordCounter counter;
+public class PersistentWordCounterTest {
+    private PersistentWordCounter counter;
 
-    public PersistantWordCounterTest() {
+    public PersistentWordCounterTest() {
 	wipe();
-	counter = PersistantWordCounter.getInstance();
+	counter = PersistentWordCounter.getInstance();
     }
 
     private void wipe() {
