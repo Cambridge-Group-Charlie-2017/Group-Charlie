@@ -180,7 +180,7 @@ public class GenericEMClusterer extends GenericClusterer{
             //possible option: -R <num> for proportion of variance to maintain. Default 0.95, could go lower.
             pca = new PrincipalComponents();
             pca.setInputFormat(data);
-            pca.setMaximumAttributes(2); //allowing a 2D plot
+            pca.setMaximumAttributes(20); //allowing a 2D plot
 
             //apply filter
             data = Filter.useFilter(data, pca);
@@ -199,13 +199,23 @@ public class GenericEMClusterer extends GenericClusterer{
             for (int i = 0; i < cl.numberOfClusters(); i++) {
                 results.add(new ArrayList<DemoMessageVector>());
             }
+
+            Instances plot2D = new Instances(data);
+            pca = new PrincipalComponents();
+            pca.setInputFormat(plot2D);
+            pca.setMaximumAttributes(2); //allowing a 2D plot
+
+            //apply filter
+            plot2D = Filter.useFilter(plot2D, pca);
+
             //For each message, get the corresponding Instance object, and find what cluster it belongs to.
             //Then add it to the corresponding message grouping.
             for (int i = 0; i < messages.size(); i++) {
-                Instance curr = data.get(i);
-                int clusterIndex = cl.clusterInstance(curr);
+                Instance curr20 = data.get(i);
+                Instance curr2 = plot2D.get(i);
+                int clusterIndex = cl.clusterInstance(curr20);
                 //insert corresponding vector
-                results.get(clusterIndex).add(new DemoMessageVector(curr.toDoubleArray(), messages.get(i)));
+                results.get(clusterIndex).add(new DemoMessageVector(curr2.toDoubleArray(), messages.get(i)));
             }
 
             return results;

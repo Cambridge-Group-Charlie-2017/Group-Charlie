@@ -210,7 +210,7 @@ public class GenericEMClusteringTest {
 
 
         int bestCluster = Integer.MAX_VALUE;
-        double bestMatch = Double.MIN_VALUE;
+        double bestMatch = 0;
         Message msg =  messageList.get(110);
         ClusterableMessage clustMsg = (ClusterableMessage) clusters.get(0).getContents().get(10);
 

@@ -6,6 +6,7 @@ import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 
 import static org.junit.Assert.assertNotEquals;
@@ -31,7 +32,7 @@ public class DemoTest {
 
         ArrayList<ArrayList<DemoMessageVector>> vecs = em.demoClusterer(messages);
 
-        System.out.println("First vec: "+vecs.get(0).get(0).vec.toString());
+        System.out.println("First vec: "+(Arrays.toString(vecs.get(0).get(0).vec)));
 
     }
 }
