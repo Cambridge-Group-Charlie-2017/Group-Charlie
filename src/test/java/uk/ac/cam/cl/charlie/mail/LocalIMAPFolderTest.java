@@ -9,15 +9,17 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.mail.*;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Simon on 04/02/2017.
@@ -25,38 +27,34 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class LocalIMAPFolderTest {
     @Parameterized.Parameters
-    public static Collection primeNumbers() {
-        return Arrays.asList(new Object[][] {
-                { 1 },
+    public static Collection magnitudes() {
+        return Arrays.asList(new Object[][]{{ 1 },
                 { 5 },
                 { 10 },
-                { 20 }
-        });
+                { 20 }});
     }
 
     public LocalIMAPFolderTest(int magnitude) {
         this.magnitude = magnitude;
     }
 
-
-
-
-    private GreenMail mailServer;
-    private GreenMailUser user;
     private final int magnitude;
-
     private static final String USER_NAME = "GROUP-CHARLIE";
+
     private static final String USER_EMAIL_ADDRESS  = "GROUP-CHARLIE@cam.ac.uk";
     private static final String USER_PASSWORD = "abcdef123";
     private static final String LOCALHOST = "localhost";
     private static final int PORT = 3993;
     private static final String PROTOCOL = "imap";
 
-    private static IMAPConnection imapConnection;
+    private GreenMail mailServer;
+    private GreenMailUser user;
+    private IMAPConnection imapConnection;
+    private LocalMailRepresentation mailRepresentation;
 
 
     @Before
-    public void setUp() throws NoSuchProviderException {
+    public void setUp() throws Exception {
         mailServer = new GreenMail(new ServerSetup(PORT, LOCALHOST, PROTOCOL));
         mailServer.start();
         user = mailServer.setUser(USER_EMAIL_ADDRESS, USER_NAME, USER_PASSWORD);
@@ -68,6 +66,8 @@ public class LocalIMAPFolderTest {
                 Integer.toString(PORT),
                 PROTOCOL
         );
+        imapConnection.connect();
+        mailRepresentation = new LocalMailRepresentation(imapConnection);
     }
 
     @After
@@ -77,9 +77,8 @@ public class LocalIMAPFolderTest {
 
     @Test
     public void testRetrievingMail() throws Exception {
-        imapConnection.connect();
         createDefaultMailFormat(user, 0, 5 * magnitude);
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
         checkDefaultMailFormat(localFolder.getMessages(), 0, 5 * magnitude);
 
         createDefaultMailFormat(user, 5 * magnitude, 10 * magnitude);
@@ -89,92 +88,98 @@ public class LocalIMAPFolderTest {
 
     @Test
     public void testRetrievingMailAfterMoving() throws Exception {
-        imapConnection.connect();
-        imapConnection.createFolder("Test 1");
+        mailRepresentation.createFolder("Test 1");
         createDefaultMailFormat(user, 0, 10 * magnitude);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
-        localFolder.moveMessages(imapConnection.getFolder("Test 1"), toBeMoved);
+        localFolder.moveMessages(mailRepresentation.getFolder("Test 1"), toBeMoved);
         localFolder.sync();
 
         Integer[] toBeMovedIndexes = new Integer[2 * magnitude];
         for (int i = 2 * magnitude; i < 4 * magnitude; i++) {
             toBeMovedIndexes[i - 2 * magnitude] = i;
         }
-        assertEquals(8 * magnitude, imapConnection.getFolder("Inbox").getMessageCount());
+
+        localFolder.sync();
+        assertEquals(8 * magnitude, localFolder.getMessages().size());
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10 * magnitude, toBeMovedIndexes);
     }
 
     @Test
     public void testMovingMail() throws Exception {
-        imapConnection.connect();
-        imapConnection.createFolder("Test 1");
+        mailRepresentation.createFolder("Test 1");
         createDefaultMailFormat(user, 0, 10 * magnitude);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
-        localFolder.moveMessages(imapConnection.getFolder("Test 1"), toBeMoved);
+        localFolder.moveMessages(mailRepresentation.getFolder("Test 1"), toBeMoved);
         localFolder.sync();
 
-        assertEquals(2 * magnitude, imapConnection.getFolder("Test 1").getMessageCount());
-        checkDefaultMailFormat(new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Test 1")).getMessages(), 2 * magnitude, 4 * magnitude);
+        assertEquals(2 * magnitude, mailRepresentation.getFolder("Test 1").getMessages().size());
+        checkDefaultMailFormat(mailRepresentation.getFolder("Test 1").getMessages(), 2 * magnitude, 4 * magnitude);
     }
 
     @Test
     public void testDeletingMail() throws Exception {
-        imapConnection.connect();
         createDefaultMailFormat(user, 0, 10);
 
-        LocalIMAPFolder localFolder = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
+        LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
         localFolder.deleteMessages(localFolder.getMessages().get(1), localFolder.getMessages().get(2));
         localFolder.sync();
 
-        assertEquals(8, imapConnection.getFolder("Inbox").getMessageCount());
+        assertEquals(8, mailRepresentation.getFolder("Inbox").getMessages().size());
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10, 1, 2);
     }
 
     @Test
     public void testReconnectToFolder() throws Exception {
-        imapConnection.connect();
-        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
-        LocalIMAPFolder[] testFolders = new LocalIMAPFolder[magnitude];
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
         for (int i = 0; i < magnitude; i++) {
-            imapConnection.createFolder("Test " + i);
-            testFolders[i] = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Test " + i));
+            mailRepresentation.createFolder("Test " + i);
         }
         imapConnection.close();
         imapConnection.connect();
-        inbox.openConnection(imapConnection);
-        inbox.sync();
-        for (LocalIMAPFolder m : testFolders) {
-            m.openConnection(imapConnection);
-            m.sync();
-        }
+        mailRepresentation.setConnection(imapConnection);
 
         assertEquals(0, inbox.getMessages().size());
         for (int i = 0; i < magnitude; i++) {
-            assertEquals(0, testFolders[0].getMessages().size());
+            assertEquals(0, mailRepresentation.getFolder("Test " + i).getMessages().size());
         }
     }
 
     @Test
     public void testSynchingAfterReconnect() throws Exception {
-        imapConnection.connect();
-        LocalIMAPFolder inbox = new LocalIMAPFolder(imapConnection, imapConnection.getFolder("Inbox"));
-
-        inbox.sync();
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
         assertEquals(0, inbox.getMessages().size());
         imapConnection.close();
         createDefaultMailFormat(user, 0, magnitude);
         imapConnection.connect();
-        inbox.openConnection(imapConnection);
-        assertEquals(0, inbox.getMessages().size());
-        inbox.sync();
+        mailRepresentation.setConnection(imapConnection);
 
         checkDefaultMailFormat(inbox.getMessages(), 0, magnitude);
+    }
+
+    @Test
+    public void testMovingFolder() throws Exception {
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        LocalIMAPFolder test1 = mailRepresentation.createFolder("Test 1");
+        LocalIMAPFolder test2 = mailRepresentation.createFolder("Test 2");
+
+        test2.moveFolder(test1);
+
+        assertTrue(imapConnection.getFolder("Inbox").exists());
+        assertTrue(imapConnection.getFolder("Test 1").exists());
+        assertTrue(imapConnection.getFolder("Test 1.Test 2").exists());
+
+        test1.moveFolder(inbox);
+
+        assertTrue(imapConnection.getFolder("Inbox").exists());
+        assertTrue(imapConnection.getFolder("Inbox.Test 1").exists());
+        assertTrue(imapConnection.getFolder("Inbox.Test 1.Test 2").exists());
+
     }
 
     public static void createDefaultMailFormat(GreenMailUser user, int start, int end) throws MessagingException {

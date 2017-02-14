@@ -12,7 +12,6 @@ import javax.swing.JFrame;
 import org.hsqldb.util.DatabaseManagerSwing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import uk.ac.cam.cl.charlie.util.OS;
 
 /**

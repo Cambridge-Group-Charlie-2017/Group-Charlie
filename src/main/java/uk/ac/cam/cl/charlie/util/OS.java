@@ -11,11 +11,11 @@ public class OS {
 	/**
 	 * Enum type of OS
 	 */
-	public static enum Type {
+	public enum Type {
 		Linux, Windows, MacOS, Unknown
-	};
+	}
 
-	private static Type osType;
+    private static Type osType;
 
 	/**
 	 * Get the enum value representing the current OS.

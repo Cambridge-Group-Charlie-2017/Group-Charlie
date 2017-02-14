@@ -210,7 +210,7 @@ public class GenericEMClusteringTest {
 
 
         int bestCluster = Integer.MAX_VALUE;
-        double bestMatch = 0;
+        double bestMatch = Double.MIN_VALUE;
         Message msg =  messageList.get(110);
         ClusterableMessage clustMsg = (ClusterableMessage) clusters.get(0).getContents().get(10);
 
@@ -230,6 +230,5 @@ public class GenericEMClusteringTest {
         //if that's the best cluster, it should already be there.
         //assertTrue(clusters.get(bestCluster).containsMessage(clustMsg.getMessage()));
 
-        GenericClusterer.getVectoriser().close();
     }
 }
