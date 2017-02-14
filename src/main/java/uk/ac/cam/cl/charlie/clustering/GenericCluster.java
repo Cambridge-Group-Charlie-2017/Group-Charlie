@@ -14,6 +14,7 @@ public abstract class GenericCluster {
     protected ArrayList<ClusterableObject> contents;
     private int dimensionality;
     private int clusterSize;
+    //TODO: store vectors. If vector not there, vectorise.
 
     public int getDimensionality() {return dimensionality;}
     public int getClusterSize() {return clusterSize;}

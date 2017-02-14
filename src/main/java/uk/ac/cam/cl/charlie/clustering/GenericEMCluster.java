@@ -4,7 +4,11 @@ package uk.ac.cam.cl.charlie.clustering;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.Vector;
+
+import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.TextVector;
+
+import javax.mail.Message;
 
 /**
  * Created by Ben on 05/02/2017.
@@ -78,23 +82,30 @@ public class GenericEMCluster extends GenericCluster{
 
         //only consider a subset of elements. if all probabilities are multiplied then the resulting
         //probability becomes too small at high dimensions.
-        TextVector vec = GenericDummyVectoriser.vectorise(msg);
+
+        //TODO: put in log space
+        TextVector vec;
+        try {
+            vec = GenericClusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
+        } catch (BatchSizeTooSmallException e) {
+            return Integer.MAX_VALUE;
+        }
+
         if (vec.size() != getDimensionality())
             throw new IncompatibleDimensionalityException();
 
         int dimensionality = getDimensionality();
         int interval = vec.size() / elementsToCompare;
-        double prob = 1;
+        double logProb = 0;
         for (int i = 0; i < dimensionality; i+= interval) {
             double diff = vec.get(i) - average.get(i);
 
             //Calculate Gaussian probability of membership of this cluster based on element i
-            double probi = Math.exp(-(diff * diff) / (2.0 * variance.get(i))) / Math.sqrt(variance.get(i));
+            logProb += Math.log(Math.exp(-(diff * diff) / (2.0 * variance.get(i))) / Math.sqrt(2*Math.PI*variance.get(i)));
 
-            //Multiply all elements together for naive Bayes probability
-            prob *= probi;
+            //Add all logs together for log naive Bayes probability
         }
-        return prob;
+        return logProb;
 
         //TODO: This method doesn't seem very reliable. Possibly could use a classifer instead, but less efficient.
     }
