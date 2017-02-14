@@ -10,10 +10,12 @@ import java.util.Optional;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Part;
 
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 
+import uk.ac.cam.cl.charlie.mail.Messages;
 import uk.ac.cam.cl.charlie.ui.MailUtil;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.Document;
@@ -110,8 +112,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    // there may be different method calls for getting the body content
 	    // as a String.
 	    for (Message msg : emailBatch) {
-		String body = MailUtil.getBody(msg, false).content;
-		Document doc = new Document(msg.getSubject(), body);
+		Part body = Messages.getBodyPart(msg, false);
+		Document doc = new Document(msg.getSubject(), (String) body.getContent());
 		train(doc);
 		intermediateBatch.add(doc);
 	    }
