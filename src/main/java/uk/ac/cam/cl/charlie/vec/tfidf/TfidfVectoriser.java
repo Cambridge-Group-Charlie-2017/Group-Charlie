@@ -14,9 +14,10 @@ import javax.mail.Part;
 
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import uk.ac.cam.cl.charlie.mail.Messages;
-import uk.ac.cam.cl.charlie.ui.MailUtil;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.TextVector;
@@ -26,13 +27,17 @@ import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
  * Created by Shyam Tailor on 04/02/2017.
  */
 public class TfidfVectoriser implements VectorisingStrategy {
+
+    private static Logger log = LoggerFactory.getLogger(TfidfVectoriser.class);;
+
     private Word2Vec model;
     private boolean modelLoaded;
     private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
 
-    private CachedWordCounter globalCounter;
+    private BasicWordCounter globalCounter;
 
-    private static String TOTAL_NUMBER_OF_DOCS = "totalnumberofdocstfidf";
+    // An empty string is filter when counting words, so it is safe to use here.
+    private static String TOTAL_NUMBER_OF_DOCS = "";
     private HashMap<Message, TextVector> vectorMap = new HashMap<>();
 
     private final int vectorDimensions = 300;
@@ -76,7 +81,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
 
 	for (String w : docCounter.words()) {
-	    globalCounter.increment(w, docCounter.frequency(w));
+	    globalCounter.increment(w);
 	}
 
 	globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
@@ -85,7 +90,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     public TextVector doc2vec(Document doc) {
 	train(doc);
-	globalCounter.synchronize();
+	// globalCounter.synchronize();
 	// todo add any other content to do with names or other meta data
 	try {
 	    return new TextVector(calculateDocVector(doc.getContent())).normalize();
@@ -101,6 +106,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	if (emailBatch == null) {
 	    return null;
 	}
+	log.info("Starting vectorizing batch of size {}", emailBatch.size());
 	try {
 	    // this.load();
 	    List<TextVector> vectorBatch = new ArrayList<>();
@@ -117,7 +123,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		train(doc);
 		intermediateBatch.add(doc);
 	    }
-	    globalCounter.synchronize();
+	    log.info("Model trained");
+	    // globalCounter.synchronize();
 	    // Checks if sufficient emails are in the database
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();
@@ -125,7 +132,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    for (Document doc : intermediateBatch) {
 		vectorBatch.add(new TextVector(calculateDocVector(doc.getContent())).normalize());
 	    }
-
+	    log.info("Batch vectorized");
 	    return vectorBatch;
 	} catch (MessagingException | IOException | SQLException e) {
 	    return null;
@@ -148,13 +155,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    // don't use MimeMessage),
 	    // there may be different method calls for getting the body content
 	    // as a String.
-	    String body = MailUtil.getBody(msg, false).content;
+	    Part body = Messages.getBodyPart(msg, false);
 	    // Checks if sufficient emails are in the database
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();
 	    }
 
-	    TextVector result = doc2vec(new Document(msg.getSubject(), body));
+	    TextVector result = doc2vec(new Document(msg.getSubject(), (String) body.getContent()));
 	    vectorMap.put(msg, result);
 	    return result;
 	} catch (MessagingException | IOException e) {
@@ -197,6 +204,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	if (modelLoaded) {
 	    return;
 	} else {
+	    log.info("Start loading vector model");
 	    try {
 		if (!modelLoaded) {
 		    model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
@@ -206,6 +214,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		throw new Error(e);
 	    }
 	    modelLoaded = true;
+	    log.info("Vector model loaded");
 	}
     }
 
@@ -222,16 +231,17 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	double[] docVector = new double[vectorDimensions];
 	double totalWeight = 0.0;
 
-	// TODO: Should take case into account. Convert to lower case?
-	// add the vectors for every word which is in the vocab
+	double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
+
 	for (String w : words.words()) {
 	    Optional<TextVector> wordVec = word2vec(w);
 	    if (wordVec.isPresent()) {
-		double weighting = calculateTFValue(w, words.frequency(w), text);
+		double totalDocsWith = globalCounter.frequency(w);
+		double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
 		totalWeight += weighting;
 
 		for (int i = 0; i < vectorDimensions; ++i) {
-		    docVector[i] += weighting * wordVec.get().getRawComponents()[i];
+		    docVector[i] += weighting * wordVec.get().get(i);
 		}
 	    }
 	}
@@ -244,10 +254,4 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	return docVector;
     }
 
-    private double calculateTFValue(String word, int count, String doc) throws SQLException {
-	// see: https://deeplearning4j.org/bagofwords-tf-idf
-	double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
-	double totalDocsWith = globalCounter.frequency(word);
-	return count * Math.log(totalDocs / totalDocsWith);
-    }
 }
