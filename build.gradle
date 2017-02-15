@@ -71,6 +71,9 @@ dependencies {
     // Mail server test framework
     testCompile 'com.icegreen:greenmail:1.5.3'
 
+    // KV database for vectors
+    compile 'org.fusesource.leveldbjni:leveldbjni:1.8'
+
 }
 
 // Define the main class for the application

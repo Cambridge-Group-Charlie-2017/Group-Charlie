@@ -10,6 +10,7 @@ import java.util.Optional;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
+import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.slf4j.Logger;
@@ -26,7 +27,8 @@ import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
  */
 public class TfidfVectoriser implements VectorisingStrategy {
 
-    private static Logger log = LoggerFactory.getLogger(TfidfVectoriser.class);;
+    private static Logger log = LoggerFactory.getLogger(TfidfVectoriser.class);
+    ;
 
     private Word2Vec model;
     private boolean modelLoaded;
@@ -44,151 +46,149 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private static TfidfVectoriser singleton;
 
     public static TfidfVectoriser getVectoriser() {
-	if (singleton == null)
-	    singleton = new TfidfVectoriser();
-	return singleton;
+        if (singleton == null)
+            singleton = new TfidfVectoriser();
+        return singleton;
     }
 
     private TfidfVectoriser() {
-	// added load() to constructor for performance reasons for testing.
-	load();
+        // added load() to constructor for performance reasons for testing.
+        load();
 
-	globalCounter = new CachedWordCounter(PersistentWordCounter.getInstance());
+        globalCounter = new CachedWordCounter(PersistentWordCounter.getInstance());
     }
 
     @Override
     public Optional<Vector> word2vec(String word) {
-	// using optional here since a word not being in the vocab is hardly an
-	// "exceptional" case
-	// ^ we cannot use Optional with double[] as Optional uses generics
-	// which require a class.
-	if (model.hasWord(word)) {
-	    return Optional.of(new Vector(model.getWordVector(word)));
-	} else {
-	    // Do we really not want to attempt to vectorise the word at all?
-	    // there's no data so you can't.
+        // using optional here since a word not being in the vocab is hardly an
+        // "exceptional" case
+        // ^ we cannot use Optional with double[] as Optional uses generics
+        // which require a class.
+        if (model.hasWord(word)) {
+            return Optional.of(new Vector(model.getWordVector(word)));
+        } else {
+            // Do we really not want to attempt to vectorise the word at all?
+            // there's no data so you can't.
 
-	    // perhaps need to occasionally update the vocabulary and train the
-	    // word2vec
-	    // model further on the user's stuff
-	    return Optional.empty();
-	}
+            // perhaps need to occasionally update the vocabulary and train the
+            // word2vec
+            // model further on the user's stuff
+            return Optional.empty();
+        }
     }
 
     private void train(Document doc) {
-	BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
+        BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
 
-	for (String w : docCounter.words()) {
-	    globalCounter.increment(w);
-	}
+        for (String w : docCounter.words()) {
+            globalCounter.increment(w);
+        }
 
-	globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+        globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
     }
 
     @Override
     public Vector doc2vec(Document doc) {
-	train(doc);
-	// globalCounter.synchronize();
-	// todo add any other content to do with names or other meta data
+        train(doc);
+        // globalCounter.synchronize();
+        // todo add any other content to do with names or other meta data
 
-	return calculateDocVector(doc.getContent());
+        return calculateDocVector(doc.getContent());
     }
 
     // Provide a method for batching vectorisation, which calls load() and
     // close().
     @Override
     public List<Vector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
-	if (emailBatch == null) {
-	    return null;
-	}
-	log.info("Starting vectorizing batch of size {}", emailBatch.size());
-	try {
-	    // this.load();
-	    List<Vector> vectorBatch = new ArrayList<>();
-	    List<Document> intermediateBatch = new ArrayList<>();
-	    // not sure if msg.getFileName() is appropriate here. Feel free to
-	    // change to msg.getSubject() or something.
-	    // Also, for the actual Message objects we're going to use (if we
-	    // don't use MimeMessage),
-	    // there may be different method calls for getting the body content
-	    // as a String.
-	    for (Message msg : emailBatch) {
-		String body = Messages.getBodyText(msg);
-		Document doc = new Document(msg.getSubject(), body);
-		train(doc);
-		intermediateBatch.add(doc);
-	    }
-	    log.info("Model trained");
-	    // globalCounter.synchronize();
-	    // Checks if sufficient emails are in the database
-	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
-		throw new BatchSizeTooSmallException();
-	    }
-	    for (Document doc : intermediateBatch) {
-		vectorBatch.add(calculateDocVector(doc.getContent()));
-	    }
-	    log.info("Batch vectorized");
-	    return vectorBatch;
-	} catch (MessagingException | IOException e) {
-	    return null;
-	} catch (BatchSizeTooSmallException e) {
-	    System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
-	    return null;
-	} finally {
-	    // this.close();
-	}
+        if (emailBatch == null) {
+            return null;
+        }
+        log.info("Starting vectorizing batch of size {}", emailBatch.size());
+        try {
+            // this.load();
+            List<Vector> vectorBatch = new ArrayList<>();
+            List<Document> intermediateBatch = new ArrayList<>();
+            // not sure if msg.getFileName() is appropriate here. Feel free to
+            // change to msg.getSubject() or something.
+            // Also, for the actual Message objects we're going to use (if we
+            // don't use MimeMessage),
+            // there may be different method calls for getting the body content
+            // as a String.
+            for (Message msg : emailBatch) {
+                String body = Messages.getBodyText(msg);
+                Document doc = new Document(msg.getSubject(), body);
+                train(doc);
+                intermediateBatch.add(doc);
+            }
+            log.info("Model trained");
+            // globalCounter.synchronize();
+            // Checks if sufficient emails are in the database
+            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
+                throw new BatchSizeTooSmallException();
+            }
+            for (Document doc : intermediateBatch) {
+                vectorBatch.add(calculateDocVector(doc.getContent()));
+            }
+            log.info("Batch vectorized");
+            return vectorBatch;
+        } catch (MessagingException | IOException e) {
+            return null;
+        } catch (BatchSizeTooSmallException e) {
+            System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
+            return null;
+        } finally {
+            // this.close();
+        }
     }
 
     @Override
     public Vector doc2vec(Message msg) throws BatchSizeTooSmallException {
-	// todo add anything that is relevant to the email header here.
-	try {
-	    // load();
-	    // not sure if msg.getFileName() is appropriate here. Feel free to
-	    // change to msg.getSubject() or something.
-	    // Also, for the actual Message objects we're going to use (if we
-	    // don't use MimeMessage),
-	    // there may be different method calls for getting the body content
-	    // as a String.
-	    String body = Messages.getBodyText(msg);
-	    // Checks if sufficient emails are in the database
-	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
-		throw new BatchSizeTooSmallException();
-	    }
+        // todo add anything that is relevant to the email header here.
+        try {
+            // load();
+            // not sure if msg.getFileName() is appropriate here. Feel free to
+            // change to msg.getSubject() or something.
+            // Also, for the actual Message objects we're going to use (if we
+            // don't use MimeMessage),
+            // there may be different method calls for getting the body content
+            // as a String.
+            String body = Messages.getBodyText(msg);
+            // Checks if sufficient emails are in the database
+            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
+                throw new BatchSizeTooSmallException();
+            }
 
-	    Vector result = doc2vec(new Document(msg.getSubject(), body));
-	    vectorMap.put(msg, result);
-	    return result;
-	} catch (MessagingException | IOException e) {
-	    return null;
-	} catch (BatchSizeTooSmallException e) {
-	    System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
-	    return null;
-	} finally {
-	    // close();
-	}
+            Vector result = doc2vec(new Document(msg.getSubject(), body));
+            vectorMap.put(msg, result);
+            return result;
+        } catch (MessagingException | IOException e) {
+            return null;
+        } catch (BatchSizeTooSmallException e) {
+            System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
+            return null;
+        } finally {
+            // close();
+        }
     }
 
     @Override
     public void close() {
-	if (!modelLoaded) {
-	    return;
-	}
+        if (!modelLoaded) {
+            return;
+        } else {
+            try {
+                File writeTo = new File(word2vecPath + ".bak");
+                WordVectorSerializer.writeWordVectors(model.getLookupTable(), writeTo);
+                File original = new File(word2vecPath);
+                original.delete();
+                writeTo.renameTo(original);
 
-	else {
-	    try {
-		File writeTo = new File(word2vecPath + ".bak");
-		WordVectorSerializer.writeWordVectors(model.getLookupTable(), writeTo);
-		File original = new File(word2vecPath);
-		original.delete();
-		writeTo.renameTo(original);
-
-	    } catch (IOException e) {
-		modelLoaded = false;
-		throw new Error(e);
-	    }
-	    modelLoaded = false;
-	}
+            } catch (IOException e) {
+                modelLoaded = false;
+                throw new Error(e);
+            }
+            modelLoaded = false;
+        }
     }
 
     // load google model is deprecated in favour of a more general method (which
@@ -196,48 +196,48 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     @SuppressWarnings("deprecation")
     public void load() {
-	if (modelLoaded) {
-	    return;
-	} else {
-	    log.info("Start loading vector model");
-	    try {
-		if (!modelLoaded) {
-		    model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
-		}
-	    } catch (IOException e) {
-		modelLoaded = false;
-		throw new Error(e);
-	    }
-	    modelLoaded = true;
-	    log.info("Vector model loaded");
-	}
+        if (modelLoaded) {
+            return;
+        } else {
+            log.info("Start loading vector model");
+            try {
+                if (!modelLoaded) {
+                    model = WordVectorSerializer.loadGoogleModel(new File(word2vecPath), false, true);
+                }
+            } catch (IOException e) {
+                modelLoaded = false;
+                throw new Error(e);
+            }
+            modelLoaded = true;
+            log.info("Vector model loaded");
+        }
     }
 
     @Override
     public boolean ready() {
-	return modelLoaded;
+        return modelLoaded;
     }
 
     private Vector calculateDocVector(String text) {
-	// weighted average of word vectors using tdidf
+        // weighted average of word vectors using tdidf
 
-	BasicWordCounter words = BasicWordCounter.count(text);
+        BasicWordCounter words = BasicWordCounter.count(text);
 
-	Vector vec = Vector.zero(vectorDimensions);
+        Vector vec = Vector.zero(vectorDimensions);
 
-	double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
+        double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
 
-	for (String w : words.words()) {
-	    Optional<Vector> wordVec = word2vec(w);
-	    if (wordVec.isPresent()) {
-		double totalDocsWith = globalCounter.frequency(w);
-		double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
+        for (String w : words.words()) {
+            Optional<Vector> wordVec = word2vec(w);
+            if (wordVec.isPresent()) {
+                double totalDocsWith = globalCounter.frequency(w);
+                double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
 
-		vec = vec.add(wordVec.get().scale(weighting));
-	    }
-	}
+                vec = vec.add(wordVec.get().scale(weighting));
+            }
+        }
 
-	return vec.normalize();
+        return vec.normalize();
     }
 
 }

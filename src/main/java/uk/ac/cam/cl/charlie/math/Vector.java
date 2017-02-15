@@ -1,5 +1,7 @@
 package uk.ac.cam.cl.charlie.math;
 
+import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.util.Arrays;
 
 public class Vector {
@@ -80,5 +82,19 @@ public class Vector {
     public static Vector zero(int dim) {
 	double[] comp = new double[dim];
 	return new Vector(comp, false);
+    }
+
+    // for k-v store
+    public byte[] getBytes() {
+        ByteBuffer bf = ByteBuffer.allocate(this.size() * 8);
+        for (int i = 0; i < this.size(); ++i) {
+            bf.putDouble(components[i]);
+        }
+        return bf.array();
+	}
+
+	public static Vector fromBytes(byte[] bytes) {
+        DoubleBuffer df = ByteBuffer.wrap(bytes).asDoubleBuffer();
+        return new Vector(df.array());
     }
 }
