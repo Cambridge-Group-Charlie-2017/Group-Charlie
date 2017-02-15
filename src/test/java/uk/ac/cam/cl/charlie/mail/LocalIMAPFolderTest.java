@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.mail;
 
+import com.icegreen.greenmail.store.MailFolder;
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
@@ -9,13 +10,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
+import javax.mail.*;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -182,9 +183,67 @@ public class LocalIMAPFolderTest {
 
     }
 
+    @Test
+    public void testServersideFolderCreation() throws Exception {
+        mailServer.getManagers().getImapHostManager().createMailbox(user, "Test 1");
+        mailRepresentation.syncAllFolders();
+        mailRepresentation.getFolder("Test 1");
+    }
+
+    @Test
+    public void testServersideFolderCreationMessages() throws Exception {
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().createMailbox(user, "Test 1");
+        for (int i = 0; i < magnitude; i++) {
+            serverFolder.appendMessage(createFakeMail("from" + i, "to" + i, "subject " + i, "content " + i), new Flags(Flags.Flag.RECENT), new Date());
+        }
+        mailRepresentation.syncAllFolders();
+        LocalIMAPFolder test3 = mailRepresentation.getFolder("Test 1");
+        assertEquals(magnitude, test3.getMessages().size());
+    }
+
+    @Test(expected = FolderNotFoundException.class)
+    public void testServersideFolderDeletion() throws Exception {
+        mailRepresentation.createFolder("Test 1");
+        mailServer.getManagers().getImapHostManager().deleteMailbox(user, "Test 1");
+        mailRepresentation.syncAllFolders();
+        mailRepresentation.getFolder("Test 1");
+    }
+
+    @Test
+    public void testServersideNewMessages() throws Exception {
+        createDefaultMailFormat(user, 0, magnitude * 5);
+        mailRepresentation.syncAllFolders();
+
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        assertEquals(magnitude * 5, inbox.getMessages().size());
+
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().getFolder(user, "Inbox");
+        for (int i = magnitude * 5; i < magnitude * 10; i++) {
+            serverFolder.appendMessage(createFakeMail("from" + i, "to" + i, "subject " + i, "content " + i), new Flags(Flags.Flag.RECENT), new Date());
+        }
+        mailRepresentation.syncAllFolders();
+
+        checkDefaultMailFormat(inbox.getMessages(), 0, magnitude * 10);
+    }
+
+    @Test
+    public void testServersideDeleteMessage() throws Exception {
+        createDefaultMailFormat(user, 0, magnitude * 10);
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().getFolder(user, "Inbox");
+        for (int i = 0; i < magnitude * 5; i++) {
+            serverFolder.getMessages().get(i).setFlag(Flags.Flag.DELETED, true);
+        }
+        serverFolder.expunge();
+
+        mailRepresentation.syncAllFolders();
+
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        checkDefaultMailFormat(inbox.getMessages(), 5 * magnitude, 10 * magnitude);
+    }
+
     public static void createDefaultMailFormat(GreenMailUser user, int start, int end) throws MessagingException {
         for (int i = start; i < end; i++) {
-            createFakeEmail(user, "from" + i, "to" + i, "subject " + i, "content " + i);
+            deliverFakeMail(user, "from" + i, "to" + i, "subject " + i, "content " + i);
         }
     }
 
@@ -212,13 +271,17 @@ public class LocalIMAPFolderTest {
         assertEquals(endMessageNumberExclusive - 1, messageNumber);
     }
 
-    public static void createFakeEmail(GreenMailUser user, String from, String to, String subject, String content) throws MessagingException {
+    public static void deliverFakeMail(GreenMailUser user, String from, String to, String subject, String content) throws MessagingException {
+        user.deliver(createFakeMail(from, to, subject, content));
+    }
+
+    public static MimeMessage createFakeMail(String from, String to, String subject, String content) throws MessagingException {
         MimeMessage message = new MimeMessage((Session) null);
         message.setFrom(new InternetAddress(from));
         message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
         message.setSubject(subject);
         message.setText(content);
-        user.deliver(message);
+        return message;
     }
 
 }
