@@ -8,6 +8,8 @@ import java.util.List;
 import uk.ac.cam.cl.charlie.vec.TextVector;
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils;
@@ -150,13 +152,31 @@ public class GenericEMClusterer extends GenericClusterer {
 	// convert vecs into arff format for the clusterer.
 	// is there a more efficient way of converting to (dense) Instances?
 	// add(Instance)
-	createArff(vecs, DEFAULT_ARFF);
+	// createArff(vecs, DEFAULT_ARFF);
+
+	int dimension = vecs.get(0).size();
+
+	// Create attributes
+	ArrayList<Attribute> attributes = new ArrayList<>();
+	for (int i = 0; i < dimension; i++) {
+	    attributes.add(new Attribute("e" + i));
+	}
+
+	Instances data = new Instances("vectors", attributes, vecs.size());
+
+	for (Vector vec : vecs) {
+	    Instance instance = new DenseInstance(dimension);
+	    for (int i = 0; i < dimension; i++) {
+		instance.setValue(attributes.get(i), vec.get(i));
+	    }
+	    data.add(instance);
+	}
 
 	EM cl;
 	PrincipalComponents pca;
 	try {
 	    cl = new EM();
-	    Instances data = ConverterUtils.DataSource.read(DEFAULT_ARFF);
+	    // Instances data = ConverterUtils.DataSource.read(DEFAULT_ARFF);
 
 	    // dimensionality reduction here.
 	    // First use PCA, then use random projection to get to the desired
