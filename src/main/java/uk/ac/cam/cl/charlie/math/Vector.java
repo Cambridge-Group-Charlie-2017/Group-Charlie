@@ -56,6 +56,18 @@ public class Vector {
 	return new Vector(comp, false);
     }
 
+    public Vector add(Vector vec) {
+	if (components.length != vec.components.length) {
+	    throw new IllegalArgumentException("Dimension must match to calculate dot product");
+	}
+
+	double[] comp = new double[components.length];
+	for (int i = 0; i < components.length; i++) {
+	    comp[i] = components[i] + vec.components[i];
+	}
+	return new Vector(comp, false);
+    }
+
     public Vector normalize() {
 	return scale(1 / magnitude());
     }
@@ -63,5 +75,10 @@ public class Vector {
     @Override
     public String toString() {
 	return "Vector(" + Arrays.toString(components) + ")";
+    }
+
+    public static Vector zero(int dim) {
+	double[] comp = new double[dim];
+	return new Vector(comp, false);
     }
 }

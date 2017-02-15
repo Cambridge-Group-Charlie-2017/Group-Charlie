@@ -2,7 +2,6 @@ package uk.ac.cam.cl.charlie.vec.tfidf;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -91,11 +90,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	train(doc);
 	// globalCounter.synchronize();
 	// todo add any other content to do with names or other meta data
-	try {
-	    return new Vector(calculateDocVector(doc.getContent())).normalize();
-	} catch (SQLException e) {
-	    throw new Error(e);
-	}
+
+	return calculateDocVector(doc.getContent());
     }
 
     // Provide a method for batching vectorisation, which calls load() and
@@ -129,11 +125,11 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		throw new BatchSizeTooSmallException();
 	    }
 	    for (Document doc : intermediateBatch) {
-		vectorBatch.add(new Vector(calculateDocVector(doc.getContent())).normalize());
+		vectorBatch.add(calculateDocVector(doc.getContent()));
 	    }
 	    log.info("Batch vectorized");
 	    return vectorBatch;
-	} catch (MessagingException | IOException | SQLException e) {
+	} catch (MessagingException | IOException e) {
 	    return null;
 	} catch (BatchSizeTooSmallException e) {
 	    System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
@@ -222,13 +218,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	return modelLoaded;
     }
 
-    private double[] calculateDocVector(String text) throws SQLException {
+    private Vector calculateDocVector(String text) {
 	// weighted average of word vectors using tdidf
 
 	BasicWordCounter words = BasicWordCounter.count(text);
 
-	double[] docVector = new double[vectorDimensions];
-	double totalWeight = 0.0;
+	Vector vec = Vector.zero(vectorDimensions);
 
 	double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
 
@@ -237,20 +232,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    if (wordVec.isPresent()) {
 		double totalDocsWith = globalCounter.frequency(w);
 		double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
-		totalWeight += weighting;
 
-		for (int i = 0; i < vectorDimensions; ++i) {
-		    docVector[i] += weighting * wordVec.get().get(i);
-		}
+		vec = vec.add(wordVec.get().scale(weighting));
 	    }
 	}
-	//
-	// // divide by the total weight:
-	// for (int i = 0; i < vectorDimensions; ++i) {
-	// docVector[i] = docVector[i] / totalWeight;
-	// }
 
-	return docVector;
+	return vec.normalize();
     }
 
 }
