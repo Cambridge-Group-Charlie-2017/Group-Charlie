@@ -2,23 +2,37 @@ package uk.ac.cam.cl.charlie.vec.tfidf.kvstore;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.deeplearning4j.models.embeddings.WeightLookupTable;
+import org.deeplearning4j.models.embeddings.inmemory.InMemoryLookupTable;
+import org.deeplearning4j.models.sequencevectors.sequence.SequenceElement;
+import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.deeplearning4j.models.word2vec.wordstore.VocabCache;
+import org.deeplearning4j.plot.BarnesHutTsne;
+import org.deeplearning4j.ui.UiConnectionInfo;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.cpu.nativecpu.NDArray;
+import org.nd4j.linalg.factory.Nd4j;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.util.OS;
 
 import java.io.*;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by shyam on 15/02/2017.
  */
 public final class VecDB implements Closeable {
+    // todo: possibility of batch insertion into the db (documentation is a tad awful on this)
     private static VecDB instance;
     private static final String dbLocation = OS.getAppDataDirectory() + "vectors.db";
     private static final String mapName = "vectors";
@@ -127,6 +141,22 @@ public final class VecDB implements Closeable {
     public void delete(String w) {
         cache.invalidate(w);
         map.remove(w);
+    }
+
+    public Word2Vec getModelForTraining() {
+        WeightLookupTable table = new InMemoryLookupTable();
+
+        Iterator<Map.Entry<String, double[]>> entries = map.entryIterator();
+
+        while (entries.hasNext()) {
+            Map.Entry<String, double[]> entry = entries.next();
+            table.putVector(entry.getKey(), Nd4j.create(entry.getValue()));
+        }
+
+        // if this doesn't work there is an alternative way of doing it with the Builder class
+        Word2Vec w = new Word2Vec();
+        w.setLookupTable(table);
+        return w;
     }
 
 }
