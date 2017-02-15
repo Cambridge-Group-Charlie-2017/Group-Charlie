@@ -10,7 +10,6 @@ import java.util.Optional;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.Part;
 
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
@@ -18,9 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.cam.cl.charlie.mail.Messages;
+import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.Document;
-import uk.ac.cam.cl.charlie.vec.TextVector;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
 /**
@@ -38,7 +37,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     // An empty string is filter when counting words, so it is safe to use here.
     private static String TOTAL_NUMBER_OF_DOCS = "";
-    private HashMap<Message, TextVector> vectorMap = new HashMap<>();
+    private HashMap<Message, Vector> vectorMap = new HashMap<>();
 
     private final int vectorDimensions = 300;
 
@@ -59,13 +58,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public Optional<TextVector> word2vec(String word) {
+    public Optional<Vector> word2vec(String word) {
 	// using optional here since a word not being in the vocab is hardly an
 	// "exceptional" case
 	// ^ we cannot use Optional with double[] as Optional uses generics
 	// which require a class.
 	if (model.hasWord(word)) {
-	    return Optional.of(new TextVector(model.getWordVector(word)));
+	    return Optional.of(new Vector(model.getWordVector(word)));
 	} else {
 	    // Do we really not want to attempt to vectorise the word at all?
 	    // there's no data so you can't.
@@ -88,12 +87,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public TextVector doc2vec(Document doc) {
+    public Vector doc2vec(Document doc) {
 	train(doc);
 	// globalCounter.synchronize();
 	// todo add any other content to do with names or other meta data
 	try {
-	    return new TextVector(calculateDocVector(doc.getContent())).normalize();
+	    return new Vector(calculateDocVector(doc.getContent())).normalize();
 	} catch (SQLException e) {
 	    throw new Error(e);
 	}
@@ -102,14 +101,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
     // Provide a method for batching vectorisation, which calls load() and
     // close().
     @Override
-    public List<TextVector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
+    public List<Vector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
 	if (emailBatch == null) {
 	    return null;
 	}
 	log.info("Starting vectorizing batch of size {}", emailBatch.size());
 	try {
 	    // this.load();
-	    List<TextVector> vectorBatch = new ArrayList<>();
+	    List<Vector> vectorBatch = new ArrayList<>();
 	    List<Document> intermediateBatch = new ArrayList<>();
 	    // not sure if msg.getFileName() is appropriate here. Feel free to
 	    // change to msg.getSubject() or something.
@@ -130,7 +129,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		throw new BatchSizeTooSmallException();
 	    }
 	    for (Document doc : intermediateBatch) {
-		vectorBatch.add(new TextVector(calculateDocVector(doc.getContent())).normalize());
+		vectorBatch.add(new Vector(calculateDocVector(doc.getContent())).normalize());
 	    }
 	    log.info("Batch vectorized");
 	    return vectorBatch;
@@ -145,7 +144,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public TextVector doc2vec(Message msg) throws BatchSizeTooSmallException {
+    public Vector doc2vec(Message msg) throws BatchSizeTooSmallException {
 	// todo add anything that is relevant to the email header here.
 	try {
 	    // load();
@@ -161,7 +160,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		throw new BatchSizeTooSmallException();
 	    }
 
-	    TextVector result = doc2vec(new Document(msg.getSubject(), (String) body.getContent()));
+	    Vector result = doc2vec(new Document(msg.getSubject(), body));
 	    vectorMap.put(msg, result);
 	    return result;
 	} catch (MessagingException | IOException e) {
@@ -234,7 +233,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	double totalDocs = globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
 
 	for (String w : words.words()) {
-	    Optional<TextVector> wordVec = word2vec(w);
+	    Optional<Vector> wordVec = word2vec(w);
 	    if (wordVec.isPresent()) {
 		double totalDocsWith = globalCounter.frequency(w);
 		double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
@@ -245,11 +244,11 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		}
 	    }
 	}
-
-	// divide by the total weight:
-	for (int i = 0; i < vectorDimensions; ++i) {
-	    docVector[i] = docVector[i] / totalWeight;
-	}
+	//
+	// // divide by the total weight:
+	// for (int i = 0; i < vectorDimensions; ++i) {
+	// docVector[i] = docVector[i] / totalWeight;
+	// }
 
 	return docVector;
     }

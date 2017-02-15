@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.vec;
 import java.util.Optional;
 
 import uk.ac.cam.cl.charlie.db.Database;
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
  * Document2Vector is the interface to be used by Clusterer and Classifier
@@ -23,7 +24,7 @@ public class Document2Vector {
 		this.strategy = strategy;
 	}
 	
-	public Optional<TextVector> word2vec(String word) {
+	public Optional<Vector> word2vec(String word) {
 		return strategy.word2vec(word);
 	}
 	

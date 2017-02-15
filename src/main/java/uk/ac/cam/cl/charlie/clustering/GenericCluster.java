@@ -5,8 +5,8 @@ import java.util.List;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
-import uk.ac.cam.cl.charlie.vec.TextVector;
 
 public abstract class GenericCluster {
 
@@ -73,7 +73,7 @@ public abstract class GenericCluster {
 	clusterSize++;
     }
 
-    public List<TextVector> getContentVecs() {
+    public List<Vector> getContentVecs() {
 	List<Message> messages = new ArrayList<>();
 	for (ClusterableObject obj : contents) {
 	    messages.add(((ClusterableMessage) obj).getMessage());

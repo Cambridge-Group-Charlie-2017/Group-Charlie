@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
-import uk.ac.cam.cl.charlie.vec.TextVector;
 
 import javax.mail.Message;
 
@@ -29,7 +28,7 @@ public class GenericEMCluster extends GenericCluster{
         int n = getClusterSize();
 
         //Get the vectors for the messages.
-        TextVector[] vecs = getContentVecs().toArray(new TextVector[0]);
+        uk.ac.cam.cl.charlie.math.Vector[] vecs = getContentVecs().toArray(new uk.ac.cam.cl.charlie.math.Vector[0]);
 
         //initialise average and variance vectors using message vectors.
         average = new Vector<Double>();
@@ -60,7 +59,7 @@ public class GenericEMCluster extends GenericCluster{
     protected void updateMetadataAfterAdding(ClusterableObject msg) {
         //changes variance and average arrays.
         //once vectoriser implemented, replace with genuine getVec method.
-        TextVector vec = GenericDummyVectoriser.vectorise(msg);
+	uk.ac.cam.cl.charlie.math.Vector vec = GenericDummyVectoriser.vectorise(msg);
 
         //Note: clustersize has not been incremented yet at this point.
         for (int i = 0; i < getDimensionality(); i++) {
@@ -84,7 +83,7 @@ public class GenericEMCluster extends GenericCluster{
         //probability becomes too small at high dimensions.
 
         //TODO: put in log space
-        TextVector vec;
+	uk.ac.cam.cl.charlie.math.Vector vec;
         try {
             vec = GenericClusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
         } catch (BatchSizeTooSmallException e) {

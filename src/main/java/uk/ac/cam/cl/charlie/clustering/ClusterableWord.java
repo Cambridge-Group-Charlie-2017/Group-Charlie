@@ -1,9 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
-
-import java.util.Vector;
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
  * Created by M Boyce on 11/02/2017.
@@ -11,18 +8,18 @@ import java.util.Vector;
 public class ClusterableWord implements ClusterableObject {
     private String word;
 
-    public ClusterableWord(String word){
-        this.word = word;
+    public ClusterableWord(String word) {
+	this.word = word;
     }
 
-    public String getWord(){
-        return word;
+    public String getWord() {
+	return word;
     }
 
     @Override
-    public TextVector getVec() {
-        return GenericClusterer.getVectoriser().word2vec(word).get();
+    public Vector getVec() {
+	return GenericClusterer.getVectoriser().word2vec(word).get();
     }
 
-    //TODO: write equals() function
+    // TODO: write equals() function
 }

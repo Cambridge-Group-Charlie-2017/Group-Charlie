@@ -5,8 +5,8 @@ import java.util.List;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
-import uk.ac.cam.cl.charlie.vec.TextVector;
 
 /**
  * Created by Ben on 13/02/2017.
@@ -22,7 +22,7 @@ public class ClusterableMessageGroup extends ClusterableObjectGroup {
     }
 
     @Override
-    public List<TextVector> getVecs() {
+    public List<Vector> getVecs() {
 	ArrayList<Message> messages = new ArrayList<>();
 	for (ClusterableObject o : contents)
 	    messages.add(((ClusterableMessage) o).getMessage());

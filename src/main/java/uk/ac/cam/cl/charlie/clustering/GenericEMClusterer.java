@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.math.Vector;
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
 import weka.core.Attribute;
@@ -28,7 +28,7 @@ public class GenericEMClusterer extends GenericClusterer {
     @Override
     public GenericClusterGroup run(ClusterableObjectGroup objects) throws Exception {
 
-	List<TextVector> vecs = objects.getVecs();
+	List<Vector> vecs = objects.getVecs();
 
 	// convert vecs into arff format for the clusterer.
 	// is there a more efficient way of converting to (dense) Instances?
@@ -94,7 +94,7 @@ public class GenericEMClusterer extends GenericClusterer {
 	}
     }
 
-    void createArff(List<TextVector> vecs, String fileName) throws IOException {
+    void createArff(List<Vector> vecs, String fileName) throws IOException {
 	FileWriter writer = new FileWriter(fileName);
 	int dimensionality = vecs.get(0).size();
 
@@ -106,7 +106,7 @@ public class GenericEMClusterer extends GenericClusterer {
 	writer.write("\n@DATA\n");
 
 	// Print a line for each vector, with elements separated by a comma.
-	for (TextVector v : vecs) {
+	for (Vector v : vecs) {
 	    String vecString = "";
 	    for (int i = 0; i < dimensionality; i++) {
 		vecString += String.format("%f", v.get(i));
@@ -147,7 +147,7 @@ public class GenericEMClusterer extends GenericClusterer {
 
 	// Not yet implemented vectoriser so use DummyVectoriser for testing:
 	ClusterableMessageGroup objects = new ClusterableMessageGroup(messages);
-	List<TextVector> vecs = objects.getVecs();
+	List<Vector> vecs = objects.getVecs();
 
 	// convert vecs into arff format for the clusterer.
 	// is there a more efficient way of converting to (dense) Instances?

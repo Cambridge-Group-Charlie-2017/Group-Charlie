@@ -2,21 +2,13 @@ package uk.ac.cam.cl.charlie.clustering;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
-import java.util.TreeMap;
 
 import javax.mail.Message;
-import javax.mail.MessagingException;
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
  * Created by Ben on 07/02/2017.
@@ -26,16 +18,16 @@ import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 public class GenericDummyVectoriser {
 
-    private static HashMap<ClusterableObject, TextVector> map = new HashMap<ClusterableObject, TextVector>();
+    private static HashMap<ClusterableObject, Vector> map = new HashMap<ClusterableObject, Vector>();
     private static final int dimensionality = 300;
     private static HashMap<ClusterableObject, Integer> actual = new HashMap<ClusterableObject, Integer>();
 
     //Return vector associated with 'msg'.
-    public static TextVector vectorise(Message msg) {
+    public static Vector vectorise(Message msg) {
         return map.get(msg);
     }
     //Return vector associated with 'msg'.//TODO:Edit to do correct thing
-    public static TextVector vectorise(ClusterableObject msg) {
+    public static Vector vectorise(ClusterableObject msg) {
         return map.get(msg);
     }
     /*
@@ -70,7 +62,7 @@ public class GenericDummyVectoriser {
                     arr[k] = rand.nextGaussian() * stdev[k] + mean[k];
                 }
                 //and link it to message i*50+j
-                map.put(clusterableObjects.get(i*50+j), new TextVector(arr));
+                map.put(clusterableObjects.get(i*50+j), new Vector(arr));
                 actual.put(clusterableObjects.get(i*50+j), i);
             }
         }

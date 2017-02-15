@@ -1,10 +1,8 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
-
 import java.util.NoSuchElementException;
-import java.util.Vector;
+
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
  * Created by M Boyce on 11/02/2017.
@@ -25,7 +23,7 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
     public int getOccurences(){return occurences;}
 
     @Override
-    public TextVector getVec() {
+    public Vector getVec() {
         try {
             return GenericClusterer.getVectoriser().word2vec(word).get();
         } catch (NoSuchElementException e) {

@@ -15,7 +15,7 @@ import javax.mail.internet.MimeMultipart;
 
 import org.junit.Test;
 
-import uk.ac.cam.cl.charlie.vec.TextVector;
+import uk.ac.cam.cl.charlie.math.Vector;
 
 public class TfidfVectoriserTest {
 
@@ -177,8 +177,8 @@ public class TfidfVectoriserTest {
 
 	// Test the vectorisation.
 	// tfidf.load();
-	List<TextVector> vecs = tfidf.doc2vec(messages);
-	double[] components = ((TextVector) vecs.toArray()[0]).getRawComponents();
+	List<Vector> vecs = tfidf.doc2vec(messages);
+	double[] components = vecs.get(0).toDoubleArray();
 	// tfidf.close();
 	assertNotNull(components);
 	// System.out.println(Arrays.toString(components));
