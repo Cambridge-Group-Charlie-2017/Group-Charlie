@@ -188,7 +188,7 @@ public class GenericEMClusterer extends GenericClusterer {
 	    pca.setMaximumAttributes(20); // allowing a 2D plot
 
 	    // apply filter
-	    data = Filter.useFilter(data, pca);
+	    Instances data20 = Filter.useFilter(data, pca);
 	    // If efficiency is a problem, could use random projection instead.
 
 	    String[] options = { "-I", "5" };
@@ -196,10 +196,10 @@ public class GenericEMClusterer extends GenericClusterer {
 
 	    // TODO: could initially not set a cluster number, rebuild with n=5
 	    // if output has a useless number of clusters.
-	    cl.buildClusterer(data);
+	    cl.buildClusterer(data20);
 	    ClusterEvaluation eval = new ClusterEvaluation();
 	    eval.setClusterer(cl);
-	    eval.evaluateClusterer(new Instances(data));
+	    eval.evaluateClusterer(new Instances(data20));
 
 	    ArrayList<ArrayList<DemoMessageVector>> results = new ArrayList<>();
 	    for (int i = 0; i < cl.numberOfClusters(); i++) {
@@ -218,7 +218,7 @@ public class GenericEMClusterer extends GenericClusterer {
 	    // what cluster it belongs to.
 	    // Then add it to the corresponding message grouping.
 	    for (int i = 0; i < messages.size(); i++) {
-		Instance curr20 = data.get(i);
+		Instance curr20 = data20.get(i);
 		Instance curr2 = plot2D.get(i);
 		int clusterIndex = cl.clusterInstance(curr20);
 		// insert corresponding vector
