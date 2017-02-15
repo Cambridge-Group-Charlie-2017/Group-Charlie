@@ -7,6 +7,8 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 
+import org.jsoup.Jsoup;
+
 /**
  * Helpers for easy accessing {@link Message}
  *
@@ -62,6 +64,26 @@ public class Messages {
 	}
 
 	return null;
+    }
+
+    /**
+     * Get the body text of a message. If the message contains only HTML
+     * message, it will be parsed and converted to plain texts.
+     *
+     * @param part
+     *            the root message
+     * @return the body text message
+     * @throws MessagingException
+     * @throws IOException
+     */
+    public static String getBodyText(Part part) throws MessagingException, IOException {
+	Part p = getBodyPart(part, false);
+	if (p == null)
+	    return null;
+	if (p.isMimeType("text/html")) {
+	    return Jsoup.parse((String) p.getContent()).text();
+	}
+	return (String) p.getContent();
     }
 
 }

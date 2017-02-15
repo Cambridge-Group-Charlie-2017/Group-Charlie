@@ -58,6 +58,9 @@ dependencies {
     // javax.mail
     compile 'javax.mail:mail:1.4.7'
 
+    // HTML parsing
+    compile 'org.jsoup:jsoup:1.10.2'
+
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
 

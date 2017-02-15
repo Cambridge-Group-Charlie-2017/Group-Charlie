@@ -118,8 +118,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    // there may be different method calls for getting the body content
 	    // as a String.
 	    for (Message msg : emailBatch) {
-		Part body = Messages.getBodyPart(msg, false);
-		Document doc = new Document(msg.getSubject(), (String) body.getContent());
+		String body = Messages.getBodyText(msg);
+		Document doc = new Document(msg.getSubject(), body);
 		train(doc);
 		intermediateBatch.add(doc);
 	    }
@@ -155,7 +155,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    // don't use MimeMessage),
 	    // there may be different method calls for getting the body content
 	    // as a String.
-	    Part body = Messages.getBodyPart(msg, false);
+	    String body = Messages.getBodyText(msg);
 	    // Checks if sufficient emails are in the database
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();
