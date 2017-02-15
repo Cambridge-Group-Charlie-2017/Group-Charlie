@@ -72,7 +72,7 @@ dependencies {
     testCompile 'com.icegreen:greenmail:1.5.3'
 
     // KV database for vectors
-    compile 'org.fusesource.leveldbjni:leveldbjni:1.8'
+    compile 'org.mapdb:mapdb:3.0.3'
 
 }
 

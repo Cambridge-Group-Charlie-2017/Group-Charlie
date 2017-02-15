@@ -2,16 +2,14 @@ package uk.ac.cam.cl.charlie.vec.tfidf.kvstore;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.WriteBatch;
-import org.iq80.leveldb.WriteOptions;
+import org.mapdb.BTreeMap;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.util.OS;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -20,141 +18,115 @@ import java.util.concurrent.ExecutionException;
 /**
  * Created by shyam on 15/02/2017.
  */
-public final class VecDB {
+public final class VecDB implements Closeable {
     private static VecDB instance;
-    private static final File dbLocation = new File(OS.getAppDataDirectory() + "vectors");
+    private static final String dbLocation = OS.getAppDataDirectory() + "vectors.db";
+    private static final String mapName = "vectors";
 
     private Cache<String, Vector> cache;
-
-    // todo consider caching options
+    private DB database;
+    private BTreeMap<String, double[]> map;
 
     private VecDB() {
-        createBlankDBIfNeeded();
+        open();
         cache = CacheBuilder.newBuilder()
                 .maximumSize(2000)
                 .build();
     }
 
-    private void createBlankDBIfNeeded() {
-        // following setup code given on repo
-        Options options = new Options();
-        options.createIfMissing(true);
-        DB db = null;
-
-        try {
-            // open and shut to create db and check that everything is working as expected
-            db = JniDBFactory.factory.open(dbLocation, options);
-        } catch (IOException e) {
-            throw new Error("Couldn't get initial access to the db", e);
-        } finally {
-            try {
-                if (db != null)
-                    db.close();
-            } catch (IOException e) {
-                throw new Error("Couldn't close the db", e);
-            }
+    public void open() {
+        if (database != null && !database.isClosed()) {
+            return;
         }
+        File f = new File(dbLocation);
+        database = DBMaker
+                .fileDB(f)
+                .fileMmapEnableIfSupported()
+                .transactionEnable()
+                .closeOnJvmShutdown()
+                .make();
+
+        map = database.treeMap(mapName)
+              .keySerializer(Serializer.STRING)
+              .valueSerializer(Serializer.DOUBLE_ARRAY)
+              .createOrOpen();
     }
 
-    public VecDB getInstance() {
+    public static VecDB getInstance() {
         if (instance == null) {
             instance = new VecDB();
         }
         return instance;
     }
 
-    public void eraseDB() {
-        try {
-            JniDBFactory.factory.destroy(dbLocation, new Options());
-            createBlankDBIfNeeded();
+    @Override
+    public void close() {
+        database.commit();
+        map.close();
+        database.close();
+    }
 
+    public boolean isClosed() {
+        return database.isClosed();
+    }
+
+    private static void PopulateFromTextFile() {
+        // todo testing
+        VecDB db = VecDB.getInstance();
+        File vectorFile = new File("src/main/resources/word2vec/wordvectors.txt");
+        try (BufferedReader br = new BufferedReader(new FileReader(vectorFile))) {
+            String line = br.readLine();
+            String[] header = line.split(" ");
+            int nOfWords = Integer.getInteger(header[0]);
+            int nDimensions = Integer.getInteger(header[1]);
+
+            line = br.readLine();
+            for (int i = 0; i < nOfWords; ++i) {
+                if (line == null) {
+                    // malformed text file
+                    throw new Error("Text file loading vectors is malformed - less words than header specifies");
+                }
+                String[] tokens = line.split(" ");
+                String word = tokens[0];
+                double[] components = new double[nDimensions];
+                for (int j = 0; j < nDimensions; ++j) {
+                    components[j] = Double.valueOf(tokens[j + 1]);
+                }
+                db.put(word, new Vector(components));
+
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new Error("Malformed text file - dimensions incorrect", e);
         } catch (IOException e) {
-            throw new Error("Couldn't destroy db", e);
+            throw new Error(e);
         }
+    }
+
+    public void wipeDB() {
+        map.clear();
     }
 
     public void put(String w, Vector v) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            cache.invalidate(w);
-            db.put(w.getBytes(), v.getBytes());
-        } catch (IOException e) {
-            throw new Error("Unable to open db for put", e);
-        }
+        cache.invalidate(w);
+        map.put(w, v.toDoubleArray());
     }
 
     public Vector get(String w) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            try {
-                return cache.get(w, new Callable<Vector>() {
-                    @Override
-                    public Vector call() throws Exception {
-                        return Vector.fromBytes(db.get(w.getBytes()));
-                    }
-                });
-            } catch (ExecutionException e) {
-                throw new Error(e);
-            }
-        } catch (IOException e) {
-            throw new Error("Unable to open db for put", e);
+        try {
+            return cache.get(w, new Callable<Vector>() {
+                @Override
+                public Vector call() throws Exception {
+                    return new Vector(map.get(w));
+                }
+            });
+        } catch (ExecutionException e) {
+            throw new Error(e);
         }
     }
 
     public void delete(String w) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            cache.invalidate(w);
-            db.delete(w.getBytes());
-        } catch (IOException e) {
-            throw new Error("Unable to open db for delete", e);
-        }
+        cache.invalidate(w);
+        map.remove(w);
     }
 
-    public void writeBatch(List<WordVectorPair> pairs) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            WriteBatch wb = db.createWriteBatch();
-            for (WordVectorPair p : pairs) {
-                cache.invalidate(p.word);
-                wb.put(p.word.getBytes(), p.v.getBytes());
-            }
-            db.write(wb);
-        } catch (IOException e) {
-            throw new Error("Unable to open db for batch put", e);
-        }
-    }
-
-    public void deleteBatch(List<String> words) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            WriteBatch wb = db.createWriteBatch();
-            cache.invalidateAll(words);
-            for (String w : words) {
-                wb.delete(w.getBytes());
-            }
-            db.write(wb);
-        } catch (IOException e) {
-            throw new Error("Unable to open db for batch delete", e);
-        }
-    }
-
-    public List<WordVectorPair> getBatch(List<String> words) {
-        try (DB db = JniDBFactory.factory.open(dbLocation, new Options())) {
-            List<WordVectorPair> l = new LinkedList<>();
-            for (String w : words) {
-                try {
-                    Vector v = cache.get(w, new Callable<Vector>() {
-                        @Override
-                        public Vector call() throws Exception {
-                            return Vector.fromBytes(db.get(w.getBytes()));
-                        }
-                    });
-                    l.add(new WordVectorPair(w, v));
-
-                } catch (ExecutionException e) {
-                    throw new Error(e);
-                }
-            }
-
-            return l;
-        } catch (IOException e) {
-            throw new Error("Unable to open db for delete", e);
-        }
-    }
 }

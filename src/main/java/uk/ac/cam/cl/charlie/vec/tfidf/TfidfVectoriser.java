@@ -12,6 +12,7 @@ import javax.mail.MessagingException;
 
 import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
+import org.deeplearning4j.models.word2vec.VocabWord;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +183,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
                 File original = new File(word2vecPath);
                 original.delete();
                 writeTo.renameTo(original);
-
             } catch (IOException e) {
                 modelLoaded = false;
                 throw new Error(e);
