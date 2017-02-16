@@ -39,6 +39,9 @@ public class Configuration {
      *         the configuration entry is non-existent
      */
     public String get(String key) {
+	if (key == null) {
+	    throw new IllegalArgumentException("Key must not be null");
+	}
 	return map.get(key);
     }
 
@@ -56,6 +59,13 @@ public class Configuration {
      *            {@code null}
      */
     public void put(String key, String value) {
+	if (key == null) {
+	    throw new IllegalArgumentException("Key must not be null");
+	}
+	if (value == null) {
+	    throw new IllegalArgumentException(
+		    "Value must not be null. To delete a configuration entry, use delete() instead");
+	}
 	map.put(key, value);
     }
 
@@ -68,6 +78,9 @@ public class Configuration {
      *            the key whose associated configuration entry will be removed
      */
     public void delete(String key) {
+	if (key == null) {
+	    throw new IllegalArgumentException("Key must not be null");
+	}
 	map.remove(key);
     }
 
