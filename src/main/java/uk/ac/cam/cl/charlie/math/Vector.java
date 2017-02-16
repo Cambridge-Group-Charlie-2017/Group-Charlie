@@ -83,18 +83,4 @@ public class Vector {
 	double[] comp = new double[dim];
 	return new Vector(comp, false);
     }
-
-    // for k-v store
-    public byte[] getBytes() {
-        ByteBuffer bf = ByteBuffer.allocate(this.size() * 8);
-        for (int i = 0; i < this.size(); ++i) {
-            bf.putDouble(components[i]);
-        }
-        return bf.array();
-	}
-
-	public static Vector fromBytes(byte[] bytes) {
-        DoubleBuffer df = ByteBuffer.wrap(bytes).asDoubleBuffer();
-        return new Vector(df.array());
-    }
 }

@@ -5,12 +5,18 @@ import com.google.common.cache.CacheBuilder;
 import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.embeddings.inmemory.InMemoryLookupTable;
 import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.nd4j.linalg.cpu.nativecpu.NDArray;
+import org.nd4j.linalg.factory.NDArrayFactory;
 import org.nd4j.linalg.factory.Nd4j;
 import uk.ac.cam.cl.charlie.db.Database;
+import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializer;
+import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -19,28 +25,37 @@ import java.util.concurrent.ExecutionException;
 /**
  * Created by shyam on 15/02/2017.
  */
-public final class VecDB implements Closeable {
+public final class VecDB {
     // todo: possibility of batch insertion into the db (documentation is a tad awful on this)
     private static VecDB instance;
 
     private Cache<String, Vector> cache;
+
     private Database db;
+    PersistentMap<String, Vector> map;
+    String vectorDBName = "vectors";
 
-    private class StringSerializer extends Serializer<String> {
-
+    private class VectorSerialiser extends Serializer<Vector> {
         @Override
         public boolean typecheck(Object obj) {
-            return false;
+            return obj instanceof Vector;
         }
 
         @Override
-        public byte[] serialize(String object) {
-            return object.getBytes();
+        public byte[] serialize(Vector object) {
+            // there might be a quicker way to do this...
+            ByteBuffer buf = ByteBuffer.allocate(object.size() * 8);
+            double[] components = object.toDoubleArray();
+
+            for (int i = 0; i < object.size(); ++i) {
+                buf.putDouble(components[i]);
+            }
+            return buf.array();
         }
 
         @Override
-        public String deserialize(byte[] bytes) {
-            return new String(bytes);
+        public Vector deserialize(byte[] bytes) {
+            return new Vector(ByteBuffer.wrap(bytes).asDoubleBuffer().array());
         }
     }
 
@@ -48,6 +63,8 @@ public final class VecDB implements Closeable {
         cache = CacheBuilder.newBuilder()
                 .maximumSize(2000)
                 .build();
+        db = Database.getInstance();
+        map = db.getMap(vectorDBName, Serializers.STRING, new VectorSerialiser());
     }
 
     public static VecDB getInstance() {
@@ -57,18 +74,7 @@ public final class VecDB implements Closeable {
         return instance;
     }
 
-    @Override
-    public void close() {
-        database.commit();
-        map.close();
-        database.close();
-    }
-
-    public boolean isClosed() {
-        return database.isClosed();
-    }
-
-    private static void PopulateFromTextFile() {
+    private static void populateFromTextFile() {
         // todo testing
         VecDB db = VecDB.getInstance();
         File vectorFile = new File("src/main/resources/word2vec/wordvectors.txt");
@@ -106,7 +112,7 @@ public final class VecDB implements Closeable {
 
     public void put(String w, Vector v) {
         cache.invalidate(w);
-        map.put(w, v.toDoubleArray());
+        map.put(w, v);
     }
 
     public Vector get(String w) {
@@ -114,7 +120,7 @@ public final class VecDB implements Closeable {
             return cache.get(w, new Callable<Vector>() {
                 @Override
                 public Vector call() throws Exception {
-                    return new Vector(map.get(w));
+                    return map.get(w);
                 }
             });
         } catch (ExecutionException e) {
@@ -130,11 +136,8 @@ public final class VecDB implements Closeable {
     public Word2Vec getModelForTraining() {
         WeightLookupTable table = new InMemoryLookupTable();
 
-        Iterator<Map.Entry<String, double[]>> entries = map.entryIterator();
-
-        while (entries.hasNext()) {
-            Map.Entry<String, double[]> entry = entries.next();
-            table.putVector(entry.getKey(), Nd4j.create(entry.getValue()));
+        for (Map.Entry<String, Vector> entry : map.entrySet()) {
+            table.putVector(entry.getKey(), Nd4j.create(entry.getValue().toDoubleArray()));
         }
 
         // if this doesn't work there is an alternative way of doing it with the Builder class
@@ -143,4 +146,7 @@ public final class VecDB implements Closeable {
         return w;
     }
 
+    public void createDBFromModel(Word2Vec w2v) {
+        // todo
+    }
 }
