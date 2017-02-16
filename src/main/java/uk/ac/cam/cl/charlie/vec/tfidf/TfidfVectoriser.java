@@ -32,7 +32,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private boolean modelLoaded;
     private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
 
-    private BasicWordCounter globalCounter;
+    private CachedWordCounter globalCounter;
 
     // An empty string is filter when counting words, so it is safe to use here.
     private static String TOTAL_NUMBER_OF_DOCS = "";
@@ -88,7 +88,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     public Vector doc2vec(Document doc) {
 	train(doc);
-	// globalCounter.synchronize();
+	globalCounter.synchronize();
 	// todo add any other content to do with names or other meta data
 
 	return calculateDocVector(doc.getContent());
@@ -119,7 +119,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 		intermediateBatch.add(doc);
 	    }
 	    log.info("Model trained");
-	    // globalCounter.synchronize();
+	    globalCounter.synchronize();
 	    // Checks if sufficient emails are in the database
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();

@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import uk.ac.cam.cl.charlie.db.Database;
-
 /**
  * Test for class {@link PersistentWordCounter}
  *
@@ -16,15 +14,12 @@ public class PersistentWordCounterTest {
     private PersistentWordCounter counter;
 
     public PersistentWordCounterTest() {
-	wipe();
 	counter = PersistentWordCounter.getInstance();
+	wipe();
     }
 
     private void wipe() {
-	Database d = Database.getInstance();
-	if (d.tableExists("WORD_FREQUENCIES")) {
-	    d.executeUpdate("DROP TABLE WORD_FREQUENCIES");
-	}
+	// counter.map.clear();
     }
 
     @Test
