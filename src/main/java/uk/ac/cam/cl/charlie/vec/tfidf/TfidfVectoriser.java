@@ -35,7 +35,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private boolean modelLoaded;
     private String word2vecPath = "src/main/resources/word2vec/wordvectors.txt";
 
-    private BasicWordCounter globalCounter;
+    private CachedWordCounter globalCounter;
 
     // An empty string is filter when counting words, so it is safe to use here.
     private static String TOTAL_NUMBER_OF_DOCS = "";
@@ -90,10 +90,9 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     @Override
     public Vector doc2vec(Document doc) {
-        train(doc);
-        // globalCounter.synchronize();
-        // todo add any other content to do with names or other meta data
-
+	train(doc);
+	globalCounter.synchronize();
+	// todo add any other content to do with names or other meta data
         return calculateDocVector(doc.getContent());
     }
 
@@ -101,45 +100,45 @@ public class TfidfVectoriser implements VectorisingStrategy {
     // close().
     @Override
     public List<Vector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
-        if (emailBatch == null) {
-            return null;
-        }
-        log.info("Starting vectorizing batch of size {}", emailBatch.size());
-        try {
-            // this.load();
-            List<Vector> vectorBatch = new ArrayList<>();
-            List<Document> intermediateBatch = new ArrayList<>();
-            // not sure if msg.getFileName() is appropriate here. Feel free to
-            // change to msg.getSubject() or something.
-            // Also, for the actual Message objects we're going to use (if we
-            // don't use MimeMessage),
-            // there may be different method calls for getting the body content
-            // as a String.
-            for (Message msg : emailBatch) {
-                String body = Messages.getBodyText(msg);
-                Document doc = new Document(msg.getSubject(), body);
-                train(doc);
-                intermediateBatch.add(doc);
-            }
-            log.info("Model trained");
-            // globalCounter.synchronize();
-            // Checks if sufficient emails are in the database
-            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
-                throw new BatchSizeTooSmallException();
-            }
-            for (Document doc : intermediateBatch) {
-                vectorBatch.add(calculateDocVector(doc.getContent()));
-            }
-            log.info("Batch vectorized");
-            return vectorBatch;
-        } catch (MessagingException | IOException e) {
-            return null;
-        } catch (BatchSizeTooSmallException e) {
-            System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
-            return null;
-        } finally {
-            // this.close();
-        }
+	if (emailBatch == null) {
+	    return null;
+	}
+	log.info("Starting vectorizing batch of size {}", emailBatch.size());
+	try {
+	    // this.load();
+	    List<Vector> vectorBatch = new ArrayList<>();
+	    List<Document> intermediateBatch = new ArrayList<>();
+	    // not sure if msg.getFileName() is appropriate here. Feel free to
+	    // change to msg.getSubject() or something.
+	    // Also, for the actual Message objects we're going to use (if we
+	    // don't use MimeMessage),
+	    // there may be different method calls for getting the body content
+	    // as a String.
+	    for (Message msg : emailBatch) {
+		String body = Messages.getBodyText(msg);
+		Document doc = new Document(msg.getSubject(), body);
+		train(doc);
+		intermediateBatch.add(doc);
+	    }
+	    log.info("Model trained");
+	    globalCounter.synchronize();
+	    // Checks if sufficient emails are in the database
+	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
+		throw new BatchSizeTooSmallException();
+	    }
+	    for (Document doc : intermediateBatch) {
+		vectorBatch.add(calculateDocVector(doc.getContent()));
+	    }
+	    log.info("Batch vectorized");
+	    return vectorBatch;
+	} catch (MessagingException | IOException e) {
+	    return null;
+	} catch (BatchSizeTooSmallException e) {
+	    System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
+	    return null;
+	} finally {
+	    // this.close();
+	}
     }
 
     @Override
