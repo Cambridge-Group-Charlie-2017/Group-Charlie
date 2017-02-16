@@ -1,6 +1,7 @@
 package uk.ac.cam.cl.charlie.db;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,13 @@ public class PersistentMap<K, V> implements Map<K, V> {
 
     @Override
     public int size() {
-	throw new UnsupportedOperationException();
+	int size = 0;
+	DBIterator iter = db.iterator();
+	for (iter.seekToFirst(); iter.hasNext();) {
+	    iter.next();
+	    size++;
+	}
+	return size;
     }
 
     @Override
@@ -54,7 +61,19 @@ public class PersistentMap<K, V> implements Map<K, V> {
 
     @Override
     public boolean containsValue(Object value) {
-	throw new UnsupportedOperationException();
+	if (!valueSerializer.typecheck(value)) {
+	    return false;
+	}
+	@SuppressWarnings("unchecked")
+	byte[] valueBytes = valueSerializer.serialize((V) value);
+	DBIterator iter = db.iterator();
+	for (iter.seekToFirst(); iter.hasNext();) {
+	    Entry<byte[], byte[]> entry = iter.next();
+	    if (Arrays.equals(valueBytes, entry.getValue())) {
+		return true;
+	    }
+	}
+	return false;
     }
 
     @Override
@@ -100,12 +119,18 @@ public class PersistentMap<K, V> implements Map<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-	throw new UnsupportedOperationException();
+	for (Entry<? extends K, ? extends V> entry : m.entrySet()) {
+	    put(entry.getKey(), entry.getValue());
+	}
     }
 
     @Override
     public void clear() {
-	throw new UnsupportedOperationException();
+	DBIterator iter = db.iterator();
+	for (iter.seekToFirst(); iter.hasNext();) {
+	    Entry<byte[], byte[]> entry = iter.next();
+	    db.delete(entry.getKey());
+	}
     }
 
     @Override
