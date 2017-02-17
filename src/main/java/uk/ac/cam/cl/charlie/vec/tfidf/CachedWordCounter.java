@@ -1,54 +1,55 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
-import java.util.HashMap;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Speeding up counter access by caching in memory.
  *
  * @author Gary Guo
+ * @author Shyam
  */
 public class CachedWordCounter extends BasicWordCounter {
 
     protected WordCounter upstream;
-    protected HashMap<String, Integer> cache = new HashMap<>();
+    protected Cache<String, Integer> cache;
 
     public CachedWordCounter(WordCounter counter) {
         upstream = counter;
+        cache = CacheBuilder.newBuilder().maximumSize(2000).build();
     }
 
     @Override
     public int frequency(String word) {
-        Integer value = cache.get(word);
-        if (value == null) {
-            value = upstream.frequency(word);
-            cache.put(word, value);
+        try {
+            Integer value = cache.get(word, new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    return upstream.frequency(word);
+                }
+            });
+
+            return value;
+        } catch (ExecutionException e) {
+            throw new Error(e);
         }
-        return value + super.frequency(word);
     }
 
-    /**
-     * Flush any local changes to the upstream and clear the cache
-     */
-    public void synchronize() {
-        for (String w : super.words()) {
-            upstream.increment(w, super.frequency(w));
-        }
-        this.map.clear();
-        this.cache.clear();
+    @Override
+    public void increment (String word, int n) {
+        int currentVal = frequency(word);
+        cache.put(word, currentVal + n);
+        upstream.increment(word, n);
     }
+
 
     @Override
     public Set<String> words() {
         throw new UnsupportedOperationException("Querying all words from a persisted word counter is too expensive");
-    }
-
-    @Override
-    public void finalize() {
-        if (this.map.size() != 0) {
-            System.err.println("CachedWordCounter.synchronize should be called manually for synchronization");
-            synchronize();
-        }
     }
 
 }

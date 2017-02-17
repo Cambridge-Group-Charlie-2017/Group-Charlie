@@ -5,8 +5,6 @@ import com.google.common.cache.CacheBuilder;
 import org.deeplearning4j.models.embeddings.WeightLookupTable;
 import org.deeplearning4j.models.embeddings.inmemory.InMemoryLookupTable;
 import org.deeplearning4j.models.word2vec.Word2Vec;
-import org.nd4j.linalg.cpu.nativecpu.NDArray;
-import org.nd4j.linalg.factory.NDArrayFactory;
 import org.nd4j.linalg.factory.Nd4j;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
@@ -16,8 +14,6 @@ import uk.ac.cam.cl.charlie.math.Vector;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -25,9 +21,9 @@ import java.util.concurrent.ExecutionException;
 /**
  * Created by shyam on 15/02/2017.
  */
-public final class VecDB {
+public final class WordVecDB {
     // todo: possibility of batch insertion into the db (documentation is a tad awful on this)
-    private static VecDB instance;
+    private static WordVecDB instance;
 
     private Cache<String, Vector> cache;
 
@@ -59,7 +55,7 @@ public final class VecDB {
         }
     }
 
-    private VecDB() {
+    private WordVecDB() {
         cache = CacheBuilder.newBuilder()
                 .maximumSize(2000)
                 .build();
@@ -67,16 +63,16 @@ public final class VecDB {
         map = db.getMap(vectorDBName, Serializers.STRING, new VectorSerialiser());
     }
 
-    public static VecDB getInstance() {
+    public static WordVecDB getInstance() {
         if (instance == null) {
-            instance = new VecDB();
+            instance = new WordVecDB();
         }
         return instance;
     }
 
     private static void populateFromTextFile() {
         // todo testing
-        VecDB db = VecDB.getInstance();
+        WordVecDB db = WordVecDB.getInstance();
         File vectorFile = new File("src/main/resources/word2vec/wordvectors.txt");
         try (BufferedReader br = new BufferedReader(new FileReader(vectorFile))) {
             String line = br.readLine();
@@ -111,7 +107,7 @@ public final class VecDB {
     }
 
     public void put(String w, Vector v) {
-        cache.invalidate(w);
+        cache.put(w, v);
         map.put(w, v);
     }
 
