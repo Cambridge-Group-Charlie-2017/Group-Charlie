@@ -60,8 +60,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
     public Optional<Vector> word2vec(String word) {
 	// using optional here since a word not being in the vocab is hardly an
 	// "exceptional" case
-	// ^ we cannot use Optional with double[] as Optional uses generics
-	// which require a class.
 	if (model.hasWord(word)) {
 	    return Optional.of(new Vector(model.getWordVector(word)));
 	} else {
@@ -75,14 +73,43 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	}
     }
 
-    private void train(Document doc) {
-	BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
+	// This method should only be called on subject header
+	// It is does not increment the number of documents as it is part of the
+	// email message.
+	private void train(String emailsubject) {
+		BasicWordCounter counter = BasicWordCounter.count(emailsubject);
 
-	for (String w : docCounter.words()) {
-	    globalCounter.increment(w);
+		for (String w : counter.words()) {
+			globalCounter.increment(w);
+		}
 	}
 
-	globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+    private void train(Document doc) {
+		BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
+
+		for (String w : docCounter.words()) {
+			globalCounter.increment(w);
+		}
+
+		globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+    }
+
+	private void train(Message msg) throws MessagingException, IOException {
+		BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
+
+		for (String w : counter.words()) {
+			globalCounter.increment(w);
+		}
+
+		globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+    }
+	
+	//To be used for metadata such as subject of a document or email.
+	public Vector sent2vec(String subject) {
+	train(subject);
+	globalCounter.synchronize();
+
+	return calculateDocVector(subject);
     }
 
     @Override
@@ -105,7 +132,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	try {
 	    // this.load();
 	    List<Vector> vectorBatch = new ArrayList<>();
-	    List<Document> intermediateBatch = new ArrayList<>();
 	    // not sure if msg.getFileName() is appropriate here. Feel free to
 	    // change to msg.getSubject() or something.
 	    // Also, for the actual Message objects we're going to use (if we
@@ -114,9 +140,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    // as a String.
 	    for (Message msg : emailBatch) {
 		String body = Messages.getBodyText(msg);
-		Document doc = new Document(msg.getSubject(), body);
-		train(doc);
-		intermediateBatch.add(doc);
+		train(msg);
 	    }
 	    log.info("Model trained");
 	    globalCounter.synchronize();
@@ -124,8 +148,16 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();
 	    }
-	    for (Document doc : intermediateBatch) {
-		vectorBatch.add(calculateDocVector(doc.getContent()));
+		int count = 0;
+	    for (Message msg : emailBatch) {
+			++count;
+			// Adding the Subject to the feature vector passed to the clusterer
+			// Done by concatening the Subject vector with the textbody vector
+			// An alternative solution would be to take the weighted average
+			// To decide which method is best, testing is required
+			Vector head = sent2vec(msg.getSubject());
+			Vector tail = calculateDocVector(Messages.getBodyText(msg));
+			vectorBatch.add(Vector.concat(head,tail));
 	    }
 	    log.info("Batch vectorized");
 	    return vectorBatch;
@@ -155,8 +187,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
 	    if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
 		throw new BatchSizeTooSmallException();
 	    }
-
-	    Vector result = doc2vec(new Document(msg.getSubject(), body));
+		// Adding the Subject to the feature vector passed to the clusterer
+		// Done by concatening the Subject vector with the textbody vector
+		// An alternative solution would be to take the weighted average
+		// To decide which method is best, testing is required
+	    Vector tail = calculateDocVector(body);
+		Vector head = sent2vec(msg.getSubject());
+		Vector result  = Vector.concat(head, tail);
 	    vectorMap.put(msg, result);
 	    return result;
 	} catch (MessagingException | IOException e) {
