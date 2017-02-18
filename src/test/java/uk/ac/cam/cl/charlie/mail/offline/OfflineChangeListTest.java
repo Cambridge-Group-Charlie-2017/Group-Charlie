@@ -65,7 +65,7 @@ public class OfflineChangeListTest {
 
         imapConnection.close();
 
-        mailRepresentation.addOfflineChange(new MessageMove(inbox, test1, message));
+        OfflineChangeList.getInstance().addChange(new MessageMove(inbox, test1, message));
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
         inbox.sync();
@@ -83,7 +83,7 @@ public class OfflineChangeListTest {
         LocalMessage message = inbox.getMessages().get(0);
 
         imapConnection.close();
-        mailRepresentation.addOfflineChange(new MessageDelete(inbox, message));
+        OfflineChangeList.getInstance().addChange(new MessageDelete(inbox, message));
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
         assertEquals(0, inbox.getMessages().size());
@@ -95,7 +95,7 @@ public class OfflineChangeListTest {
         LocalIMAPFolder test2 = mailRepresentation.getFolder("Test 2");
 
         imapConnection.close();
-        mailRepresentation.addOfflineChange(new FolderMove(test2, test1));
+        OfflineChangeList.getInstance().addChange(new FolderMove(test2.getFullName(), test1.getFullName()));
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
 
@@ -109,7 +109,7 @@ public class OfflineChangeListTest {
         imapConnection.close();
         LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
 
-        mailRepresentation.addOfflineChange(new FolderCreation(test1, "Test 3"));
+        OfflineChangeList.getInstance().addChange(new FolderCreation(test1, "Test 3"));
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
 
@@ -124,8 +124,8 @@ public class OfflineChangeListTest {
         LocalIMAPFolder test1 = mailRepresentation.getFolder("Test 1");
         LocalIMAPFolder test2 = mailRepresentation.getFolder("Test 2");
 
-        mailRepresentation.addOfflineChange(new FolderDeletion(test1));
-        mailRepresentation.addOfflineChange(new FolderDeletion(test2));
+        OfflineChangeList.getInstance().addChange(new FolderDeletion(test1));
+        OfflineChangeList.getInstance().addChange(new FolderDeletion(test2));
         imapConnection.connect();
         mailRepresentation.setConnection(imapConnection);
 

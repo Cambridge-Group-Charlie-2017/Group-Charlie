@@ -30,6 +30,7 @@ public class LocalMessage {
     private int messageNumber;
     private Message message;
     private boolean synchedWithServer;
+    private boolean isLocalOnly;
 
     public LocalMessage(LocalIMAPFolder folder, Message m) throws MessagingException, IOException, IMAPConnectionClosedException {
         localFolder = folder;
@@ -44,7 +45,10 @@ public class LocalMessage {
         messageNumber = m.getMessageNumber();
 
         synchedWithServer = false;
+        isLocalOnly = false;
     }
+
+    public boolean isLocalOnly() { return isLocalOnly; }
 
     public boolean hasConnection() {
         return message != null;

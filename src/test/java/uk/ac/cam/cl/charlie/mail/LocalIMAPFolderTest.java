@@ -4,6 +4,7 @@ import com.icegreen.greenmail.store.MailFolder;
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import com.sun.mail.imap.IMAPFolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +12,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.mail.*;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Arrays;
@@ -180,6 +180,40 @@ public class LocalIMAPFolderTest {
         assertTrue(imapConnection.getFolder("Inbox").exists());
         assertTrue(imapConnection.getFolder("Inbox.Test 1").exists());
         assertTrue(imapConnection.getFolder("Inbox.Test 1.Test 2").exists());
+
+    }
+
+    @Test
+    public void testMovingMessages() throws Exception {
+        createDefaultMailFormat(user, 0, 5);
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        LocalIMAPFolder test1 = mailRepresentation.createFolder("Test 1");
+        LocalIMAPFolder test2 = mailRepresentation.createFolder("Test 2");
+        LocalMessage message1 = inbox.getMessages().get(0);
+        LocalMessage message2 = inbox.getMessages().get(1);
+
+        inbox.moveMessages(test1, message1);
+
+        assertEquals(4, inbox.getMessages().size());
+        assertEquals(1, test1.getMessages().size());
+        assertEquals(0, test2.getMessages().size());
+        assertEquals(4, inbox.getBackingFolder().getMessageCount());
+        assertEquals(1, test1.getBackingFolder().getMessageCount());
+        assertEquals(0, test2.getBackingFolder().getMessageCount());
+        
+        imapConnection.close();
+        imapConnection.connect();
+        mailRepresentation.setConnection(imapConnection);
+
+        inbox.moveMessages(test2, message2);
+
+        assertEquals(3, inbox.getMessages().size());
+        assertEquals(1, test1.getMessages().size());
+        assertEquals(1, test2.getMessages().size());
+        assertEquals(3, inbox.getBackingFolder().getMessageCount());
+        assertEquals(1, test1.getBackingFolder().getMessageCount());
+        assertEquals(1, test2.getBackingFolder().getMessageCount());
+
 
     }
 

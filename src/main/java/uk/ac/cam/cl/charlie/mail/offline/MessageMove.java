@@ -16,16 +16,16 @@ public class MessageMove implements OfflineChange {
 
     private final LocalIMAPFolder sourceFolder;
     private final LocalIMAPFolder destinationFolder;
-    private final LocalMessage messageToMove;
+    private final LocalMessage[] messagesToMove;
 
-    public MessageMove(LocalIMAPFolder sourceFolder, LocalIMAPFolder destinationFolder, LocalMessage m) {
+    public MessageMove(LocalIMAPFolder sourceFolder, LocalIMAPFolder destinationFolder, LocalMessage... localMessages) {
         this.destinationFolder = destinationFolder;
         this.sourceFolder = sourceFolder;
-        this.messageToMove = m;
+        this.messagesToMove = localMessages;
     }
 
     @Override
     public void handleChange(LocalMailRepresentation mailRepresentation) throws MessagingException, IMAPConnectionClosedException, IOException {
-        sourceFolder.moveMessages(destinationFolder, messageToMove);
+        sourceFolder.moveMessages(destinationFolder, messagesToMove);
     }
 }

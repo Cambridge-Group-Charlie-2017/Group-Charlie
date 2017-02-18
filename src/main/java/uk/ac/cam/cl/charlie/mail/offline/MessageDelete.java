@@ -15,11 +15,11 @@ import java.io.IOException;
 public class MessageDelete implements OfflineChange {
 
     private final LocalIMAPFolder parentFolder;
-    private final LocalMessage message;
+    private final LocalMessage[] message;
 
-    public MessageDelete(LocalIMAPFolder folder, LocalMessage m) {
+    public MessageDelete(LocalIMAPFolder folder, LocalMessage... localMessages) {
         parentFolder = folder;
-        message = m;
+        message = localMessages;
     }
 
     @Override

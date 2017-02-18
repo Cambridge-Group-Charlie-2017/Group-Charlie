@@ -24,8 +24,6 @@ public class IMAPConnection extends Store {
     private static final Logger log = LoggerFactory.getLogger(IMAPConnection.class);
 
     private final String host;
-    private final String port;
-    private final String provider;
     private final PasswordAuthentication authenticator;
 
     private final Store sessionStore;
@@ -39,8 +37,6 @@ public class IMAPConnection extends Store {
         );
         this.host = host;
         this.authenticator = new PasswordAuthentication(username, password);
-        this.port = port;
-        this.provider = provider;
 
         sessionStore = session.getStore(provider);
 
