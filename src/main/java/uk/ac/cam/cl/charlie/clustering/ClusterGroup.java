@@ -17,22 +17,22 @@ import java.util.Iterator;
  */
 
 //TODO: adapt to use ClusterableObjectGroup?
-public class GenericClusterGroup implements Iterable<GenericCluster>{
-    protected ArrayList<GenericCluster> clusters;
+public class ClusterGroup implements Iterable<Cluster>{
+    protected ArrayList<Cluster> clusters;
     protected int dimensionality;
 
     public int getDimensionality() {return dimensionality;}
 
-    public GenericClusterGroup() {
-        clusters = new ArrayList<GenericCluster>();
+    public ClusterGroup() {
+        clusters = new ArrayList<Cluster>();
         dimensionality = 0;
     }
 
     public int size() {return clusters.size();}
 
-    public GenericCluster get(int i) {return clusters.get(i);}
+    public Cluster get(int i) {return clusters.get(i);}
 
-    public void add(GenericCluster c) throws IncompatibleDimensionalityException{
+    public void add(Cluster c) throws IncompatibleDimensionalityException{
         if (c.getDimensionality() != dimensionality) {
             if (dimensionality == 0)
                 dimensionality = c.getDimensionality();
@@ -71,7 +71,7 @@ public class GenericClusterGroup implements Iterable<GenericCluster>{
         return bestCluster;
     }
 
-    public Iterator<GenericCluster> iterator() {
+    public Iterator<Cluster> iterator() {
         return clusters.iterator();
     }
 }

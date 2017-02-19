@@ -25,7 +25,7 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
     @Override
     public Vector getVec() {
         try {
-            return GenericClusterer.getVectoriser().word2vec(word).get();
+            return Clusterer.getVectoriser().word2vec(word).get();
         } catch (NoSuchElementException e) {
             return null;
         }

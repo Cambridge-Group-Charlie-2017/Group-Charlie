@@ -18,7 +18,7 @@ public class ClusterableMessage implements ClusterableObject {
     @Override
     public Vector getVec() {
 	try {
-	    return GenericClusterer.getVectoriser().doc2vec(message);
+	    return Clusterer.getVectoriser().doc2vec(message);
 	} catch (BatchSizeTooSmallException e) {
 	    return null;
 	}

@@ -20,78 +20,89 @@ import weka.filters.unsupervised.attribute.PrincipalComponents;
  * Probably going to be the final clusterer. Or could try density based
  * clustering.
  */
-public class GenericEMClusterer extends GenericClusterer {
+public class EMClusterer extends Clusterer {
     private final String DEFAULT_ARFF = "vectors.arff";
 
     // Note: currently set up to train on every vector. If this is uses too much
     // memory, could train on a subset.
     @Override
-    public GenericClusterGroup run(ClusterableObjectGroup objects) throws Exception {
+    public ClusterGroup run(ClusterableObjectGroup objects) throws Exception {
 
-	List<Vector> vecs = objects.getVecs();
+		List<Vector> vecs = objects.getVecs();
 
-	// convert vecs into arff format for the clusterer.
-	// is there a more efficient way of converting to (dense) Instances?
-	// add(Instance)
-	createArff(vecs, DEFAULT_ARFF);
+		int dimension = vecs.get(0).size();
 
-	EM cl;
-	PrincipalComponents pca;
-	try {
-	    // Options: max 5 iterations. 5 clusters.
+		// Create attributes
+		ArrayList<Attribute> attributes = new ArrayList<>();
+		for (int i = 0; i < dimension; i++) {
+			attributes.add(new Attribute("e" + i));
+		}
 
-	    cl = new EM();
-	    Instances data = ConverterUtils.DataSource.read(DEFAULT_ARFF);
+		Instances data = new Instances("vectors", attributes, vecs.size());
 
-	    // dimensionality reduction here.
-	    // First use PCA, then use random projection to get to the desired
-	    // dimensionality.
-	    // possible option: -R <num> for proportion of variance to maintain.
-	    // Default 0.95, could go lower.
-	    pca = new PrincipalComponents();
-	    pca.setInputFormat(data);
-	    pca.setMaximumAttributes(20);
+		for (Vector vec : vecs) {
+			Instance instance = new DenseInstance(dimension);
+			for (int i = 0; i < dimension; i++) {
+				instance.setValue(attributes.get(i), vec.get(i));
+			}
+			data.add(instance);
+		}
 
-	    // apply filter
-	    data = Filter.useFilter(data, pca);
-	    // If efficiency is a problem, could use random projection instead.
+		EM cl;
+		PrincipalComponents pca;
+		try {
+			// Options: max 5 iterations. 5 clusters.
+			cl = new EM();
 
-	    String[] options = { "-I", "5" };
-	    cl.setOptions(options);
+			// dimensionality reduction here.
+			// First use PCA, then use random projection to get to the desired
+			// dimensionality.
+			// possible option: -R <num> for proportion of variance to maintain.
+			// Default 0.95, could go lower.
+			pca = new PrincipalComponents();
+			pca.setInputFormat(data);
+			pca.setMaximumAttributes(20);
 
-	    // TODO: could initially not set a cluster number, rebuild with n=5
-	    // if output has a useless number of clusters.
-	    cl.buildClusterer(data);
-	    ClusterEvaluation eval = new ClusterEvaluation();
-	    eval.setClusterer(cl);
-	    eval.evaluateClusterer(new Instances(data));
+			// apply filter
+			data = Filter.useFilter(data, pca);
+			// If efficiency is a problem, could use random projection instead.
 
-	    // Create message groupings for each cluster.
-	    ArrayList<ArrayList<ClusterableObject>> objGroups = new ArrayList<>();
-	    for (int i = 0; i < cl.numberOfClusters(); i++)
-		objGroups.add(new ArrayList<ClusterableObject>());
+			String[] options = { "-I", "5" };
+			cl.setOptions(options);
 
-	    // For each message, get the corresponding Instance object, and find
-	    // what cluster it belongs to.
-	    // Then add it to the corresponding message grouping.
-	    for (int i = 0; i < objects.size(); i++) {
-		Instance curr = data.get(i);
-		int clusterIndex = cl.clusterInstance(curr);
-		objGroups.get(clusterIndex).add(objects.get(i));
-	    }
+			// TODO: could initially not set a cluster number, rebuild with n=5
+			// if output has a useless number of clusters.
+			cl.buildClusterer(data);
+			ClusterEvaluation eval = new ClusterEvaluation();
+			eval.setClusterer(cl);
+			eval.evaluateClusterer(new Instances(data));
 
-	    // Create new Cluster objects in a ClusterGroup to contain the
-	    // message groupings.
-	    GenericClusterGroup clusters = new GenericClusterGroup();
-	    for (int i = 0; i < cl.numberOfClusters(); i++)
-		clusters.add(new GenericEMCluster(objGroups.get(i)));
+			// Create message groupings for each cluster.
+			ArrayList<ArrayList<ClusterableObject>> objGroups = new ArrayList<>();
+			for (int i = 0; i < cl.numberOfClusters(); i++)
+			objGroups.add(new ArrayList<ClusterableObject>());
 
-	    return clusters;
+			// For each message, get the corresponding Instance object, and find
+			// what cluster it belongs to.
+			// Then add it to the corresponding message grouping.
+			for (int i = 0; i < objects.size(); i++) {
+			Instance curr = data.get(i);
+			int clusterIndex = cl.clusterInstance(curr);
+			objGroups.get(clusterIndex).add(objects.get(i));
+			}
 
-	} catch (Exception e) {
-	    e.printStackTrace();
-	    return null;
-	}
+			// Create new Cluster objects in a ClusterGroup to contain the
+			// message groupings.
+			ClusterGroup clusters = new ClusterGroup();
+			for (int i = 0; i < cl.numberOfClusters(); i++)
+			clusters.add(new EMCluster(objGroups.get(i)));
+
+			return clusters;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
     }
 
     void createArff(List<Vector> vecs, String fileName) throws IOException {
@@ -142,10 +153,12 @@ public class GenericEMClusterer extends GenericClusterer {
      * return vecs; }
      */
 
+    /*
+    DEMO FUNCTION. NOT NEEDED.
+
     public ArrayList<ArrayList<DemoMessageVector>> demoClusterer(ArrayList<ClusterableMessage> messages)
 	    throws Exception {
 
-	// Not yet implemented vectoriser so use DummyVectoriser for testing:
 	ClusterableMessageGroup objects = new ClusterableMessageGroup(messages);
 	List<Vector> vecs = objects.getVecs();
 
@@ -231,8 +244,8 @@ public class GenericEMClusterer extends GenericClusterer {
 	    // for (int j = 0; j < results.get(i).size(); j++) {
 	    // clusterableMessages.add((results.get(i).get(j).message));
 	    // }
-	    // GenericEMCluster genClust = new
-	    // GenericEMCluster(clusterableMessages);
+	    // EMCluster genClust = new
+	    // EMCluster(clusterableMessages);
 	    // ClusterNamer.name(genClust);
 	    // String name = genClust.getName();
 	    // for (DemoMessageVector dmv : results.get(i))
@@ -247,4 +260,5 @@ public class GenericEMClusterer extends GenericClusterer {
 	}
 
     }
+    */
 }

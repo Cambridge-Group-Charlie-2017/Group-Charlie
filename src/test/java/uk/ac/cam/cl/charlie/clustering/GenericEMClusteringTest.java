@@ -1,15 +1,11 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import org.junit.Test;
-import uk.ac.cam.cl.charlie.vec.tfidf.*;
 
 import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Properties;
 
 import static org.junit.Assert.*;
 
@@ -21,7 +17,7 @@ public class GenericEMClusteringTest {
 
     @Test
     public void mainTest() throws Exception {
-        GenericEMClusterer em = new GenericEMClusterer();
+        EMClusterer em = new EMClusterer();
 
         ArrayList<File> files = new ArrayList<File>();
         HashSet<Message> messages = new HashSet<Message>();
@@ -201,7 +197,7 @@ public class GenericEMClusteringTest {
 
         em.evalClusters(messageList);
 
-        GenericClusterGroup clusters = em.getClusters();
+        ClusterGroup clusters = em.getClusters();
         System.out.println("Number of clusters: " + clusters.size());
 
         // perform various tests on 'clusters'

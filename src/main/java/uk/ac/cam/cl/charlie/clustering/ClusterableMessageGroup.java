@@ -28,7 +28,7 @@ public class ClusterableMessageGroup extends ClusterableObjectGroup {
 	    messages.add(((ClusterableMessage) o).getMessage());
 
 	try {
-	    return GenericClusterer.getVectoriser().doc2vec(messages);
+	    return Clusterer.getVectoriser().doc2vec(messages);
 	} catch (BatchSizeTooSmallException e) {
 	    return null;
 	}

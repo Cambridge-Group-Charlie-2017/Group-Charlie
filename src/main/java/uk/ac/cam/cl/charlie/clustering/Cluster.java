@@ -8,7 +8,7 @@ import javax.mail.Message;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 
-public abstract class GenericCluster {
+public abstract class Cluster {
 
     protected String clusterName;
     protected ArrayList<ClusterableObject> contents;
@@ -57,7 +57,7 @@ public abstract class GenericCluster {
     public abstract boolean isHighMatchGood();
 
     // Extract relevant metadata from the initial contents.
-    protected GenericCluster(ArrayList<ClusterableObject> initialContents) {
+    protected Cluster(ArrayList<ClusterableObject> initialContents) {
 	contents = initialContents;
 	clusterSize = initialContents.size();
 	dimensionality = initialContents.get(0).getVec().size();
@@ -79,7 +79,7 @@ public abstract class GenericCluster {
 	    messages.add(((ClusterableMessage) obj).getMessage());
 	}
 	try {
-	    return GenericClusterer.getVectoriser().doc2vec(messages);
+	    return Clusterer.getVectoriser().doc2vec(messages);
 	} catch (BatchSizeTooSmallException e) {
 	    return null;
 	}

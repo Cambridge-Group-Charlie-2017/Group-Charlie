@@ -18,7 +18,7 @@ public class ClusterableWord implements ClusterableObject {
 
     @Override
     public Vector getVec() {
-	return GenericClusterer.getVectoriser().word2vec(word).get();
+	return Clusterer.getVectoriser().word2vec(word).get();
     }
 
     // TODO: write equals() function

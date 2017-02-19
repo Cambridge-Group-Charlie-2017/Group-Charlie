@@ -135,12 +135,10 @@ public class TfidfVectoriserTest {
 		"Dear negative one,\n\nGood morning, that's a nice tnettenba\n\nLooking forward to hearing from you."
 			+ "\n\nAll the best,\nWord.",
 		files));
-	messages.add(
-		MessageCreator
-			.createMessage("Peter.file@gmail.co.uk", "moss.m@reynholm.co.uk", "FIRE",
-				"Hello Peter,\n\nI'm sorry for the confusion that arose over your name, and for the offence I caused."
-					+ "\n\nI hope you can forgive me." + "\n\nAll the best,\nMaurice Moss.",
-				files));
+	messages.add(MessageCreator.createMessage("Peter.file@gmail.co.uk", "moss.m@reynholm.co.uk", "FIRE",
+		"Hello Peter,\n\nI'm sorry for the confusion that arose over your name, and for the offence I caused."
+			+ "\n\nI hope you can forgive me." + "\n\nAll the best,\nMaurice Moss.",
+		files));
 	messages.add(MessageCreator.createMessage("fire@01189998819991197253.co.uk", "moss.m@reynholm.co.uk", "FIRE",
 		"Dear sir/madam,\n\nFIRE! FIRE! HELP ME! 123 Carenden Road.\n\nLooking forward to hearing from you."
 			+ "\n\nAll the best,\nMaurice Moss.",

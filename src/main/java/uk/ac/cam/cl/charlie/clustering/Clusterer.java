@@ -9,19 +9,20 @@ import java.util.ArrayList;
 /**
  * Created by Ben on 01/02/2017.
  */
-public abstract class GenericClusterer {
+public abstract class Clusterer {
 
-    private GenericClusterGroup clusters;
+    private ClusterGroup clusters;
     //private Mailbox mailbox;
 
     private static VectorisingStrategy vectoriser = TfidfVectoriser.getVectoriser();
     public static VectorisingStrategy getVectoriser() {return vectoriser;}
 
-    public GenericClusterGroup getClusters() {return clusters;}
+    //alternatively, could convert to another form before returning.
+    public ClusterGroup getClusters() {return clusters;}
 
     //for inserting a list of messages into their appropriate clusters, and updating the server.
     public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
-        GenericClusterGroup clusters = getClusters();
+        ClusterGroup clusters = getClusters();
 
         //For classification, find clustering with highest probability for each email using matchStrength().
         //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
@@ -47,7 +48,7 @@ public abstract class GenericClusterer {
     }
 
     //Produces clusters of messages. evalClusters() will actually update the IMAP server.
-    public abstract GenericClusterGroup run(ClusterableObjectGroup objects) throws Exception;
+    public abstract ClusterGroup run(ClusterableObjectGroup objects) throws Exception;
 
 
     //Should probably convert to run on wrapper types.
@@ -76,7 +77,7 @@ public abstract class GenericClusterer {
 
         //TODO: uncomment naming function when actual emails are used.
         //Could possibly move this into the constructor of Cluster.
-        for (GenericCluster c : clusters)
+        for (Cluster c : clusters)
            //ClusterNamer.name(c);
 
         //TODO: update server with new clusters.

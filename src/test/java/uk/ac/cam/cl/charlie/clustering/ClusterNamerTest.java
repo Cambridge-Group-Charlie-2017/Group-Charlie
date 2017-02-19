@@ -2,7 +2,6 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import org.junit.Test;
 
-import javax.mail.Message;
 import java.io.File;
 import java.util.ArrayList;
 
@@ -17,9 +16,8 @@ public class ClusterNamerTest {
         for (int i = 0; i < 250; i++)
             messages.add(new ClusterableMessage(MessageCreator.createMessage(
                "blabla@gmail.com","Bob@companyname.com","Project X", "A",files)));
-        GenericDummyVectoriser.train(messages);
 
-        GenericEMCluster c = new GenericEMCluster(messages);ClusterNamer.senderNaming(c);
+        EMCluster c = new EMCluster(messages);ClusterNamer.senderNaming(c);
         assert(c.getName().equals("companyname"));
     }
 
@@ -30,9 +28,7 @@ public class ClusterNamerTest {
             messages.add(new ClusterableMessage(MessageCreator.createMessage(
                "blabla@gmail.com","Bob@"+i+"-companyname.com","Project X", "",files)));
 
-        GenericDummyVectoriser.train(messages);
-
-        GenericEMCluster c = new GenericEMCluster(messages);
+        EMCluster c = new EMCluster(messages);
 
         try {
             ClusterNamer.senderNaming(c);
@@ -59,9 +55,7 @@ public class ClusterNamerTest {
             messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com", "Bob@j-companyname.com", "Project X", "A", files)));
         }
 
-        GenericDummyVectoriser.train(messages);
-
-        GenericEMCluster c = new GenericEMCluster(messages);
+        EMCluster c = new EMCluster(messages);
 
         ClusterNamer.subjectNaming(c);
         System.out.println(c.getName());
@@ -83,9 +77,8 @@ public class ClusterNamerTest {
             messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com", "Bob@i-companyname.com", "Project X", "A", files)));
             messages.add(new ClusterableMessage(MessageCreator.createMessage("blabla@gmail.com", "Bob@j-companyname.com", "Project X", "A", files)));
         }
-        GenericDummyVectoriser.train(messages);
 
-        GenericEMCluster c = new GenericEMCluster(messages);
+        EMCluster c = new EMCluster(messages);
 
         ClusterNamer.name(c);
         System.out.println(c.getName());

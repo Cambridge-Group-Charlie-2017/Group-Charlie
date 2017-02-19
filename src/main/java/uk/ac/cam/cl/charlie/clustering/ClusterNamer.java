@@ -29,7 +29,7 @@ public class ClusterNamer {
      * 
      * @param cluster
      */
-    public static void subjectNaming(GenericCluster cluster) throws ClusterNamingException {
+    public static void subjectNaming(Cluster cluster) throws ClusterNamingException {
 	ArrayList<ClusterableObject> messages = cluster.getContents();
 
 	HashMap<String, Integer> wordFrequencySubject = new HashMap<>();
@@ -128,7 +128,7 @@ public class ClusterNamer {
      * 
      * @param cluster
      */
-    public static void senderNaming(GenericCluster cluster) throws ClusterNamingException {
+    public static void senderNaming(Cluster cluster) throws ClusterNamingException {
 	ArrayList<ClusterableObject> messages = cluster.getContents();
 
 	// Map storing number of occurrences of each domain name in the sender
@@ -177,11 +177,11 @@ public class ClusterNamer {
      * 
      * @param cluster
      */
-    public static void textRankNaming(GenericCluster cluster) {
+    public static void textRankNaming(Cluster cluster) {
 
     }
 
-    public static void word2VecNaming(GenericCluster cluster) {
+    public static void word2VecNaming(Cluster cluster) {
 	ArrayList<Message> messages = new ArrayList<>();
 	TreeMap<String, Integer> wordFrequencySubject = new TreeMap<>(Collections.reverseOrder());
 
@@ -215,15 +215,15 @@ public class ClusterNamer {
 	    words.add(new ClusterableWordAndOccurence(entry.getKey(), entry.getValue()));
 	}
 
-	GenericEMClusterer clusterer = new GenericEMClusterer();
+	EMClusterer clusterer = new EMClusterer();
 	// clusterer.evalClusters(words);//TODO:
-	GenericClusterGroup clusters = clusterer.getClusters();
+	ClusterGroup clusters = clusterer.getClusters();
 
 	String folderName = "";
 	int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
 
 	for (int i = 0; i < clusters.size(); i++) {
-	    GenericCluster gc = clusters.get(i);
+	    Cluster gc = clusters.get(i);
 	    ArrayList<ClusterableObject> w = gc.getContents();
 
 	    // Get most common word in a cluster
@@ -249,7 +249,7 @@ public class ClusterNamer {
      * 
      * @param cluster
      */
-    public static void name(GenericCluster cluster) {
+    public static void name(Cluster cluster) {
 	try {
 	    senderNaming(cluster);
 	} catch (ClusterNamingException e) {

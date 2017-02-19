@@ -2,18 +2,16 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.Vector;
 
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
-
-import javax.mail.Message;
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
 /**
  * Created by Ben on 05/02/2017.
  * @author M Boyce
  */
-public class GenericEMCluster extends GenericCluster{
+public class EMCluster extends Cluster {
 
     //vectors storing the current mean and variance vectors of the messages associated with this cluster.
     private Vector<Double> average;
@@ -21,7 +19,7 @@ public class GenericEMCluster extends GenericCluster{
 
 
     // Only constructor for EMCluster. Requires initial contents with which the cluster will be initialised.
-    public GenericEMCluster(ArrayList<ClusterableObject> messages) {
+    public EMCluster(ArrayList<ClusterableObject> messages) {
         super(messages);
 
         int dimensionality = getDimensionality();
@@ -59,12 +57,19 @@ public class GenericEMCluster extends GenericCluster{
     protected void updateMetadataAfterAdding(ClusterableObject msg) {
         //changes variance and average arrays.
         //once vectoriser implemented, replace with genuine getVec method.
-	uk.ac.cam.cl.charlie.math.Vector vec = GenericDummyVectoriser.vectorise(msg);
+
+        VectorisingStrategy vectoriser = EMClusterer.getVectoriser();
 
         //Note: clustersize has not been incremented yet at this point.
-        for (int i = 0; i < getDimensionality(); i++) {
-            double newAvg = (getClusterSize() * average.get(i) + vec.get(i)) / (getClusterSize() + 1);
-            average.set(i,newAvg);
+        try {
+            for (int i = 0; i < getDimensionality(); i++) {
+
+                double newAvg = (getClusterSize() * average.get(i)
+                   + vectoriser.doc2vec(((ClusterableMessage)msg).getMessage()).get(i)) / (getClusterSize() + 1);
+                average.set(i,newAvg);
+            }
+        } catch (BatchSizeTooSmallException e) {
+            return; //If msg can't be vectorised, no metadata can be updated.
         }
 
         //Recalculating variance would be expensive. Maybe best not bother and assume it stays constant.
@@ -85,7 +90,7 @@ public class GenericEMCluster extends GenericCluster{
         //TODO: put in log space
 	uk.ac.cam.cl.charlie.math.Vector vec;
         try {
-            vec = GenericClusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
+            vec = Clusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
         } catch (BatchSizeTooSmallException e) {
             return Integer.MAX_VALUE;
         }
