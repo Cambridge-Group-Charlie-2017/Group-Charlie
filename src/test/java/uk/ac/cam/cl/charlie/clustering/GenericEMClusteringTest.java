@@ -1,6 +1,9 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import org.junit.Test;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 
 import javax.mail.Message;
 import java.io.File;

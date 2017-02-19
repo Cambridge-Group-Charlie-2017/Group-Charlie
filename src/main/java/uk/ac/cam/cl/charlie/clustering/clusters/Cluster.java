@@ -1,10 +1,14 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusters;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 
@@ -52,7 +56,7 @@ public abstract class Cluster {
      * For EMCluster, the output is proportional to the Naive Bayes probability
      * of a match, so higher values are better.
      */
-    protected abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
+    public abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
 
     public abstract boolean isHighMatchGood();
 

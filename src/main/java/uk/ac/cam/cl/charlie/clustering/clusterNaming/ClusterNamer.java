@@ -1,4 +1,4 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,6 +13,12 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 
 import org.apache.commons.lang.WordUtils;
+import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
+import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
+import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 
 /**
  * @author M Boyce

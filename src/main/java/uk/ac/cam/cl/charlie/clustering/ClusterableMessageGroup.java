@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 

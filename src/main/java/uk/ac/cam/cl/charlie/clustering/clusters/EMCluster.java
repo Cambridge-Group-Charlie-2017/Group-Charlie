@@ -1,15 +1,17 @@
 
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusters;
 
 import java.util.ArrayList;
 import java.util.Vector;
 
+import uk.ac.cam.cl.charlie.clustering.*;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
-/**
+/*
  * Created by Ben on 05/02/2017.
- * @author M Boyce
  */
 public class EMCluster extends Cluster {
 

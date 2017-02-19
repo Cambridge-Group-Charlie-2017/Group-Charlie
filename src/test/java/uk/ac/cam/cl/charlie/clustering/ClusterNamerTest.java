@@ -1,6 +1,11 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import org.junit.Test;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamingException;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,7 +22,8 @@ public class ClusterNamerTest {
             messages.add(new ClusterableMessage(MessageCreator.createMessage(
                "blabla@gmail.com","Bob@companyname.com","Project X", "A",files)));
 
-        EMCluster c = new EMCluster(messages);ClusterNamer.senderNaming(c);
+        EMCluster c = new EMCluster(messages);
+        ClusterNamer.senderNaming(c);
         assert(c.getName().equals("companyname"));
     }
 

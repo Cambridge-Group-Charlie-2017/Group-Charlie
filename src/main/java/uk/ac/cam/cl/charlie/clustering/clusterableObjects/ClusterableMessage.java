@@ -1,7 +1,8 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterableObjects;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 

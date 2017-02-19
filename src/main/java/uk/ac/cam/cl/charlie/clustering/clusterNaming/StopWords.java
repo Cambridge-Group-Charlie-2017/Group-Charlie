@@ -1,4 +1,4 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
 import org.apache.commons.io.IOUtils;
 

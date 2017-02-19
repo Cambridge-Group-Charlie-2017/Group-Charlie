@@ -1,4 +1,7 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusters;
+
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,7 +35,7 @@ public class ClusterGroup implements Iterable<Cluster>{
 
     public Cluster get(int i) {return clusters.get(i);}
 
-    public void add(Cluster c) throws IncompatibleDimensionalityException{
+    public void add(Cluster c) throws IncompatibleDimensionalityException {
         if (c.getDimensionality() != dimensionality) {
             if (dimensionality == 0)
                 dimensionality = c.getDimensionality();

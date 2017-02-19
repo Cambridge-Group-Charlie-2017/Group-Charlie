@@ -1,7 +1,8 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterableObjects;
 
 import java.util.NoSuchElementException;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**

@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import java.util.ArrayList;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
