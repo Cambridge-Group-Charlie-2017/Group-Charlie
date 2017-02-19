@@ -22,5 +22,8 @@ public class ClusterableWord implements ClusterableObject {
 	return Clusterer.getVectoriser().word2vec(word).get();
     }
 
-    // TODO: write equals() function
+    @Override
+    public boolean equals(Object word2) {
+        return word.equals((String) word2);
+    }
 }

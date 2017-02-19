@@ -16,12 +16,30 @@ import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.PrincipalComponents;
 
+import javax.mail.Message;
+
 /**
  * Probably going to be the final clusterer. Or could try density based
  * clustering.
  */
 public class EMClusterer extends Clusterer {
     private final String DEFAULT_ARFF = "vectors.arff";
+
+    //
+    public EMClusterer(ArrayList<Message> messages) {
+    	evalClusters(messages);
+	}
+    public EMClusterer(ClusterableObjectGroup objects) throws Exception{
+    	setClusters(run(objects));
+	}
+    public EMClusterer(/*args?*/) { //initialise with current IMAP structure.
+    	//TODO: Implement. Should be as simple as calling following function.
+		//initialiseClusters(args?);
+	}
+
+	protected void initialiseClusters() {
+    	//TODO
+	}
 
     // Note: currently set up to train on every vector. If this is uses too much
     // memory, could train on a subset.
@@ -67,35 +85,40 @@ public class EMClusterer extends Clusterer {
 			data = Filter.useFilter(data, pca);
 			// If efficiency is a problem, could use random projection instead.
 
+			//Initially cluster with no cluster number preference.
 			String[] options = { "-I", "5" };
 			cl.setOptions(options);
-
-			// TODO: could initially not set a cluster number, rebuild with n=5
-			// if output has a useless number of clusters.
 			cl.buildClusterer(data);
 			ClusterEvaluation eval = new ClusterEvaluation();
 			eval.setClusterer(cl);
 			eval.evaluateClusterer(new Instances(data));
+			//If not clustered properly, try again with n=5 to ensure a grouping is found.
+			if (cl.numberOfClusters() <= 0) {
+				String[] options2 = { "-I", "5", "-N", "5" };
+				cl.setOptions(options);
+				cl.buildClusterer(data);
+				eval = new ClusterEvaluation();
+				eval.setClusterer(cl);
+				eval.evaluateClusterer(new Instances(data));
+			}
 
 			// Create message groupings for each cluster.
 			ArrayList<ArrayList<ClusterableObject>> objGroups = new ArrayList<>();
 			for (int i = 0; i < cl.numberOfClusters(); i++)
-			objGroups.add(new ArrayList<ClusterableObject>());
+				objGroups.add(new ArrayList<ClusterableObject>());
 
-			// For each message, get the corresponding Instance object, and find
-			// what cluster it belongs to.
+			// For each message, get the corresponding Instance object, and find what cluster it belongs to.
 			// Then add it to the corresponding message grouping.
 			for (int i = 0; i < objects.size(); i++) {
-			Instance curr = data.get(i);
-			int clusterIndex = cl.clusterInstance(curr);
-			objGroups.get(clusterIndex).add(objects.get(i));
+			    Instance curr = data.get(i);
+			    int clusterIndex = cl.clusterInstance(curr);
+			    objGroups.get(clusterIndex).add(objects.get(i));
 			}
 
-			// Create new Cluster objects in a ClusterGroup to contain the
-			// message groupings.
+			// Wrap the clusters in a ClusterGroup object.
 			ClusterGroup clusters = new ClusterGroup();
 			for (int i = 0; i < cl.numberOfClusters(); i++)
-			clusters.add(new EMCluster(objGroups.get(i)));
+			    clusters.add(new EMCluster(objGroups.get(i)));
 
 			return clusters;
 

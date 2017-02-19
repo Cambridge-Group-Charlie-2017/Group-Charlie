@@ -10,6 +10,7 @@ import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
+
 /*
  * Created by Ben on 05/02/2017.
  */
@@ -82,15 +83,14 @@ public class EMCluster extends Cluster {
 
     @Override
     public double matchStrength (ClusterableObject msg) throws IncompatibleDimensionalityException {
-        //return weighted Bayes probability. Assumes each category has equal probability.
+        //return log of weighted Bayes probability. Assumes each category has equal probability.
         //Note it's not the actual probability - that would require multiplying by irrational numbers, and there's
         //no point. As long as all probabilities are off by the same factor, comparison still works.
 
         //only consider a subset of elements. if all probabilities are multiplied then the resulting
         //probability becomes too small at high dimensions.
 
-        //TODO: put in log space
-	uk.ac.cam.cl.charlie.math.Vector vec;
+	    uk.ac.cam.cl.charlie.math.Vector vec;
         try {
             vec = Clusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
         } catch (BatchSizeTooSmallException e) {
@@ -107,12 +107,11 @@ public class EMCluster extends Cluster {
             double diff = vec.get(i) - average.get(i);
 
             //Calculate Gaussian probability of membership of this cluster based on element i
-            logProb += Math.log(Math.exp(-(diff * diff) / (2.0 * variance.get(i))) / Math.sqrt(2*Math.PI*variance.get(i)));
+            double prob = Math.exp(-(diff * diff) / (2.0 * variance.get(i))) / Math.sqrt(2*Math.PI*variance.get(i));
 
-            //Add all logs together for log naive Bayes probability
+            //Add all logs together for log naive Bayes probability. (More stable than multiplication)
+            logProb += Math.log(prob);
         }
         return logProb;
-
-        //TODO: This method doesn't seem very reliable. Possibly could use a classifer instead, but less efficient.
     }
 }

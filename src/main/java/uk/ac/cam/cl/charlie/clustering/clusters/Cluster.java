@@ -18,7 +18,6 @@ public abstract class Cluster {
     protected ArrayList<ClusterableObject> contents;
     private int dimensionality;
     private int clusterSize;
-    // TODO: store vectors. If vector not there, vectorise.
 
     public int getDimensionality() {
 	return dimensionality;
@@ -56,7 +55,7 @@ public abstract class Cluster {
      * For EMCluster, the output is proportional to the Naive Bayes probability
      * of a match, so higher values are better.
      */
-    public abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
+    abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
 
     public abstract boolean isHighMatchGood();
 

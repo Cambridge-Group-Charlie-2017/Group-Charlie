@@ -27,7 +27,7 @@ public class ClusterableMessage implements ClusterableObject {
 
     @Override
     public boolean equals(Object message2) {
-	return message.equals(((ClusterableMessage) message2).getMessage());
+	    return message.equals(((ClusterableMessage) message2).getMessage());
     }
 
     public Message getMessage() {

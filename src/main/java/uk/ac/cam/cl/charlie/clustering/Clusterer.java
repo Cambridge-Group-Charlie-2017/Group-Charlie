@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
@@ -23,41 +24,29 @@ public abstract class Clusterer {
 
     //alternatively, could convert to another form before returning.
     public ClusterGroup getClusters() {return clusters;}
+    protected void setClusters(ClusterGroup clusters) {this.clusters = clusters;}
 
     //for inserting a list of messages into their appropriate clusters, and updating the server.
+    //TODO: This method shouldn't update the server itself. What should it return?
     public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
-        ClusterGroup clusters = getClusters();
-
-        //For classification, find clustering with highest probability for each email using matchStrength().
-        //TODO: Update mailbox accordingly. Could be a method in Clusterer itself.
-
-        //TODO: update to run using clusterGroup.insert()
-
-
-        //For each new message,
+        //For each new message, insert it into the ClusterGroup. This adds it into the cluster that bears the
+        //closest match.
         for (int i = 0; i < messages.size(); i++) {
-            double bestMatch = Integer.MAX_VALUE;
-            int bestCluster = 0;
-            //Find the index of the best cluster,
-            for (int j = 0; j < clusters.size(); j++) {
-                double currMatch = clusters.get(j).matchStrength(new ClusterableMessage(messages.get(i)));
-                if (currMatch > bestMatch) {
-                    bestMatch = currMatch;
-                    bestCluster = j;
-                }
-            }
-            //and insert the message into that cluster.
-            clusters.get(bestCluster).addMessage(new ClusterableMessage(messages.get(i)));
+            clusters.insert(new ClusterableMessage(messages.get(i)));
         }
     }
 
     //Produces clusters of messages. evalClusters() will actually update the IMAP server.
-    public abstract ClusterGroup run(ClusterableObjectGroup objects) throws Exception;
+    protected abstract ClusterGroup run(ClusterableObjectGroup objects) throws Exception;
+
+    //TODO: Implement this. It should get the structure of the server and represent it as ClusterGroup clusters.
+    //TODO: This is for when we only want to classify new emails on an already-clustered server.
+    protected abstract void initialiseClusters(/*args?*/);
 
 
     //Should probably convert to run on wrapper types.
     //Can easily provide functions for conversion.
-    public void evalClusters(ArrayList<Message> messages) {
+    protected void evalClusters(ArrayList<Message> messages) {
         //main method for evaluating clusters.
         //precondition: all Messages in 'message' are clear for clustering i.e. are not in protected folders.
         //call training methods in Vectoriser. If Vectorising model doesn't require training, these will be blank anyway.
@@ -79,13 +68,10 @@ public abstract class Clusterer {
             return;
         }
 
-        //TODO: uncomment naming function when actual emails are used.
         //Could possibly move this into the constructor of Cluster.
         for (Cluster c : clusters)
-           //ClusterNamer.name(c);
+           ClusterNamer.name(c);
 
-        //TODO: update server with new clusters.
-        return;
     }
 
     public void clusterWords(ArrayList<ClusterableObject> words) {

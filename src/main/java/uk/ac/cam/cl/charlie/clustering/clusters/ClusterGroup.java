@@ -11,15 +11,11 @@ import java.util.Iterator;
  */
 
 /*
- * On boot, create ClusterGroup with a cluster for each unprotected IMAP folder, and populate it with its emails.
- * This ensures there are no inconsistencies between the server and ClusterGroup.
- *
- * This approach probably beats writing to/loading from files, because the IO approach can lead to inconsistencies.
- * However, this causes mean and variance vectors to be recomputed. No big deal though, this bit is much quicker than
- * the actual clustering process, as it is only O(m) where m is the number of messages on the server.
+ * ClusterGroup is a grouping of the current clusters, representing the part of the IMAP folder structure involved in
+ * the clustering process. (i.e. no clusters exist representing protected folders)
+ * This is fundamentally a wrapper for ArrayList<Cluster> clusters, which integrates useful methods for manipulating
+ * and querying the clusters.
  */
-
-//TODO: adapt to use ClusterableObjectGroup?
 public class ClusterGroup implements Iterable<Cluster>{
     protected ArrayList<Cluster> clusters;
     protected int dimensionality;
@@ -53,7 +49,7 @@ public class ClusterGroup implements Iterable<Cluster>{
             if (clusters.get(i).contains(co))
                 return i;
 
-        //TODO: could throw exception instead.
+        //could throw exception instead.
         return -1;
     }
 

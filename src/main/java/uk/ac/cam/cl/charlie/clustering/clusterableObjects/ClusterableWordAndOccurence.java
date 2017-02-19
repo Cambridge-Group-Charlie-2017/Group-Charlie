@@ -24,6 +24,12 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
     public int getOccurences(){return occurences;}
 
     @Override
+    public boolean equals(Object o) {
+        ClusterableWordAndOccurence word2 = (ClusterableWordAndOccurence) o;
+        return (word.equals(word2.getWord()) && occurences == word2.getOccurences());
+    }
+
+    @Override
     public Vector getVec() {
         try {
             return Clusterer.getVectoriser().word2vec(word).get();
