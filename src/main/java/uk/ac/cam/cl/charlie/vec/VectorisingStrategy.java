@@ -23,11 +23,4 @@ public interface VectorisingStrategy {
 
     public Vector doc2vec(Message msg) throws BatchSizeTooSmallException;
 
-    // load and close need to be called before the above functions work
-    public void load();
-
-    public void close();
-
-    public boolean ready();
-
 }

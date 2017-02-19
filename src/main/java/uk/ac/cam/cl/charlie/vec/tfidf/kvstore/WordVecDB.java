@@ -2,19 +2,19 @@ package uk.ac.cam.cl.charlie.vec.tfidf.kvstore;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.deeplearning4j.models.embeddings.WeightLookupTable;
-import org.deeplearning4j.models.embeddings.inmemory.InMemoryLookupTable;
 import org.deeplearning4j.models.word2vec.Word2Vec;
-import org.nd4j.linalg.factory.Nd4j;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializer;
 import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.math.Vector;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -25,11 +25,27 @@ public final class WordVecDB {
     // todo: possibility of batch insertion into the db (documentation is a tad awful on this)
     private static WordVecDB instance;
 
-    private Cache<String, Vector> cache;
+    private Cache<String, Optional<Vector>> cache;
 
     private Database db;
     PersistentMap<String, Vector> map;
     String vectorDBName = "vectors";
+
+    private static double[] toDoubleArray(byte[] bytes) {
+        // needed for deserialise (inner classes can't have static methods)
+        if (bytes.length % 8 != 0) {
+            throw new IllegalArgumentException();
+        }
+
+        ByteBuffer buf = ByteBuffer.wrap(bytes);
+
+        double[] a = new double[bytes.length / 8];
+
+        for (int i = 0; i < a.length; ++i) {
+            a[i] = buf.getDouble();
+        }
+        return a;
+    }
 
     private class VectorSerialiser extends Serializer<Vector> {
         @Override
@@ -51,7 +67,7 @@ public final class WordVecDB {
 
         @Override
         public Vector deserialize(byte[] bytes) {
-            return new Vector(ByteBuffer.wrap(bytes).asDoubleBuffer().array());
+            return new Vector(toDoubleArray(bytes));
         }
     }
 
@@ -70,15 +86,16 @@ public final class WordVecDB {
         return instance;
     }
 
-    private static void populateFromTextFile() {
+    public static void populateFromTextFile(String fname) {
         // todo testing
         WordVecDB db = WordVecDB.getInstance();
-        File vectorFile = new File("src/main/resources/word2vec/wordvectors.txt");
+        File vectorFile = new File(fname);
+
         try (BufferedReader br = new BufferedReader(new FileReader(vectorFile))) {
             String line = br.readLine();
             String[] header = line.split(" ");
-            int nOfWords = Integer.getInteger(header[0]);
-            int nDimensions = Integer.getInteger(header[1]);
+            int nOfWords = Integer.parseInt(header[0]);
+            int nDimensions = Integer.parseInt(header[1]);
 
             line = br.readLine();
             for (int i = 0; i < nOfWords; ++i) {
@@ -93,6 +110,7 @@ public final class WordVecDB {
                     components[j] = Double.valueOf(tokens[j + 1]);
                 }
                 db.put(word, new Vector(components));
+                line = br.readLine();
 
             }
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -107,16 +125,18 @@ public final class WordVecDB {
     }
 
     public void put(String w, Vector v) {
-        cache.put(w, v);
+        cache.put(w, Optional.of(v));
         map.put(w, v);
     }
 
-    public Vector get(String w) {
+    // google cache does not like null values
+    public Optional<Vector> get(String w) {
         try {
-            return cache.get(w, new Callable<Vector>() {
+            return cache.get(w, new Callable<Optional<Vector>>() {
+
                 @Override
-                public Vector call() throws Exception {
-                    return map.get(w);
+                public Optional<Vector> call() throws Exception {
+                    return Optional.empty();
                 }
             });
         } catch (ExecutionException e) {
@@ -130,16 +150,21 @@ public final class WordVecDB {
     }
 
     public Word2Vec getModelForTraining() {
-        WeightLookupTable table = new InMemoryLookupTable();
+        // This method requires further implementation on the database side
+        // hence forget about it for now
+        throw new UnsupportedOperationException();
 
-        for (Map.Entry<String, Vector> entry : map.entrySet()) {
-            table.putVector(entry.getKey(), Nd4j.create(entry.getValue().toDoubleArray()));
-        }
 
-        // if this doesn't work there is an alternative way of doing it with the Builder class
-        Word2Vec w = new Word2Vec();
-        w.setLookupTable(table);
-        return w;
+//        WeightLookupTable table = new InMemoryLookupTable();
+//
+//        for (Map.Entry<String, Vector> entry : map.entrySet()) {
+//            table.putVector(entry.getKey(), Nd4j.create(entry.getValue().toDoubleArray()));
+//        }
+//
+//        // if this doesn't work there is an alternative way of doing it with the Builder class
+//        Word2Vec w = new Word2Vec();
+//        w.setLookupTable(table);
+//        return w;
     }
 
     public void createDBFromModel(Word2Vec w2v) {

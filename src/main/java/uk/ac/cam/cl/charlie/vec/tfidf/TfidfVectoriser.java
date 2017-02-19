@@ -57,11 +57,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
     public Optional<Vector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an
         // "exceptional" case
-        Vector v = vectorDB.get(word);
-        if (v == null) {
-            return Optional.empty();
-        }
-        return Optional.of(v);
+        return vectorDB.get(word);
+
     }
 
     // This method should only be called on subject header
@@ -109,8 +106,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return calculateDocVector(doc.getContent());
     }
 
-    // Provide a method for batching vectorisation, which calls load() and
-    // close().
+    // Provide a method for batching vectorisation
     @Override
     public List<Vector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
         if (emailBatch == null) {
@@ -187,21 +183,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
             System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
             return null;
         }
-    }
-
-    @Override
-    public void load() {
-        return; // not needed with the new backend - kept for compatability purposes
-    }
-
-    @Override
-    public void close() {
-        return; // again, as with load, not needed
-    }
-
-    @Override
-    public boolean ready() {
-        return true; // in theory should always work (unless the db is broken).
     }
 
     private Vector calculateDocVector(String text) {

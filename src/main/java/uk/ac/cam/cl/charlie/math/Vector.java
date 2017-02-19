@@ -92,4 +92,19 @@ public class Vector {
 		System.arraycopy(tail.components, 0, newVector, headlength, taillength);
 		return new Vector(newVector, false);
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		Vector vector = (Vector) o;
+
+		return Arrays.equals(components, vector.components);
+	}
+
+	@Override
+	public int hashCode() {
+		return Arrays.hashCode(components);
+	}
 }
