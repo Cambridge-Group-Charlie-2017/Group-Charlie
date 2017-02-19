@@ -20,7 +20,7 @@ public class CachedWordCounter extends BasicWordCounter {
 
     public CachedWordCounter(WordCounter counter) {
         upstream = counter;
-        cache = CacheBuilder.newBuilder().maximumSize(2000).build();
+        cache = CacheBuilder.newBuilder().maximumSize(20000).build(); // change size as needed
     }
 
     @Override
@@ -43,7 +43,7 @@ public class CachedWordCounter extends BasicWordCounter {
     public void increment (String word, int n) {
         int currentVal = frequency(word);
         cache.put(word, currentVal + n);
-        upstream.increment(word, n);
+        upstream.increment(word, n); // perhaps worth looking at multithreading?
     }
 
 

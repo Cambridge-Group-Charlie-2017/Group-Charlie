@@ -5,6 +5,8 @@ import java.io.IOException;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.Part;
 
 import org.jsoup.Jsoup;
@@ -78,12 +80,23 @@ public class Messages {
      */
     public static String getBodyText(Part part) throws MessagingException, IOException {
 	Part p = getBodyPart(part, false);
+	String body = "";
 	if (p == null)
 	    return null;
 	if (p.isMimeType("text/html")) {
 	    return Jsoup.parse((String) p.getContent()).text();
 	}
-	return (String) p.getContent();
+	
+	if(p.getContent() instanceof String) {
+		body = (String) p.getContent();
+	} else if(p.getContent() instanceof MimeMultipart) {
+		MimeMultipart mmp = (MimeMultipart) p.getContent();
+		for (int i=0; i<mmp.getCount(); i++) {
+			MimeBodyPart mbp = (MimeBodyPart) mmp.getBodyPart(i);
+			body += getBodyText(mbp);
+		}
+	}
+	return body;
     }
 
 }

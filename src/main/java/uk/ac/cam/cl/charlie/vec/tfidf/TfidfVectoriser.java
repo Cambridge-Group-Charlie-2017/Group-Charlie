@@ -57,12 +57,21 @@ public class TfidfVectoriser implements VectorisingStrategy {
     public Optional<Vector> word2vec(String word) {
         // using optional here since a word not being in the vocab is hardly an
         // "exceptional" case
-
         Vector v = vectorDB.get(word);
         if (v == null) {
-            return Optional.of(v);
-        } else {
             return Optional.empty();
+        }
+        return Optional.of(v);
+    }
+
+    // This method should only be called on subject header
+    // It is does not increment the number of documents as it is part of the
+    // email message.
+    private void train(String emailsubject) {
+        BasicWordCounter counter = BasicWordCounter.count(emailsubject);
+
+        for (String w : counter.words()) {
+            globalCounter.increment(w);
         }
     }
 
@@ -74,6 +83,23 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
 
         globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+    }
+
+    private void train(Message msg) throws MessagingException, IOException {
+        BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
+
+        for (String w : counter.words()) {
+            globalCounter.increment(w);
+        }
+
+        globalCounter.increment(TOTAL_NUMBER_OF_DOCS);
+    }
+
+    //To be used for metadata such as subject of a document or email.
+    public Vector sent2vec(String subject) {
+        train(subject);
+
+        return calculateDocVector(subject);
     }
 
     @Override
@@ -92,8 +118,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
         }
         log.info("Starting vectorizing batch of size {}", emailBatch.size());
         try {
+            // this.load();
             List<Vector> vectorBatch = new ArrayList<>();
-            List<Document> intermediateBatch = new ArrayList<>();
             // not sure if msg.getFileName() is appropriate here. Feel free to
             // change to msg.getSubject() or something.
             // Also, for the actual Message objects we're going to use (if we
@@ -102,17 +128,23 @@ public class TfidfVectoriser implements VectorisingStrategy {
             // as a String.
             for (Message msg : emailBatch) {
                 String body = Messages.getBodyText(msg);
-                Document doc = new Document(msg.getSubject(), body);
-                train(doc);
-                intermediateBatch.add(doc);
+                train(msg);
             }
             log.info("Model trained");
             // Checks if sufficient emails are in the database
             if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
                 throw new BatchSizeTooSmallException();
             }
-            for (Document doc : intermediateBatch) {
-                vectorBatch.add(calculateDocVector(doc.getContent()));
+            int count = 0;
+            for (Message msg : emailBatch) {
+                ++count;
+                // Adding the Subject to the feature vector passed to the clusterer
+                // Done by concatening the Subject vector with the textbody vector
+                // An alternative solution would be to take the weighted average
+                // To decide which method is best, testing is required
+                Vector head = sent2vec(msg.getSubject());
+                Vector tail = calculateDocVector(Messages.getBodyText(msg));
+                vectorBatch.add(Vector.concat(head, tail));
             }
             log.info("Batch vectorized");
             return vectorBatch;
@@ -140,8 +172,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
             if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
                 throw new BatchSizeTooSmallException();
             }
-
-            Vector result = doc2vec(new Document(msg.getSubject(), body));
+            // Adding the Subject to the feature vector passed to the clusterer
+            // Done by concatening the Subject vector with the textbody vector
+            // An alternative solution would be to take the weighted average
+            // To decide which method is best, testing is required
+            Vector tail = calculateDocVector(body);
+            Vector head = sent2vec(msg.getSubject());
+            Vector result = Vector.concat(head, tail);
             vectorMap.put(msg, result);
             return result;
         } catch (MessagingException | IOException e) {
@@ -149,8 +186,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
         } catch (BatchSizeTooSmallException e) {
             System.err.println("Batch size was too small. Tfidf needs at least 20 Messages.");
             return null;
-        } finally {
-            // close();
         }
     }
 
@@ -170,7 +205,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     private Vector calculateDocVector(String text) {
-        // weighted average of word vectors using tdidf
+        // weighted average of word vectors using tfidf
 
         BasicWordCounter words = BasicWordCounter.count(text);
 

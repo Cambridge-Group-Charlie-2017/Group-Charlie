@@ -83,4 +83,13 @@ public class Vector {
 	double[] comp = new double[dim];
 	return new Vector(comp, false);
     }
+
+	public static Vector concat(Vector head, Vector tail) {
+		int headlength = head.components.length;
+		int taillength = tail.components.length;
+		double[] newVector = new double[headlength + taillength];
+		System.arraycopy(head.components, 0, newVector, 0, headlength);
+		System.arraycopy(tail.components, 0, newVector, headlength, taillength);
+		return new Vector(newVector, false);
+	}
 }
