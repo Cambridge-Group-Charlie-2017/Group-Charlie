@@ -323,26 +323,15 @@ public class LocalIMAPFolder {
         }
         // Move the folder locally
         parentFolder.removeSubfolder(this);
-        parentFolder.addSubfolder(this);
+        newParentFolder.addSubfolder(this);
 
         // Update current folder
-        fullName = String.join(".", parentFolder.fullName, getName());
+        fullName = String.join(".", newParentFolder.getFullName(), getName());
         UIDValidityValue = -1;
         parentFolder = newParentFolder;
 
         if (hasConnection()) {
-//          Move the folder on the server
-//            final IMAPFolder oldServerFolder = serverFolder;
-
             moveFolderServersideRecursive(newParentFolder);
-//            oldServerFolder.close(false);
-//            try {
-//                oldServerFolder.delete(true);
-//            } catch (StoreClosedException e) {
-//                boolean connected = oldServerFolder.getStore().isConnected();
-//                //oldServerFolder.getStore().close();
-//                throw e;
-//            }
         }
     }
 
@@ -354,21 +343,8 @@ public class LocalIMAPFolder {
         if (!newFolder.exists()) {
             newFolder.create(serverFolder.getType());
         }
-        newFolder.getStore().getFolder(newFolder.getFullName());
 
         serverFolder.getStore().getFolder(serverFolder.getFullName()).renameTo(newFolder);
-//        checkFolderOpen();
-//        newParentFolder.checkFolderOpen();
-//        // Create new folder
-//        IMAPFolder movedFolder = (IMAPFolder) newParentFolder.getBackingFolder().getFolder(serverFolder.getName());
-//        if (movedFolder.exists()) {
-//            throw new FolderAlreadyExistsException();
-//        }
-//        movedFolder.create(serverFolder.getType());
-//        movedFolder.open(Folder.READ_WRITE);
-//
-//        // Copy messages
-//        serverFolder.copyMessages(serverFolder.getMessages(), movedFolder);
 
         // Recursive call
         if ((serverFolder.getType() & Folder.HOLDS_FOLDERS) != 0) {
@@ -376,9 +352,6 @@ public class LocalIMAPFolder {
                 f.moveFolderServersideRecursive(this);
             }
         }
-//        serverFolder = movedFolder;
-//        this.closeFolder(false);
-//        newParentFolder.closeFolder(false);
     }
 
     protected void addSubfolder(LocalIMAPFolder folder) {
