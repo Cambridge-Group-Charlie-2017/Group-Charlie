@@ -27,16 +27,20 @@ public class WordVecDBTest {
 
     @Test
     public void checkPut() {
+        Optional<Vector> v = db.get("the");
         assertNotEquals(Optional.of(Vector.zero(300)), db.get("the")) ;
         db.put("the", Vector.zero(300));
         assertEquals(Optional.of(Vector.zero(300)), db.get("the"));
+        db.put("the", v.get());
     }
 
     @Test
     public void checkDelete() {
+        Optional<Vector> v = db.get("land");
         assertNotEquals(Optional.empty(), db.get("land"));
         db.delete("land");
         assertEquals(Optional.empty(), db.get("land"));
+        db.put("land", v.get());
     }
 
 }
