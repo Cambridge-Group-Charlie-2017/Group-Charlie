@@ -74,9 +74,18 @@ dependencies {
 mainClassName = 'App'
 
 task downloadWord2Vec(type: Download) {
-    src 'https://www.dropbox.com/s/2uz9td1yfztxsfl/wordvectors.txt?dl=1'
+    src 'https://www.dropbox.com/s/8q626nhgrx6ez5m/wordvectors.txt?dl=1'
     dest 'src/main/resources/word2vec/wordvectors.txt'
     overwrite false
 }
+
+task populateDB (type: JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'uk.ac.cam.cl.charlie.PopulateDB'
+    outputs.upToDateWhen( { return true } );
+    inputs.file('src/main/resources/word2vec/wordvectors.txt')
+}
+
 build.dependsOn downloadWord2Vec
 test.dependsOn downloadWord2Vec
+populateDB.dependsOn downloadWord2Vec

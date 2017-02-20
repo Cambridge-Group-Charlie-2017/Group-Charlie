@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
  * Created by shyam on 19/02/2017.
  */
 public class WordVecDBTest {
-    private final String textPath = "src/main/resources/word2vec/reducedvectors.txt";
+    private final String textPath = "src/main/resources/word2vec/wordvectors.txt";
     private WordVecDB db;
 
     public WordVecDBTest() {

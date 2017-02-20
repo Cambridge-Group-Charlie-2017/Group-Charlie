@@ -6,3 +6,5 @@ jdk:
 
 before_install:
 - chmod +x gradlew
+- ./gradlew assemble
+- ./gradlew populateDB

@@ -23,10 +23,6 @@ public class TfidfVectoriserTest {
     private TfidfVectoriser tfidf;
 
     public TfidfVectoriserTest() {
-        System.out.println("Loading vectors");
-        String textPath = "src/main/resources/word2vec/wordvectors.txt";
-        WordVecDB.populateFromTextFile(textPath);
-        System.out.println("Finishing loading");
         tfidf = TfidfVectoriser.getVectoriser();
 
     }
@@ -34,7 +30,7 @@ public class TfidfVectoriserTest {
     @Test
     public void testWord2Vec() {
 
-        assertNotSame(Optional.empty(), tfidf.word2vec("is"));
+        assertNotSame(tfidf.word2vec("plan").get(), tfidf.word2vec("is").get());
         // Check nothing bad happens with null strings or empty strings
         tfidf.word2vec("");
     }

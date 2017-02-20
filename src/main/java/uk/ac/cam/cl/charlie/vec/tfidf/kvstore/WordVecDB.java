@@ -136,7 +136,12 @@ public final class WordVecDB {
 
                 @Override
                 public Optional<Vector> call() throws Exception {
-                    return Optional.empty();
+                    Vector v = map.get(w);
+                    if (v == null) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.of(v);
                 }
             });
         } catch (ExecutionException e) {
