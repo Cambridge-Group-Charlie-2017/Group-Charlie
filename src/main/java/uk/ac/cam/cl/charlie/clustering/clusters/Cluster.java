@@ -1,20 +1,23 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusters;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.Message;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 
-public abstract class GenericCluster {
+public abstract class Cluster {
 
     protected String clusterName;
     protected ArrayList<ClusterableObject> contents;
     private int dimensionality;
     private int clusterSize;
-    // TODO: store vectors. If vector not there, vectorise.
 
     public int getDimensionality() {
 	return dimensionality;
@@ -52,12 +55,12 @@ public abstract class GenericCluster {
      * For EMCluster, the output is proportional to the Naive Bayes probability
      * of a match, so higher values are better.
      */
-    protected abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
+    abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
 
     public abstract boolean isHighMatchGood();
 
     // Extract relevant metadata from the initial contents.
-    protected GenericCluster(ArrayList<ClusterableObject> initialContents) {
+    protected Cluster(ArrayList<ClusterableObject> initialContents) {
 	contents = initialContents;
 	clusterSize = initialContents.size();
 	dimensionality = initialContents.get(0).getVec().size();
@@ -79,7 +82,7 @@ public abstract class GenericCluster {
 	    messages.add(((ClusterableMessage) obj).getMessage());
 	}
 	try {
-	    return GenericClusterer.getVectoriser().doc2vec(messages);
+	    return Clusterer.getVectoriser().doc2vec(messages);
 	} catch (BatchSizeTooSmallException e) {
 	    return null;
 	}

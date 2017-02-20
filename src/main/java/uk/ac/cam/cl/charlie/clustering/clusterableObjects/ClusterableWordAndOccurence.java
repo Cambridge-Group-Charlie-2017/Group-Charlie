@@ -1,7 +1,8 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterableObjects;
 
 import java.util.NoSuchElementException;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
@@ -23,9 +24,15 @@ public class ClusterableWordAndOccurence implements ClusterableObject {
     public int getOccurences(){return occurences;}
 
     @Override
+    public boolean equals(Object o) {
+        ClusterableWordAndOccurence word2 = (ClusterableWordAndOccurence) o;
+        return (word.equals(word2.getWord()) && occurences == word2.getOccurences());
+    }
+
+    @Override
     public Vector getVec() {
         try {
-            return GenericClusterer.getVectoriser().word2vec(word).get();
+            return Clusterer.getVectoriser().word2vec(word).get();
         } catch (NoSuchElementException e) {
             return null;
         }

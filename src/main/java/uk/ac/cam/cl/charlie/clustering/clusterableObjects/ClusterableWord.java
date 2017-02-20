@@ -1,5 +1,6 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusterableObjects;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
@@ -18,8 +19,11 @@ public class ClusterableWord implements ClusterableObject {
 
     @Override
     public Vector getVec() {
-	return GenericClusterer.getVectoriser().word2vec(word).get();
+	return Clusterer.getVectoriser().word2vec(word).get();
     }
 
-    // TODO: write equals() function
+    @Override
+    public boolean equals(Object word2) {
+        return word.equals((String) word2);
+    }
 }

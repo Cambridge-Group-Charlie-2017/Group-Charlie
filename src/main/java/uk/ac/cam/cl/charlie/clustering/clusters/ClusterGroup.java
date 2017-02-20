@@ -1,4 +1,7 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.clustering.clusters;
+
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -8,31 +11,27 @@ import java.util.Iterator;
  */
 
 /*
- * On boot, create ClusterGroup with a cluster for each unprotected IMAP folder, and populate it with its emails.
- * This ensures there are no inconsistencies between the server and ClusterGroup.
- *
- * This approach probably beats writing to/loading from files, because the IO approach can lead to inconsistencies.
- * However, this causes mean and variance vectors to be recomputed. No big deal though, this bit is much quicker than
- * the actual clustering process, as it is only O(m) where m is the number of messages on the server.
+ * ClusterGroup is a grouping of the current clusters, representing the part of the IMAP folder structure involved in
+ * the clustering process. (i.e. no clusters exist representing protected folders)
+ * This is fundamentally a wrapper for ArrayList<Cluster> clusters, which integrates useful methods for manipulating
+ * and querying the clusters.
  */
-
-//TODO: adapt to use ClusterableObjectGroup?
-public class GenericClusterGroup implements Iterable<GenericCluster>{
-    protected ArrayList<GenericCluster> clusters;
+public class ClusterGroup implements Iterable<Cluster>{
+    protected ArrayList<Cluster> clusters;
     protected int dimensionality;
 
     public int getDimensionality() {return dimensionality;}
 
-    public GenericClusterGroup() {
-        clusters = new ArrayList<GenericCluster>();
+    public ClusterGroup() {
+        clusters = new ArrayList<Cluster>();
         dimensionality = 0;
     }
 
     public int size() {return clusters.size();}
 
-    public GenericCluster get(int i) {return clusters.get(i);}
+    public Cluster get(int i) {return clusters.get(i);}
 
-    public void add(GenericCluster c) throws IncompatibleDimensionalityException{
+    public void add(Cluster c) throws IncompatibleDimensionalityException {
         if (c.getDimensionality() != dimensionality) {
             if (dimensionality == 0)
                 dimensionality = c.getDimensionality();
@@ -50,7 +49,7 @@ public class GenericClusterGroup implements Iterable<GenericCluster>{
             if (clusters.get(i).contains(co))
                 return i;
 
-        //TODO: could throw exception instead.
+        //could throw exception instead.
         return -1;
     }
 
@@ -71,7 +70,7 @@ public class GenericClusterGroup implements Iterable<GenericCluster>{
         return bestCluster;
     }
 
-    public Iterator<GenericCluster> iterator() {
+    public Iterator<Cluster> iterator() {
         return clusters.iterator();
     }
 }

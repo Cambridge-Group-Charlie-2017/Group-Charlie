@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.clustering;
 import java.util.ArrayList;
 import java.util.List;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
