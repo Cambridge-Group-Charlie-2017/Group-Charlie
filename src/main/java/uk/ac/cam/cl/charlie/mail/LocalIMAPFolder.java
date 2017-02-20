@@ -325,28 +325,35 @@ public class LocalIMAPFolder {
         parentFolder.removeSubfolder(this);
         newParentFolder.addSubfolder(this);
 
-        // Update current folder
+        // Update current folder fields
         fullName = String.join(".", newParentFolder.getFullName(), getName());
         UIDValidityValue = -1;
         parentFolder = newParentFolder;
 
+        // If connection is present, move the folder online
         if (hasConnection()) {
             moveFolderServersideRecursive(newParentFolder);
         }
     }
 
     private void moveFolderServersideRecursive(LocalIMAPFolder newParentFolder) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
+        // Check the new parent folder can hold folders
         if ((newParentFolder.getBackingFolder().getType() & Folder.HOLDS_FOLDERS) == 0) {
             throw new FolderHoldsNoFoldersException();
         }
+
+        // Get a reference to the new folder location
         Folder newFolder = newParentFolder.getBackingFolder().getFolder(this.getName());
-        if (!newFolder.exists()) {
-            newFolder.create(serverFolder.getType());
+
+        // Make sure it doesn't exist, fail if it does
+        if (newFolder.exists()) {
+            throw new FolderAlreadyExistsException();
         }
 
-        serverFolder.getStore().getFolder(serverFolder.getFullName()).renameTo(newFolder);
+        // Rename the folder
+        serverFolder.renameTo(newFolder);
 
-        // Recursive call
+        // Recursive call for all the sub folders
         if ((serverFolder.getType() & Folder.HOLDS_FOLDERS) != 0) {
             for (LocalIMAPFolder f : subfolders.values()) {
                 f.moveFolderServersideRecursive(this);
