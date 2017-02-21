@@ -38,6 +38,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private HashMap<Message, Vector> vectorMap = new HashMap<>();
 
     private final int vectorDimensions = 300;
+    private final int minBatchSize = 20;
 
     // Using singleton pattern.
     private static TfidfVectoriser singleton;
@@ -100,15 +101,42 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public Vector doc2vec(Document doc) {
+    public Vector emailBatch2vec(Document doc) {
         train(doc);
         // todo add any other content to do with names or other meta data
         return calculateDocVector(doc.getContent());
     }
 
+    @Override
+    public List<Vector> documentBatch2vec(List<Document> batch) throws BatchSizeTooSmallException {
+        if (batch == null) {
+            return null;
+        }
+
+        log.info("Starting vectorising batch of size {}", batch.size());
+
+        List<Vector> vectorBatch = new ArrayList<>();
+        for (Document d : batch) {
+            train(d);
+        }
+        log.info("Model trained with word counts");
+
+        if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < minBatchSize) {
+            throw new BatchSizeTooSmallException();
+        }
+
+        int count = 0;
+        for (Document d : batch) {
+            ++count;
+            vectorBatch.add(calculateDocVector(d.getContent()));
+        }
+        log.info("Batch vectorised");
+        return vectorBatch;
+    }
+
     // Provide a method for batching vectorisation
     @Override
-    public List<Vector> doc2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
+    public List<Vector> emailBatch2vec(List<Message> emailBatch) throws BatchSizeTooSmallException {
         if (emailBatch == null) {
             return null;
         }
@@ -128,7 +156,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
             }
             log.info("Model trained");
             // Checks if sufficient emails are in the database
-            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
+            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < minBatchSize) {
                 throw new BatchSizeTooSmallException();
             }
             int count = 0;
@@ -153,7 +181,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public Vector doc2vec(Message msg) throws BatchSizeTooSmallException {
+    public Vector emailBatch2vec(Message msg) throws BatchSizeTooSmallException {
         // todo add anything that is relevant to the email header here.
         try {
             // load();
@@ -207,4 +235,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return vec.normalize();
     }
 
+    @Override
+    public int getMinimumBatchSize() {
+        return minBatchSize;
+    }
+
+    @Override
+    public boolean minimumBatchSizeReached() {
+        return globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) >= minBatchSize;
+    }
 }

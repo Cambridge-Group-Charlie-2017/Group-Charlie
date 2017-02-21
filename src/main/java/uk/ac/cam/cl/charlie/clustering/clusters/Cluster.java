@@ -82,7 +82,7 @@ public abstract class Cluster {
 	    messages.add(((ClusterableMessage) obj).getMessage());
 	}
 	try {
-	    return Clusterer.getVectoriser().doc2vec(messages);
+	    return Clusterer.getVectoriser().emailBatch2vec(messages);
 	} catch (BatchSizeTooSmallException e) {
 	    return null;
 	}

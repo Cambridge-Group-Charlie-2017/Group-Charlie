@@ -68,7 +68,7 @@ public class EMCluster extends Cluster {
             for (int i = 0; i < getDimensionality(); i++) {
 
                 double newAvg = (getClusterSize() * average.get(i)
-                   + vectoriser.doc2vec(((ClusterableMessage)msg).getMessage()).get(i)) / (getClusterSize() + 1);
+                   + vectoriser.emailBatch2vec(((ClusterableMessage)msg).getMessage()).get(i)) / (getClusterSize() + 1);
                 average.set(i,newAvg);
             }
         } catch (BatchSizeTooSmallException e) {
@@ -92,7 +92,7 @@ public class EMCluster extends Cluster {
 
 	    uk.ac.cam.cl.charlie.math.Vector vec;
         try {
-            vec = Clusterer.getVectoriser().doc2vec(((ClusterableMessage)msg).getMessage());
+            vec = Clusterer.getVectoriser().emailBatch2vec(((ClusterableMessage)msg).getMessage());
         } catch (BatchSizeTooSmallException e) {
             return Integer.MAX_VALUE;
         }
