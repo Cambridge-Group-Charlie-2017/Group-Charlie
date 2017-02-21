@@ -133,7 +133,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
             Vector tail = calculateDocVector(body);
             Vector head = sent2vec(msg.getSubject());
             Vector result = Vector.concat(head, tail);
-            vectorMap.put(msg, result);
             return result;
         } catch (MessagingException | IOException e) {
             return null;
