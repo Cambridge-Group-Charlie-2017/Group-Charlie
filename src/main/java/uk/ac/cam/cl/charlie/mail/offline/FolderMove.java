@@ -29,9 +29,13 @@ public class FolderMove implements OfflineChange {
 
     @Override
     public void handleChange(LocalMailRepresentation mailRepresentation) throws IMAPConnectionClosedException, MessagingException, IOException, FolderAlreadyExistsException {
+        // Move the actual server folders
         IMAPFolder rootFolder = mailRepresentation.getRootFolder().getBackingFolder();
         IMAPFolder originalFolder = (IMAPFolder) rootFolder.getFolder(originalFolderPath);
         recursiveMove(rootFolder, originalFolder, newFolderPath, hierarchicalSeparator);
+
+        // Reconnect the moved local folders to the server folders
+        mailRepresentation.getFolder(newFolderPath).openConnection(mailRepresentation.getImapConnection());
     }
 
     private static void recursiveMove(IMAPFolder rootFolder, IMAPFolder folderToMove, String newFolderPath, char separator) throws MessagingException, FolderAlreadyExistsException {

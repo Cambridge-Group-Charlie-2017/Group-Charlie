@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.mail;
 
+import com.sun.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
@@ -54,11 +55,14 @@ public class LocalMessage {
         return message != null;
     }
 
-    public void openConnection(Message m) throws MessagingException {
+    public void openConnection(Message m) throws IMAPConnectionClosedException, MessagingException {
         message = m;
+        UID = localFolder.getUID(m);
+        messageNumber = m.getMessageNumber();
+        isLocalOnly = false;
     }
 
-    public void closeConnection() throws MessagingException {
+    public void closeConnection() {
         message = null;
     }
 
@@ -107,5 +111,9 @@ public class LocalMessage {
                 && contentType.equals(m.getContentType())
                 && content.toString().equals(m.getContent().toString());
 
+    }
+
+    public void setIsLocalOnly(boolean isLocalOnly) {
+        this.isLocalOnly = isLocalOnly;
     }
 }

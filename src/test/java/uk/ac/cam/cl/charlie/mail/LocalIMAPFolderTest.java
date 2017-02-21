@@ -170,7 +170,7 @@ public class LocalIMAPFolderTest {
 //    Currently only passes when the exception it throws when it works is thrown.
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    
+
     @Test
     public void testMovingFolder() throws Exception {
         expectedException.expect(StoreClosedException.class);
