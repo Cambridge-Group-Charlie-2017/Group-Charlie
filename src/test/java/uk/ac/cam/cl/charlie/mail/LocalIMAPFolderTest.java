@@ -94,17 +94,19 @@ public class LocalIMAPFolderTest {
         createDefaultMailFormat(user, 0, 10 * magnitude);
 
         LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
+
+        assertEquals(10 * magnitude, localFolder.getMessages().size());
+
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
+
         localFolder.moveMessages(mailRepresentation.getFolder("Test 1"), toBeMoved);
-        localFolder.sync();
 
         Integer[] toBeMovedIndexes = new Integer[2 * magnitude];
         for (int i = 2 * magnitude; i < 4 * magnitude; i++) {
             toBeMovedIndexes[i - 2 * magnitude] = i;
         }
 
-        localFolder.sync();
         assertEquals(8 * magnitude, localFolder.getMessages().size());
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10 * magnitude, toBeMovedIndexes);
     }

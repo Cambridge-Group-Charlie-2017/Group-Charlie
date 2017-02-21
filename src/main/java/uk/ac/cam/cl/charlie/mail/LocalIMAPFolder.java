@@ -287,15 +287,16 @@ public class LocalIMAPFolder {
     }
 
     public void moveMessages(LocalIMAPFolder f, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        moveMessagesLocal(f, localMessages);
-        if (!hasConnection()) {
+        if (hasConnection()) {
+            checkFolderOpen();
+            f.checkFolderOpen();
+            // TODO: Check presence of all messages in current folder
+            moveMessagesServerside(f, localMessages);
+        } else {
             OfflineChangeList.getInstance().addChange(new MessageMove(this, f, localMessages));
             return;
         }
-        checkFolderOpen();
-        f.checkFolderOpen();
-        // TODO: Check presence of all messages in current folder
-        moveMessagesServerside(f, localMessages);
+        moveMessagesLocal(f, localMessages);
     }
 
     private void moveMessagesLocal(LocalIMAPFolder f, LocalMessage[] localMessages) {
