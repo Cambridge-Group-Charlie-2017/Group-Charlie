@@ -19,8 +19,12 @@ public interface VectorisingStrategy {
 
     public Vector doc2vec(Document doc) throws BatchSizeTooSmallException;
 
-    public List<Vector> doc2vec(List<Message> batch) throws BatchSizeTooSmallException;
+    public List<Vector> emailBatch2vec(List<Message> batch) throws BatchSizeTooSmallException;
+    public List<Vector> documentBatch2vec(List<Document> batch) throws BatchSizeTooSmallException;
 
-    public Vector doc2vec(Message msg) throws BatchSizeTooSmallException;
+    public Vector emailBatch2vec(Message msg) throws BatchSizeTooSmallException;
+
+    public boolean minimumBatchSizeReached();
+    public int getMinimumBatchSize();
 
 }

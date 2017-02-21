@@ -38,12 +38,14 @@ public class BasicFileWalker implements FileWalker {
 
     @Override
     public void addRootDirectory(Path p) {
+        p = p.toAbsolutePath();
         rootDirs.add(p);
         walk(p);
     }
 
     @Override
     public void removeRootDirectory(Path p) {
+        p = p.toAbsolutePath();
         rootDirs.remove(p);
         // not obvious how you remove listening to a directory
     }
@@ -84,6 +86,7 @@ public class BasicFileWalker implements FileWalker {
     }
 
     private void addToListen(Path root) {
+        root = root.toAbsolutePath();
         try {
             // also need to walk down the tree and register any sub directories
             root.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);

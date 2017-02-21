@@ -8,6 +8,7 @@ import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializer;
 import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.math.Vector;
+import uk.ac.cam.cl.charlie.vec.tfidf.VectorSerialiser;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,46 +31,6 @@ public final class WordVecDB {
     private Database db;
     PersistentMap<String, Vector> map;
     String vectorDBName = "vectors";
-
-    private static double[] toDoubleArray(byte[] bytes) {
-        // needed for deserialise (inner classes can't have static methods)
-        if (bytes.length % 8 != 0) {
-            throw new IllegalArgumentException();
-        }
-
-        ByteBuffer buf = ByteBuffer.wrap(bytes);
-
-        double[] a = new double[bytes.length / 8];
-
-        for (int i = 0; i < a.length; ++i) {
-            a[i] = buf.getDouble();
-        }
-        return a;
-    }
-
-    private class VectorSerialiser extends Serializer<Vector> {
-        @Override
-        public boolean typecheck(Object obj) {
-            return obj instanceof Vector;
-        }
-
-        @Override
-        public byte[] serialize(Vector object) {
-            // there might be a quicker way to do this...
-            ByteBuffer buf = ByteBuffer.allocate(object.size() * 8);
-            double[] components = object.toDoubleArray();
-
-            for (int i = 0; i < object.size(); ++i) {
-                buf.putDouble(components[i]);
-            }
-            return buf.array();
-        }
-
-        @Override
-        public Vector deserialize(byte[] bytes) {
-            return new Vector(toDoubleArray(bytes));
-        }
-    }
 
     private WordVecDB() {
         cache = CacheBuilder.newBuilder()

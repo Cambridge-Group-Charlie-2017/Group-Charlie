@@ -1,21 +1,19 @@
 package uk.ac.cam.cl.charlie.vec;
 
+import java.nio.file.Path;
+
 public class Document {
 	
 	private String content;
-	private String filename;
+	private Path path;
 
 	private boolean hasBeenVectorised = false;
 	
-	public Document(String filename, String content) {
+	public Document(Path p, String content) {
 		this.content = content;
-		this.filename = filename;
+		this.path = p;
 	}
 
-	public String getName() {
-		return filename;
-	}	
-	
 	public String getContent() {
 		return content;
 	}
@@ -28,4 +26,7 @@ public class Document {
 	    return hasBeenVectorised;
     }
 
+	public Path getPath() {
+		return path;
+	}
 }
