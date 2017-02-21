@@ -1,17 +1,17 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Speeding up counter access by caching in memory.
  *
  * @author Gary Guo
- * @author Shyam
+ * @author Shyam Tailor
  */
 public class CachedWordCounter extends BasicWordCounter {
 
@@ -20,7 +20,9 @@ public class CachedWordCounter extends BasicWordCounter {
 
     public CachedWordCounter(WordCounter counter) {
         upstream = counter;
-        cache = CacheBuilder.newBuilder().maximumSize(20000).build(); // change size as needed
+        cache = CacheBuilder.newBuilder().maximumSize(20000).build(); // change
+                                                                      // size as
+                                                                      // needed
     }
 
     @Override
@@ -40,12 +42,11 @@ public class CachedWordCounter extends BasicWordCounter {
     }
 
     @Override
-    public void increment (String word, int n) {
+    public void increment(String word, int n) {
         int currentVal = frequency(word);
         cache.put(word, currentVal + n);
         upstream.increment(word, n); // perhaps worth looking at multithreading?
     }
-
 
     @Override
     public Set<String> words() {
