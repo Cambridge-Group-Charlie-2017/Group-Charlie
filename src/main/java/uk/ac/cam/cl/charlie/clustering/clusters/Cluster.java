@@ -5,12 +5,11 @@ import java.util.List;
 
 import javax.mail.Message;
 
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
-import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 
 public abstract class Cluster {
 
@@ -20,33 +19,33 @@ public abstract class Cluster {
     private int clusterSize;
 
     public int getDimensionality() {
-	return dimensionality;
+        return dimensionality;
     }
 
     public int getClusterSize() {
-	return clusterSize;
+        return clusterSize;
     }
 
     public ArrayList<ClusterableObject> getContents() {
-	return contents;
+        return contents;
     }
 
     public String getName() {
-	return clusterName;
+        return clusterName;
     }
 
     // Naming is a separate process to clustering, so the name can be assigned
     // later.
     public void setName(String name) {
-	clusterName = name;
+        clusterName = name;
     }
 
     public boolean contains(ClusterableObject obj) {
-	return contents.contains(obj);
+        return contents.contains(obj);
     }
 
     public boolean containsMessage(Message msg) {
-	return contents.contains(new ClusterableMessage(msg));
+        return contents.contains(new ClusterableMessage(msg));
     }
 
     /*
@@ -61,9 +60,9 @@ public abstract class Cluster {
 
     // Extract relevant metadata from the initial contents.
     protected Cluster(ArrayList<ClusterableObject> initialContents) {
-	contents = initialContents;
-	clusterSize = initialContents.size();
-	dimensionality = initialContents.get(0).getVec().size();
+        contents = initialContents;
+        clusterSize = initialContents.size();
+        dimensionality = initialContents.get(0).getVector().size();
     }
 
     protected abstract void updateMetadataAfterAdding(ClusterableObject msg);
@@ -71,22 +70,17 @@ public abstract class Cluster {
     // adding a new message to a clustering (during classification) should cause
     // clustering metadata to change accordingly.
     public void addMessage(ClusterableObject msg) {
-	updateMetadataAfterAdding(msg);
-	contents.add(msg);
-	clusterSize++;
+        updateMetadataAfterAdding(msg);
+        contents.add(msg);
+        clusterSize++;
     }
 
     public List<Vector> getContentVecs() {
-	List<Message> messages = new ArrayList<>();
-	for (ClusterableObject obj : contents) {
-	    messages.add(((ClusterableMessage) obj).getMessage());
-	}
-	try {
-	    return Clusterer.getVectoriser().doc2vec(messages);
-	} catch (BatchSizeTooSmallException e) {
-	    return null;
-	}
-
+        List<Message> messages = new ArrayList<>();
+        for (ClusterableObject obj : contents) {
+            messages.add(((ClusterableMessage) obj).getMessage());
+        }
+        return Clusterer.getVectoriser().doc2vec(messages);
     }
 
     // updateServer() method? Could take mailbox as argument and use Mailbox to

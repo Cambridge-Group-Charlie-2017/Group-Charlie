@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.vec;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.mail.Message;
 
@@ -17,10 +18,18 @@ public interface VectorisingStrategy {
 
     public Optional<Vector> word2vec(String word);
 
-    public Vector doc2vec(Document doc) throws BatchSizeTooSmallException;
+    void train(Message message);
 
-    public List<Vector> doc2vec(List<Message> batch) throws BatchSizeTooSmallException;
+    default void train(List<Message> batch) {
+        batch.forEach(this::train);
+    }
 
-    public Vector doc2vec(Message msg) throws BatchSizeTooSmallException;
+    public Vector doc2vec(Document doc);
+
+    public Vector doc2vec(Message msg);
+
+    default List<Vector> doc2vec(List<Message> batch) {
+        return batch.stream().map(this::doc2vec).collect(Collectors.toList());
+    }
 
 }

@@ -71,7 +71,9 @@ public class Vector {
     }
 
     public Vector normalize() {
-	return scale(1 / magnitude());
+        double magnitude = magnitude();
+        if (magnitude == 0) return this;
+        return scale(1 / magnitude);
     }
 
     @Override

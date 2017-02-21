@@ -8,7 +8,7 @@ import javax.mail.Message;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
-import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 
 /*
  * Created by Ben on 13/02/2017.
@@ -16,21 +16,27 @@ import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 public class ClusterableMessageGroup extends ClusterableObjectGroup {
 
     public ClusterableMessageGroup(ArrayList<ClusterableMessage> messages) {
-		contents = new ArrayList<>();
-		for (int i = 0; i < messages.size(); i++)
-			contents.add(messages.get(i));
-		}
+        contents = new ArrayList<>();
+        for (int i = 0; i < messages.size(); i++)
+            contents.add(messages.get(i));
+    }
 
-	@Override
-	public List<Vector> getVecs() {
-		ArrayList<Message> messages = new ArrayList<>();
-		for (ClusterableObject o : contents)
-			messages.add(((ClusterableMessage) o).getMessage());
+    @Override
+    public List<Vector> getVecs() {
+        VectorisingStrategy strategy = Clusterer.getVectoriser();
 
-		try {
-        	return Clusterer.getVectoriser().doc2vec(messages);
-		} catch (BatchSizeTooSmallException e) {
-			return null;
-		}
+        ArrayList<Message> messages = new ArrayList<>();
+        for (ClusterableObject o : contents) {
+            messages.add(((ClusterableMessage) o).getMessage());
+        }
+
+        strategy.train(messages);
+
+        List<Vector> vector = new ArrayList<>();
+        for (ClusterableObject o : contents) {
+            vector.add(o.getVector());
+        }
+
+        return vector;
     }
 }
