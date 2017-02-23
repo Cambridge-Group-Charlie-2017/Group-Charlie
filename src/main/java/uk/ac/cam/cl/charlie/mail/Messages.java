@@ -6,6 +6,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
+import javax.mail.internet.InternetAddress;
 
 import org.jsoup.Jsoup;
 
@@ -86,4 +87,7 @@ public class Messages {
         return (String) p.getContent();
     }
 
+    public static InternetAddress getFromAddress(Message msg) throws MessagingException {
+        return (InternetAddress) msg.getFrom()[0];
+    }
 }

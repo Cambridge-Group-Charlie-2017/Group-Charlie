@@ -177,4 +177,8 @@ public class PersistentMap<K, V> implements Map<K, V> {
         throw new UnsupportedOperationException();
     }
 
+    public DB getLevelDB() {
+        return this.db;
+    }
+
 }
