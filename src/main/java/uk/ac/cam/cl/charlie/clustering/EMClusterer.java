@@ -7,6 +7,7 @@ import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 import uk.ac.cam.cl.charlie.math.Vector;
+import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.EM;
 import weka.core.Attribute;

@@ -6,6 +6,7 @@ import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfCachingVectoriser;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 import javax.mail.Message;
@@ -19,7 +20,7 @@ public abstract class Clusterer {
     private ClusterGroup clusters;
     //private Mailbox mailbox;
 
-    private static VectorisingStrategy vectoriser = TfidfVectoriser.getVectoriser();
+    private static VectorisingStrategy vectoriser = TfidfCachingVectoriser.getVectoriser();
     public static VectorisingStrategy getVectoriser() {return vectoriser;}
 
     //alternatively, could convert to another form before returning.
@@ -31,6 +32,8 @@ public abstract class Clusterer {
     public void classifyNewEmails(ArrayList<Message> messages) throws IncompatibleDimensionalityException {
         //For each new message, insert it into the ClusterGroup. This adds it into the cluster that bears the
         //closest match.
+        getVectoriser().train(messages);
+
         for (int i = 0; i < messages.size(); i++) {
             clusters.insert(new ClusterableMessage(messages.get(i)));
         }
@@ -51,6 +54,8 @@ public abstract class Clusterer {
         //precondition: all Messages in 'message' are clear for clustering i.e. are not in protected folders.
         //call training methods in Vectoriser. If Vectorising model doesn't require training, these will be blank anyway.
         //postcondition: 'clusters' contains the new clustering, and all emails are in their new clusters on the server.
+
+        getVectoriser().train(messages);
 
         ArrayList<ClusterableMessage> clusterableMessages = new ArrayList<>();
         ArrayList<ClusterableObject> clusterableObject = new ArrayList<>();

@@ -4,6 +4,7 @@ import com.pff.PSTException;
 import com.pff.PSTFile;
 import com.pff.PSTFolder;
 import com.pff.PSTMessage;
+import org.joda.time.DateTime;
 import org.junit.Test;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamingException;
@@ -16,6 +17,7 @@ import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Vector;
 
 /**
@@ -109,12 +111,17 @@ public class ClusterNamerTest {
     @Test
     public void nameTest2() throws Exception {
         String filename = "src/main/resources/enron/bass-e.pst";
+        Date initial = new Date();
         PSTFile pstFile = new PSTFile(filename);
         ArrayList<ClusterableMessage> clusterableMessages = processFolder(pstFile.getRootFolder());
+        System.out.println("Loaded messages into memory");
+        Date loaded = new Date();
 
         ClusterableMessageGroup clusterableObjectGroup = new ClusterableMessageGroup(clusterableMessages);
         EMClusterer clusterer = new EMClusterer(clusterableObjectGroup);
         ClusterGroup clusters = clusterer.getClusters();
+        System.out.println("emails clustered");
+        Date clustered = new Date();
 
         for(int i=0;i<clusters.size();i++) {
             System.out.println("Cluster Name: " + ClusterNamer.name(clusters.get(i))+"\n");
@@ -126,6 +133,12 @@ public class ClusterNamerTest {
         for(int i=0;i<clusters.size();i++) {
             System.out.println("Cluster Name: " + clusters.get(i).getName() + "\n");
         }
+
+        Date named = new Date();
+
+        System.out.println("Loading stage: "+(loaded.getTime() - initial.getTime()) + "ms");
+        System.out.println("Clustering stage: "+(clustered.getTime() - loaded.getTime()) + "ms");
+        System.out.println("Loading stage: "+(named.getTime() - clustered.getTime()) + "ms");
     }
 
 

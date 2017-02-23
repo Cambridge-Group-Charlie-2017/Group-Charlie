@@ -85,7 +85,7 @@ public class ClusterNamer {
 
         Map.Entry<String, Integer> curEntry = iterator.next();
         int count = 0;
-        while (curEntry != null && curEntry.getValue() > cutOff && count < 5) {
+        while (iterator.hasNext() && curEntry != null && curEntry.getValue() > cutOff && count < 5) {
             wordsToUse.add(curEntry.getKey());
             curEntry = iterator.next();
             count++;
