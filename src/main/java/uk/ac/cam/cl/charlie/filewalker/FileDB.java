@@ -98,7 +98,6 @@ public final class FileDB {
                             Vector v = vectorIterator.next();
                             fullMap.put(path, v);
                             putIntoPriority(path, v);
-
                         }
 
                         vectorisingQueue.clear();
@@ -109,6 +108,7 @@ public final class FileDB {
                         Vector v = vectoriser.doc2vec(d);
                         fullMap.put(path,v);
                         putIntoPriority(path, v);
+
                     }
                 }
             }
