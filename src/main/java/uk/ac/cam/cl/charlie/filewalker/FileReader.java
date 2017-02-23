@@ -15,7 +15,7 @@ public class FileReader {
     private static Document readPlainText(Path p) throws IOException {
         String contents = new String(Files.readAllBytes(p));
         String filename = p.getFileName().toString();
-        return new Document(filename, contents);
+        return new Document(p.toAbsolutePath(), contents);
     }
 
     public static boolean isReadableFile(Path p) throws IOException {

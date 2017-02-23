@@ -14,10 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -73,13 +70,28 @@ public final class FileDB {
                         // just ignore it - if the file is now magically changed just return, and ignore it
                     }
                 } else {
+                    Document d = FileReader.readFile(p);
                     if (vectorisingQueue.size() != 0) {
                         // haven't flushed the queue yet - this is probably the first opportunity
-                        Document d = FileReader.readFile(p);
                         vectorisingQueue.add(d);
                         List<Vector> vectors = vectoriser.documentBatch2vec(vectorisingQueue);
-                        // todo - zip the two queues together
+                        if (vectors.size() != vectorisingQueue.size()) {
+                            throw new Error("Assertion failure - the length of the list of vectors should match" +
+                                    "the length of the list of documents");
+                        }
+
+                        Iterator<Document> documentIterator = vectorisingQueue.iterator();
+                        Iterator<Vector> vectorIterator = vectors.iterator();
+
+                        while (documentIterator.hasNext()) {
+                            fullMap.put(documentIterator.next().getPath().toAbsolutePath(), vectorIterator.next());
+                        }
+
                         vectorisingQueue.clear();
+                    }
+
+                    else {
+                        fullMap.put(d.getPath().toAbsolutePath(),vectoriser.doc2vec(d));
                     }
                 }
             }
@@ -87,7 +99,7 @@ public final class FileDB {
                 BatchSizeTooSmallException e) {
             log.debug("file apparently no longer readable or accessible", e);
             return; // can't just die because a file is no longer readable or has magically changed
-            // just ignore it!
+            // just ignore it! Missing a file is not hugely important
         }
 
     }
@@ -98,17 +110,12 @@ public final class FileDB {
 
     public void processModifiedFile(Path p, BasicFileAttributes attrs) {
         // todo
-        fullMap.put(p, Vector.zero(300));
+        processFile(p);
     }
 
-    private Optional<Vector> vectoriseFileIfPossible(Path p) throws IOException, BatchSizeTooSmallException,
-            UnreadableFileTypeException {
-        if (FileReader.isReadableFile(p)) {
-            Document doc = FileReader.readFile(p);
-            return Optional.of(vectoriser.emailBatch2vec(doc));
-        } else {
-            return Optional.empty();
-        }
+    private Path getMostRelevantFile(Vector v) {
+        // query priority first
+        return null; // todo
     }
 
 }
