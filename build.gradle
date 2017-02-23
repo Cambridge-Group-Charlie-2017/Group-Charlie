@@ -67,6 +67,7 @@ dependencies {
 
     // Mail server test framework
     testCompile 'com.icegreen:greenmail:1.5.3'
+    testCompile 'com.pff:java-libpst:0.8.1'
 
 }
 
@@ -76,6 +77,12 @@ mainClassName = 'App'
 task downloadWord2Vec(type: Download) {
     src 'https://www.dropbox.com/s/8q626nhgrx6ez5m/wordvectors.txt?dl=1'
     dest 'src/main/resources/word2vec/wordvectors.txt'
+    overwrite false
+}
+
+task downloadDataset(type: Download) {
+    src 'https://www.dropbox.com/s/6uq3skacxqq6vft/bass-e.pst?dl=0'
+    dest 'src/main/resources/enron/bass-e.pst'
     overwrite false
 }
 

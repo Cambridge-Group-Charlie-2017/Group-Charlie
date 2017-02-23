@@ -1,9 +1,5 @@
 package uk.ac.cam.cl.charlie.clustering;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
@@ -15,6 +11,10 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Matthew Boyce
@@ -33,7 +33,7 @@ public class MessageCreator {
             Multipart multipart = new MimeMultipart();
             multipart.addBodyPart(content);
             // add attachments
-            for (File file : attachments) {
+            for(File file : attachments) {
                 MimeBodyPart attachment = new MimeBodyPart();
                 DataSource source = new FileDataSource(file);
                 attachment.setDataHandler(new DataHandler(source));
@@ -51,19 +51,19 @@ public class MessageCreator {
         return null;
     }
 
-    public static ArrayList<Message> createTestMessages() {
-        ArrayList<Message> messages = new ArrayList<>();
-        ArrayList<File> files = new ArrayList<>();
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
-        messages.add(createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "", files));
+    public static ArrayList<Message> createTestMessages(){
+        ArrayList<Message> messages= new ArrayList<Message>();
+        ArrayList<File> files = new ArrayList<File>();
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
+        messages.add(createMessage("blabla@gmail.com","Bob@companyname.com","Project X", "",files));
 
         return messages;
     }
