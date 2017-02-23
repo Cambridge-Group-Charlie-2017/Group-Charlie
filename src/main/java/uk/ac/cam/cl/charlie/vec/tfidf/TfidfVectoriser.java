@@ -101,7 +101,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     }
 
     @Override
-    public Vector emailBatch2vec(Document doc) {
+    public Vector doc2vec(Document doc) {
         train(doc);
         // todo add any other content to do with names or other meta data
         return calculateDocVector(doc.getContent());
