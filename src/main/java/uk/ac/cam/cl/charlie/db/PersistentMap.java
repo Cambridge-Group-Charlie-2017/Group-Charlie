@@ -29,13 +29,13 @@ public class PersistentMap<K, V> implements Map<K, V> {
             batch.delete(keyBytes);
         }
 
+        public void commit() {
+            db.write(batch);
+        }
+
         @Override
         public void close() {
-            try {
-                batch.close();
-            } catch (IOException e) {
-                throw new Error(e);
-            }
+            commit();
         }
     }
 
