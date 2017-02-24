@@ -1,4 +1,4 @@
-package uk.ac.cam.cl.charlie.mail;
+package uk.ac.cam.cl.charlie.mail.sync;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,11 +7,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.mail.Address;
@@ -22,10 +25,10 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
+import javax.mail.UIDFolder;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import org.iq80.leveldb.DBIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +40,10 @@ import com.sun.mail.imap.IMAPStore;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializers;
-import uk.ac.cam.cl.charlie.mail.SyncIMAPStore.SerializedFolder;
+import uk.ac.cam.cl.charlie.mail.sync.SyncIMAPStore.SerializedFolder;
+import uk.ac.cam.cl.charlie.util.ObjectHolder;
 
-public class SyncIMAPFolder extends Folder {
+public class SyncIMAPFolder extends Folder implements UIDFolder {
 
     /*
      * Get the status of the message. 1 indicates only envelope is fetched, 2
@@ -267,7 +271,19 @@ public class SyncIMAPFolder extends Folder {
         }
     }
 
-    private static Logger log = LoggerFactory.getLogger(SyncIMAPFolder.class);
+    Flags deserializeFlags(byte[] array) {
+        ByteArrayInputStream bis = new ByteArrayInputStream(array);
+        DataInputStream dis = new DataInputStream(bis);
+        try {
+            dis.skipBytes(4);
+
+            return deserializeFlags(dis);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static Logger log = LoggerFactory.getLogger(SyncIMAPFolder.class.getPackage().getName());
     PersistentMap<Long, byte[]> map;
 
     String fullname;
@@ -281,6 +297,9 @@ public class SyncIMAPFolder extends Folder {
     List<Long> idUidMap = new ArrayList<>();
     ConcurrentMap<Long, SyncIMAPMessage> messages;
 
+    // TODO: Make this persistent
+    LinkedList<Change> offlineChanges = new LinkedList<>();
+
     public SyncIMAPFolder(SyncIMAPStore store, String fullname) {
         super(store);
 
@@ -289,28 +308,28 @@ public class SyncIMAPFolder extends Folder {
         messages = new MapMaker().weakValues().makeMap();
     }
 
-    public void teardownAll() {
-        if (validity == 0) {
-            // We are starting synchronization, do no-op
-            return;
-        }
+    private void teardownAll() {
         throw new Error("Stupid server change UID");
     }
 
+    /*
+     * Rebuild the ID->UID map
+     */
     private void rebuildUid() {
         idUidMap.clear();
-        DBIterator iter = map.getLevelDB().iterator();
-        iter.seekToFirst();
 
-        while (iter.hasNext()) {
-            lastseenuid = Serializers.LONG.deserialize(iter.next().getKey());
-            idUidMap.add(lastseenuid);
+        for (long uid : map.keySet()) {
+            lastseenuid = uid;
+            idUidMap.add(uid);
         }
 
         msgcount = idUidMap.size();
     }
 
-    void synchronizeMessage(long uid) throws MessagingException {
+    /*
+     * Download a message from remote server
+     */
+    void downloadMessage(long uid) throws MessagingException {
         // Ensure connection
         SyncIMAPStore store = (SyncIMAPStore) this.store;
         store.connectRemote();
@@ -323,7 +342,7 @@ public class SyncIMAPFolder extends Folder {
             return;
         }
 
-        log.info("Downloading message {}", uid);
+        log.info("{}/{}: Downloading message", fullname, uid);
 
         imapFolder.open(READ_ONLY);
         try {
@@ -334,7 +353,28 @@ public class SyncIMAPFolder extends Folder {
         }
     }
 
+    /*
+     * Upload local changes to server
+     */
+    protected void synchronizeUpdate(IMAPFolder imapFolder) throws MessagingException {
+        imapFolder.open(IMAPFolder.READ_WRITE);
+
+        try {
+            while (!offlineChanges.isEmpty()) {
+                Change change = offlineChanges.removeFirst();
+                change.perform(imapFolder);
+            }
+        } finally {
+            imapFolder.close(false);
+        }
+    }
+
+    /*
+     * Synchronize local copy with the server copy
+     */
     protected void synchronize() throws MessagingException {
+        log.info("{}: Start synchronization", fullname);
+
         // Ensure connection
         SyncIMAPStore store = (SyncIMAPStore) this.store;
         store.connectRemote();
@@ -346,17 +386,17 @@ public class SyncIMAPFolder extends Folder {
             long validity = imapFolder.getUIDValidity();
             if (validity != this.validity) {
                 if (this.validity != 0) {
-                    log.info("UID is invalid for folder '{}', clearing local copy", fullname);
+                    log.info("{}: UID invalidated", fullname);
                     teardownAll();
                 }
                 this.validity = validity;
-            } else {
-                log.info("UID is valid for folder '{}'", fullname);
             }
 
-            boolean dirty = false;
+            ObjectHolder<Boolean> dirty = new ObjectHolder<>(false);
 
-            log.info("Last seen UID is {}", lastseenuid);
+            log.info("{}: Last seen UID is {}", fullname, lastseenuid);
+
+            synchronizeUpdate(imapFolder);
 
             imapFolder.open(Folder.READ_ONLY);
 
@@ -364,14 +404,14 @@ public class SyncIMAPFolder extends Folder {
                 Message[] message = imapFolder.getMessagesByUID(lastseenuid + 1, IMAPFolder.LASTUID);
 
                 if (message.length != 0 && imapFolder.getUID(message[message.length - 1]) > lastseenuid) {
-                    dirty = true;
+                    dirty.value = true;
 
                     FetchProfile profile = new FetchProfile();
                     profile.add(FetchProfile.Item.ENVELOPE);
                     profile.add(FetchProfile.Item.CONTENT_INFO);
                     profile.add(FetchProfile.Item.FLAGS);
 
-                    log.info("Found {} new emails", message.length);
+                    log.info("{}: Found {} new emails", fullname, message.length);
 
                     for (int i = 0; i < message.length; i += 1024) {
                         int len = i + 1024 < message.length ? 1024 : message.length - i;
@@ -380,7 +420,7 @@ public class SyncIMAPFolder extends Folder {
                         // Clean up to allow GC
                         Arrays.fill(message, i, i + len, null);
 
-                        log.info("Fetching email {} to {}", imapFolder.getUID(chunk[0]),
+                        log.info("{}: Fetching email {} to {}", fullname, imapFolder.getUID(chunk[0]),
                                 imapFolder.getUID(chunk[len - 1]));
 
                         imapFolder.fetch(chunk, profile);
@@ -389,7 +429,7 @@ public class SyncIMAPFolder extends Folder {
                             IMAPMessage imapMessage = (IMAPMessage) m;
                             long uid = imapFolder.getUID(m);
                             byte[] serialized;
-                            // if (m.getSize() > 65536) {
+                            // if (m.getSize() > 16384) {
                             serialized = serializeWithoutContent(imapMessage);
                             // } else {
                             // log.info("Fetching email {}", uid);
@@ -401,16 +441,93 @@ public class SyncIMAPFolder extends Folder {
                     }
                 }
 
+                // Now checking flags of all fetched messages
                 Message[] oldMessage = imapFolder.getMessagesByUID(1, lastseenuid);
-                FetchProfile profile = new FetchProfile();
-                profile.add(FetchProfile.Item.FLAGS);
+                if (oldMessage.length != 0) {
+                    log.info("{}: Checking update for {} old emails", fullname, oldMessage.length);
 
-                log.info("Checking update for {} old emails", oldMessage.length);
+                    FetchProfile profile = new FetchProfile();
+                    profile.add(FetchProfile.Item.FLAGS);
+                    imapFolder.fetch(oldMessage, profile);
 
-                imapFolder.fetch(oldMessage, profile);
+                    new SortedDiff<Long, byte[], Message>() {
+                        @Override
+                        protected void onRemove(Entry<Long, byte[]> entry) {
+                            long key = entry.getKey();
+                            if (key > lastseenuid) {
+                                // It's newly fetched emails instead of emails
+                                // that should be removed!
+                                breakExecution();
+                            }
 
-                if (dirty) {
-                    rebuildUid();
+                            messages.remove(key);
+                            map.remove(key);
+
+                            log.info("{}/{}: Email removed", fullname, key);
+
+                            dirty.value = true;
+                        }
+
+                        @Override
+                        protected void onNoChange(Entry<Long, byte[]> e1, Entry<Long, Message> e2) {
+                            long uid = e1.getKey();
+                            try {
+                                Flags newFlags = e2.getValue().getFlags();
+
+                                // Use existing message object if it exists
+                                SyncIMAPMessage localmsg = messages.get(uid);
+
+                                if (localmsg == null) {
+                                    // Fetch only flags if message is not in
+                                    // memory
+                                    // avoiding do the full deserialization
+                                    Flags oldFlags = deserializeFlags(map.get(uid));
+                                    if (!newFlags.equals(oldFlags)) {
+                                        // If the flag is changed then we do the
+                                        // entire deserialization. In theory
+                                        // this
+                                        // can be avoided but it's
+                                        // quite complex
+                                        localmsg = getMessageByUID(uid);
+                                    }
+                                } else {
+                                    // If we don't need to change anything then
+                                    // set
+                                    // localmsg to null
+                                    if (localmsg.getFlags().equals(newFlags)) {
+                                        localmsg = null;
+                                    }
+                                }
+
+                                if (localmsg != null) {
+                                    // Override flags stored locally
+                                    log.info("{}/{}: Flag changed", fullname, uid);
+                                    localmsg.overrideFlags(newFlags);
+                                }
+                            } catch (MessagingException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+
+                        @Override
+                        protected void onAdd(Entry<Long, Message> entry) {
+                            // This should be impossible
+                            log.error("Unexpected message appeared {}", entry.getKey());
+                        }
+
+                    }.diff(map.entrySet().iterator(), Arrays.stream(oldMessage).<Entry<Long, Message>>map(m -> {
+                        try {
+                            return new AbstractMap.SimpleEntry<>(imapFolder.getUID(m), m);
+                        } catch (MessagingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).iterator());
+
+                    imapFolder.fetch(oldMessage, profile);
+
+                    if (dirty.value) {
+                        rebuildUid();
+                    }
                 }
             } finally {
                 imapFolder.close(false);
@@ -428,11 +545,16 @@ public class SyncIMAPFolder extends Folder {
     }
 
     private void resync() {
-        if (lastsync.getTime() < new Date().getTime() - 60) {
+        if (lastsync.getTime() < new Date().getTime() - 60000) {
             try {
                 synchronize();
             } catch (MessagingException e) {
-                e.printStackTrace();
+                SyncIMAPStore store = (SyncIMAPStore) this.store;
+                if (store.store != null && !store.store.isConnected()) {
+                    log.info("{}: Failed to synchronize due to connectivity problems", fullname);
+                } else {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -472,12 +594,11 @@ public class SyncIMAPFolder extends Folder {
         if (pattern.equals("*") && fullname.isEmpty()) {
             // call list on root folder
             SyncIMAPStore store = (SyncIMAPStore) this.store;
-            DBIterator iter = store.database.getLevelDB().iterator();
 
             ArrayList<Folder> list = new ArrayList<>();
 
-            while (iter.hasNext()) {
-                list.add(store.getFolder(Serializers.STRING.deserialize(iter.next().getKey())));
+            for (String key : store.database.keySet()) {
+                list.add(store.getFolder(key));
             }
 
             return list.toArray(new Folder[list.size()]);
@@ -543,31 +664,25 @@ public class SyncIMAPFolder extends Folder {
 
     @Override
     public int getMessageCount() throws MessagingException {
+        if (!exists) {
+            throw new MessagingException("Folder does not exist");
+        }
         resync();
         return msgcount;
     }
 
     @Override
     public Message getMessage(int msgnum) throws MessagingException {
+        if (!exists) {
+            throw new MessagingException("Folder does not exist");
+        }
+
         if (msgnum <= 0 || msgnum > idUidMap.size()) {
-            throw new MessagingException("OOB");
+            throw new MessagingException("Message id out of bound");
         }
 
         long uid = idUidMap.get(msgnum - 1);
-        SyncIMAPMessage msg = messages.get(uid);
-        if (msg == null) {
-            byte[] bytes = map.get(uid);
-            int tag = deserializeStatus(bytes);
-            if (tag == 1)
-                msg = deserializeWithoutContent(bytes, uid);
-            else {
-                msg = new SyncIMAPMessage(this, uid);
-                deserializeWithContent(bytes, msg);
-            }
-            messages.put(uid, msg);
-        }
-
-        return msg;
+        return getMessageByUID(uid);
     }
 
     @Override
@@ -580,6 +695,9 @@ public class SyncIMAPFolder extends Folder {
         throw new UnsupportedOperationException("expunge not supported");
     }
 
+    /*
+     * Called by SyncIMAPStore when the folder structure is changed
+     */
     void updateFromSerialized(SerializedFolder serializedFolder) {
         if (serializedFolder == null) {
             exists = false;
@@ -604,6 +722,69 @@ public class SyncIMAPFolder extends Folder {
             validity = serializedFolder.uidvalidity;
             type = serializedFolder.types;
             lastsync = serializedFolder.lastsync;
+        }
+    }
+
+    protected void enqueueChange(Change change) {
+        offlineChanges.add(change);
+    }
+
+    @Override
+    public void finalize() {
+        log.info("{} finalized");
+    }
+
+    @Override
+    public long getUIDValidity() throws MessagingException {
+        return validity;
+    }
+
+    @Override
+    public SyncIMAPMessage getMessageByUID(long uid) throws MessagingException {
+        if (!exists) {
+            throw new MessagingException("Folder does not exist");
+        }
+
+        SyncIMAPMessage msg = messages.get(uid);
+        if (msg == null) {
+            byte[] bytes = map.get(uid);
+            int tag = deserializeStatus(bytes);
+            if (tag == 1)
+                msg = deserializeWithoutContent(bytes, uid);
+            else {
+                msg = new SyncIMAPMessage(this, uid);
+                deserializeWithContent(bytes, msg);
+            }
+            msg.initialized = true;
+            messages.put(uid, msg);
+        }
+
+        return msg;
+    }
+
+    @Override
+    public Message[] getMessagesByUID(long start, long end) throws MessagingException {
+        throw new UnsupportedOperationException("getMessagesByUID(long, long) not implemented");
+    }
+
+    @Override
+    public Message[] getMessagesByUID(long[] uids) throws MessagingException {
+        throw new UnsupportedOperationException("getMessagesByUID(long[]) not implemented");
+    }
+
+    @Override
+    public long getUID(Message message) throws MessagingException {
+        if (message instanceof SyncIMAPMessage) {
+            return ((SyncIMAPMessage) message).uid;
+        }
+        throw new IllegalArgumentException("Unexpected message");
+    }
+
+    protected void flushChange(SyncIMAPMessage message) throws MessagingException {
+        if (deserializeStatus(map.get(message.uid)) == 1) {
+            map.put(message.uid, serializeWithoutContent(message));
+        } else {
+            map.put(message.uid, serializeWithContent(message));
         }
     }
 
