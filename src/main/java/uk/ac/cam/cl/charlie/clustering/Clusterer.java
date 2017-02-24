@@ -20,7 +20,7 @@ public abstract class Clusterer {
     private ClusterGroup clusters;
     //private Mailbox mailbox;
 
-    private static VectorisingStrategy vectoriser = TfidfCachingVectoriser.getVectoriser();
+    private static VectorisingStrategy vectoriser = TfidfVectoriser.getVectoriser();
     public static VectorisingStrategy getVectoriser() {return vectoriser;}
 
     //alternatively, could convert to another form before returning.
@@ -58,11 +58,9 @@ public abstract class Clusterer {
         getVectoriser().train(messages);
 
         ArrayList<ClusterableMessage> clusterableMessages = new ArrayList<>();
-        ArrayList<ClusterableObject> clusterableObject = new ArrayList<>();
         for (Message m : messages) {
             ClusterableMessage clusterableMessage = new ClusterableMessage(m);
             clusterableMessages.add(clusterableMessage);
-            clusterableObject.add(clusterableMessage);
         }
 
         //sets 'clusters' field to new clusters based on the 'messages' input.
