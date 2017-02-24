@@ -16,6 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import javax.mail.Address;
 import javax.mail.FetchProfile;
@@ -332,24 +334,29 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
     void downloadMessage(long uid) throws MessagingException {
         // Ensure connection
         SyncIMAPStore store = (SyncIMAPStore) this.store;
-        store.connectRemote();
-        IMAPStore imapStore = store.store;
-        IMAPFolder imapFolder = (IMAPFolder) imapStore.getFolder(fullname);
+        Future<?> f = store.submitTask((imapStore) -> {
+            IMAPFolder imapFolder = (IMAPFolder) imapStore.getFolder(fullname);
 
-        long validity = imapFolder.getUIDValidity();
-        if (validity != this.validity) {
-            // UID does not make sense now
-            return;
-        }
+            long validity = imapFolder.getUIDValidity();
+            if (validity != this.validity) {
+                // UID does not make sense now
+                return;
+            }
 
-        log.info("{}/{}: Downloading message", fullname, uid);
+            log.info("{}/{}: Downloading message", fullname, uid);
 
-        imapFolder.open(READ_ONLY);
+            imapFolder.open(READ_ONLY);
+            try {
+                byte[] bytes = serializeWithContent((IMAPMessage) imapFolder.getMessageByUID(uid));
+                map.put(uid, bytes);
+            } finally {
+                imapFolder.close(false);
+            }
+        });
         try {
-            byte[] bytes = serializeWithContent((IMAPMessage) imapFolder.getMessageByUID(uid));
-            map.put(uid, bytes);
-        } finally {
-            imapFolder.close(false);
+            f.get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
         }
     }
 
@@ -372,13 +379,12 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
     /*
      * Synchronize local copy with the server copy
      */
-    protected void synchronize() throws MessagingException {
+    protected void doSynchronize(IMAPStore imapStore) throws MessagingException {
         log.info("{}: Start synchronization", fullname);
 
         // Ensure connection
         SyncIMAPStore store = (SyncIMAPStore) this.store;
-        store.connectRemote();
-        IMAPStore imapStore = store.store;
+
         IMAPFolder imapFolder = (IMAPFolder) imapStore.getFolder(fullname);
 
         // Only synchronize if the folder can contain messages
@@ -544,19 +550,8 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
     }
 
-    private void resync() {
-        if (lastsync.getTime() < new Date().getTime() - 60000) {
-            try {
-                synchronize();
-            } catch (MessagingException e) {
-                SyncIMAPStore store = (SyncIMAPStore) this.store;
-                if (store.store != null && !store.store.isConnected()) {
-                    log.info("{}: Failed to synchronize due to connectivity problems", fullname);
-                } else {
-                    e.printStackTrace();
-                }
-            }
-        }
+    public void synchronize() {
+        ((SyncIMAPStore) store).submitTask(this::doSynchronize);
     }
 
     @Override
@@ -667,7 +662,6 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
         if (!exists) {
             throw new MessagingException("Folder does not exist");
         }
-        resync();
         return msgcount;
     }
 

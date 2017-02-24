@@ -1,11 +1,14 @@
 package uk.ac.cam.cl.charlie.mail.sync;
 
-import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.mail.Folder;
 import javax.mail.MessagingException;
@@ -16,6 +19,7 @@ import javax.mail.URLName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.MapMaker;
 import com.sun.mail.imap.IMAPStore;
 
 import uk.ac.cam.cl.charlie.db.Database;
@@ -63,21 +67,31 @@ public class SyncIMAPStore extends Store {
 
     };
 
-    private static Logger log = LoggerFactory.getLogger(SyncIMAPStore.class);
+    static interface SyncTask {
+        public abstract void perform(IMAPStore store) throws MessagingException;
+    }
 
-    IMAPStore store = new IMAPStore(session, url);
+    // In this implementation all IMAP handling will be done in the same thread
+    // to prevent synchronization problems. This is the executor, and all tasks
+    // will need to be submitted to this
+    private Thread executor;
+    private LinkedBlockingQueue<FutureTask<?>> synctasks = new LinkedBlockingQueue<>();
+
+    // All components in this package is quite tightly related so share this
+    // with the package
+    static Logger log = LoggerFactory.getLogger(SyncIMAPStore.class.getPackage().getName());
+
+    private IMAPStore store = new IMAPStore(session, url);
     PersistentMap<String, SerializedFolder> database;
 
     // Contains all open folders
     // Use WeakReference to avoid leaking memory
-    HashMap<String, SoftReference<SyncIMAPFolder>> folders = new HashMap<>();
+    ConcurrentMap<String, SyncIMAPFolder> folders = new MapMaker().weakValues().makeMap();
 
     SyncIMAPFolder defaultFolder;
 
-    SyncIMAPFolder inbox;
-
-    String user;
-    String password;
+    private String user;
+    private String password;
 
     public SyncIMAPStore(Session session, URLName urlname) {
         super(session, urlname);
@@ -93,7 +107,7 @@ public class SyncIMAPStore extends Store {
         defaultFolder.updateFromSerialized(sf);
     }
 
-    protected void connectRemote() throws MessagingException {
+    private void connectRemote() throws MessagingException {
         if (store != null) {
             store = (IMAPStore) session.getStore("imap");
         }
@@ -103,9 +117,10 @@ public class SyncIMAPStore extends Store {
         }
     }
 
-    private void synchronize() throws MessagingException {
-        connectRemote();
-
+    /*
+     * Do a full synchronization of all folders and contained messages
+     */
+    private void fullSynchronize(IMAPStore store) throws MessagingException {
         // List all folders
         Folder[] folders = store.getDefaultFolder().list("*");
         // Use tree map here since we want the folders to be sorted
@@ -140,12 +155,15 @@ public class SyncIMAPStore extends Store {
 
         updateFolders();
 
+        for (Entry<String, SerializedFolder> e : database.entrySet()) {
+            ((SyncIMAPFolder) getFolder(e.getKey())).doSynchronize(store);
+        }
     }
 
     private void updateFolders() {
-        for (Entry<String, SoftReference<SyncIMAPFolder>> e : folders.entrySet()) {
-            SyncIMAPFolder folder = e.getValue().get();
-            folder.updateFromSerialized(database.get(folder));
+        for (Entry<String, SyncIMAPFolder> e : folders.entrySet()) {
+            SyncIMAPFolder folder = e.getValue();
+            folder.updateFromSerialized(database.get(e.getKey()));
         }
     }
 
@@ -156,20 +174,29 @@ public class SyncIMAPStore extends Store {
 
         if (database.isEmpty()) {
             // First time this must succeed
-            synchronize();
-        } else {
-            try {
-                synchronize();
-            } catch (MessagingException e) {
-                if (store != null && !store.isConnected()) {
-                    // Network problem
-                    log.info("Synchronization failed due to connectivity problem");
-                } else {
-                    throw e;
-                }
-            }
+            // So we run it on the main thread
+            connectRemote();
+            fullSynchronize(store);
         }
+
+        executor = new Thread(this::run);
+        executor.start();
         return true;
+    }
+
+    @Override
+    public void close() {
+        if (executor != null) {
+            setConnected(false);
+            executor.interrupt();
+            try {
+                executor.join();
+            } catch (InterruptedException e) {
+                // No thread should be interrupting
+                throw new AssertionError(e);
+            }
+            executor = null;
+        }
     }
 
     @Override
@@ -183,9 +210,7 @@ public class SyncIMAPStore extends Store {
             return getDefaultFolder();
         }
 
-        // If there's a live reference, then take it
-        SoftReference<SyncIMAPFolder> weakfolder = folders.get(name);
-        SyncIMAPFolder folder = weakfolder == null ? null : weakfolder.get();
+        SyncIMAPFolder folder = folders.get(name);
 
         if (folder != null)
             return folder;
@@ -200,8 +225,7 @@ public class SyncIMAPStore extends Store {
             folder.updateFromSerialized(arr);
         }
 
-        // TODO: Add cleanup code for SoftReference
-        folders.put(name, new SoftReference<>(folder));
+        folders.put(name, folder);
 
         return folder;
     }
@@ -209,6 +233,47 @@ public class SyncIMAPStore extends Store {
     @Override
     public Folder getFolder(URLName url) throws MessagingException {
         throw new UnsupportedOperationException("getFolder(URLName) is not supported");
+    }
+
+    protected Future<?> submitTask(SyncTask task) {
+        FutureTask<?> ftask = new FutureTask<>(() -> {
+            try {
+                connectRemote();
+                task.perform(store);
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }, null);
+        synctasks.add(ftask);
+        return ftask;
+    }
+
+    private void run() {
+        try {
+            connectRemote();
+            fullSynchronize(store);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+
+        while (isConnected()) {
+            try {
+                FutureTask<?> task = synctasks.poll(300, TimeUnit.SECONDS);
+                if (task == null) {
+                    try {
+                        connectRemote();
+                        fullSynchronize(store);
+                    } catch (MessagingException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    task.run();
+                }
+            } catch (InterruptedException e) {
+                // Interrupted, we might be closing the connection
+                continue;
+            }
+        }
     }
 
 }
