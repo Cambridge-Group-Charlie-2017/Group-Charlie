@@ -39,6 +39,58 @@ public class PersistentMap<K, V> implements Map<K, V> {
         }
     }
 
+    class KeySet extends AbstractSet<K> {
+
+        @Override
+        public int size() {
+            return PersistentMap.this.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return PersistentMap.this.isEmpty();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return PersistentMap.this.containsKey(o);
+        }
+
+        @Override
+        public Iterator<K> iterator() {
+            DBIterator iter = db.iterator();
+            iter.seekToFirst();
+
+            return new Iterator<K>() {
+
+                @Override
+                public boolean hasNext() {
+                    return iter.hasNext();
+                }
+
+                @Override
+                public K next() {
+                    return keySerializer.deserialize(iter.next().getKey());
+                }
+            };
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            if (contains(o)) {
+                PersistentMap.this.remove(o);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void clear() {
+            PersistentMap.this.clear();
+        }
+
+    }
+
     class EntrySet extends AbstractSet<Entry<K, V>> {
 
         @Override
@@ -263,7 +315,7 @@ public class PersistentMap<K, V> implements Map<K, V> {
 
     @Override
     public Set<K> keySet() {
-        throw new UnsupportedOperationException();
+        return new KeySet();
     }
 
     @Override
