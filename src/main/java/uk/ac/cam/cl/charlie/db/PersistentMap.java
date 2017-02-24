@@ -1,9 +1,12 @@
 package uk.ac.cam.cl.charlie.db;
 
 import java.io.IOException;
+import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.iq80.leveldb.DB;
@@ -34,6 +37,102 @@ public class PersistentMap<K, V> implements Map<K, V> {
                 throw new Error(e);
             }
         }
+    }
+
+    class EntrySet extends AbstractSet<Entry<K, V>> {
+
+        @Override
+        public int size() {
+            return PersistentMap.this.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return PersistentMap.this.isEmpty();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            if (o instanceof Entry) {
+                Entry<?, ?> entry = (Entry<?, ?>) o;
+                if (!containsKey(entry.getKey())) {
+                    return false;
+                }
+                return Objects.equals(entry.getValue(), get(entry.getKey()));
+            }
+            return false;
+        }
+
+        @Override
+        public Iterator<Entry<K, V>> iterator() {
+            DBIterator iter = db.iterator();
+            iter.seekToFirst();
+
+            return new Iterator<Entry<K, V>>() {
+
+                @Override
+                public boolean hasNext() {
+                    return iter.hasNext();
+                }
+
+                @Override
+                public Entry<K, V> next() {
+                    Entry<byte[], byte[]> entry = iter.next();
+                    return new Entry<K, V>() {
+
+                        K key;
+                        V value;
+                        boolean keyLoaded = false;
+                        boolean valueLoaded = false;
+
+                        @Override
+                        public K getKey() {
+                            if (!keyLoaded) {
+                                key = keySerializer.deserialize(entry.getKey());
+                                keyLoaded = true;
+                            }
+                            return key;
+                        }
+
+                        @Override
+                        public V getValue() {
+                            if (!valueLoaded) {
+                                value = valueSerializer.deserialize(entry.getValue());
+                                valueLoaded = true;
+                            }
+                            return value;
+                        }
+
+                        @Override
+                        public V setValue(V value) {
+                            throw new UnsupportedOperationException();
+                        }
+
+                    };
+                }
+            };
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            if (o instanceof Entry) {
+                Entry<?, ?> entry = (Entry<?, ?>) o;
+                if (!containsKey(entry.getKey())) {
+                    return false;
+                }
+                if (Objects.equals(entry.getValue(), get(entry.getKey()))) {
+                    PersistentMap.this.remove(entry.getKey());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void clear() {
+            PersistentMap.this.clear();
+        }
+
     }
 
     Serializer<K> keySerializer;
@@ -174,7 +273,7 @@ public class PersistentMap<K, V> implements Map<K, V> {
 
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
-        throw new UnsupportedOperationException();
+        return new EntrySet();
     }
 
     public DB getLevelDB() {
