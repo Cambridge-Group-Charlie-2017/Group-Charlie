@@ -31,6 +31,10 @@ public interface VectorisingStrategy {
     default List<Vector> doc2vec(List<Message> batch) {
         return batch.stream().map(this::doc2vec).collect(Collectors.toList());
     }
+    
+    default List<Vector> batchdoc2vec(List<Document> batch) {
+        return batch.stream().map(this::doc2vec).collect(Collectors.toList());
+    }
 
 	int getMinimumBatchSize();
 

@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.math.Vector;
-import uk.ac.cam.cl.charlie.vec.BatchSizeTooSmallException;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
@@ -84,7 +83,7 @@ public final class FileDB {
                     if (vectorisingQueue.size() != 0) {
                         // haven't flushed the queue yet - this is probably the first opportunity
                         vectorisingQueue.add(d);
-                        List<Vector> vectors = vectoriser.documentBatch2vec(vectorisingQueue);
+                        List<Vector> vectors = vectoriser.batchdoc2vec(vectorisingQueue);
                         if (vectors.size() != vectorisingQueue.size()) {
                             throw new Error("Assertion failure - the length of the list of vectors should match" +
                                     "the length of the list of documents");
@@ -112,8 +111,7 @@ public final class FileDB {
                     }
                 }
             }
-        } catch (IOException | UnreadableFileTypeException |
-                BatchSizeTooSmallException e) {
+        } catch (IOException | UnreadableFileTypeException e) {
             log.debug("file apparently no longer readable or accessible", e);
             return; // can't just die because a file is no longer readable or has magically changed
             // just ignore it! Missing a file is not hugely important
