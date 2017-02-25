@@ -61,9 +61,13 @@ dependencies {
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
 
-    // deeplearning4j for word2vec model
-    compile 'org.deeplearning4j:deeplearning4j-nlp:0.7.2'
-    compile 'org.nd4j:nd4j-native-platform:0.7.2'
+    // Apache Commons
+    compile group: 'commons-lang', name: 'commons-lang', version: '2.6'
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
+
+    // Time
+    compile group: 'joda-time', name: 'joda-time', version: '2.9.7'
+
 
     // Mail server test framework
     testCompile 'com.icegreen:greenmail:1.5.3'
