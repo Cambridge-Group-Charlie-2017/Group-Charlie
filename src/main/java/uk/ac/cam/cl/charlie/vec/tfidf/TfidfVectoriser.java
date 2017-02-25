@@ -30,6 +30,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private static String TOTAL_NUMBER_OF_DOCS = "";
 
     private final int vectorDimensions = 300;
+    private final int minBatchSize = 20;
 
     // Using singleton pattern.
     private static TfidfVectoriser singleton;
@@ -161,4 +162,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return vec.normalize();
     }
 
+    @Override
+    public int getMinimumBatchSize() {
+        return minBatchSize;
+    }
+
+    @Override
+    public boolean minimumBatchSizeReached() {
+        return globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) >= minBatchSize;
+    }
 }

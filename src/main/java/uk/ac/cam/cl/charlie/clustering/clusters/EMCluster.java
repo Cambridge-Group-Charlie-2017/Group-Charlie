@@ -67,7 +67,6 @@ public class EMCluster extends Cluster {
 
         // Note: clustersize has not been incremented yet at this point.
         for (int i = 0; i < getDimensionality(); i++) {
-
             double newAvg = (getClusterSize() * average.get(i)
                     + vectoriser.doc2vec(((ClusterableMessage) msg).getMessage()).get(i)) / (getClusterSize() + 1);
             average.set(i, newAvg);
@@ -96,7 +95,6 @@ public class EMCluster extends Cluster {
         // only consider a subset of elements. if all probabilities are
         // multiplied then the resulting
         // probability becomes too small at high dimensions.
-
         uk.ac.cam.cl.charlie.math.Vector vec;
         vec = Clusterer.getVectoriser().doc2vec(((ClusterableMessage) msg).getMessage());
 

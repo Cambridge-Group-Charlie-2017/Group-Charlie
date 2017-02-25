@@ -24,7 +24,6 @@ public class ClusterableMessageGroup extends ClusterableObjectGroup {
     @Override
     public List<Vector> getVecs() {
         VectorisingStrategy strategy = Clusterer.getVectoriser();
-
         ArrayList<Message> messages = new ArrayList<>();
         for (ClusterableObject o : contents) {
             messages.add(((ClusterableMessage) o).getMessage());

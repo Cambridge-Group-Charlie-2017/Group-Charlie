@@ -32,4 +32,8 @@ public interface VectorisingStrategy {
         return batch.stream().map(this::doc2vec).collect(Collectors.toList());
     }
 
+	int getMinimumBatchSize();
+
+	boolean minimumBatchSizeReached();
+
 }
