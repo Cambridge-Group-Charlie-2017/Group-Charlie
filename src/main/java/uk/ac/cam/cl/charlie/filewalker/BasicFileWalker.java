@@ -125,6 +125,7 @@ public class BasicFileWalker implements FileWalker {
                 WatchKey key = null;
                 try {
                     key = watcher.take(); // blocking
+                    if(stopExecution) break;//execution was stopped event might be caused by clean up on folder structure
                 } catch (InterruptedException e) {
                     continue;
                 }
