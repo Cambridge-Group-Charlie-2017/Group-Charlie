@@ -60,7 +60,7 @@ public class FileWalkerTestSuite {
 	
 	@AfterClass
 	public static void reset() {
-		
+		test.closeListener();
 	}
 
 }

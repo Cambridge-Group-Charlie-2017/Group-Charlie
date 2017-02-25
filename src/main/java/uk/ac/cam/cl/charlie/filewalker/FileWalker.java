@@ -13,5 +13,6 @@ public interface FileWalker {
     public List<Path> getRootDirectories();
 
     public void startWalkingTree();
+	public void closeListener();
 
 }
