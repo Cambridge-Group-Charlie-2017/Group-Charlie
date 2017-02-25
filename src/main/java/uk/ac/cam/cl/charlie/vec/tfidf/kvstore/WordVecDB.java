@@ -1,18 +1,5 @@
 package uk.ac.cam.cl.charlie.vec.tfidf.kvstore;
 
-<<<<<<< HEAD
-=======
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import org.deeplearning4j.models.word2vec.Word2Vec;
-import uk.ac.cam.cl.charlie.db.Database;
-import uk.ac.cam.cl.charlie.db.PersistentMap;
-import uk.ac.cam.cl.charlie.db.Serializer;
-import uk.ac.cam.cl.charlie.db.Serializers;
-import uk.ac.cam.cl.charlie.math.Vector;
-import uk.ac.cam.cl.charlie.vec.tfidf.VectorSerialiser;
-
->>>>>>> refs/remotes/origin/FileWalker
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -45,7 +32,6 @@ public final class WordVecDB {
     private Database db;
     PersistentMap<String, Vector> map;
     String vectorDBName = "vectors";
-<<<<<<< HEAD
 
     private class VectorSerialiser extends Serializer<Vector> {
         @Override
@@ -80,8 +66,6 @@ public final class WordVecDB {
             return new Vector(array);
         }
     }
-=======
->>>>>>> refs/remotes/origin/FileWalker
 
     private WordVecDB() {
         cache = CacheBuilder.newBuilder().maximumSize(2000).build();
