@@ -1,16 +1,24 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
-
-import static java.nio.file.StandardWatchEventKinds.*;
-import static java.util.stream.Stream.concat;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -19,9 +27,11 @@ public class BasicFileWalker implements FileWalker {
     private Set<Path> rootDirs;
     private FileDB db;
     private WatchService watcher;
+    
+    private volatile boolean stopExecution = false;
 
     public BasicFileWalker(Path root) {
-        db = FileDB.getInstance();
+    	db = FileDB.getInstance();
         try {
             watcher = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
@@ -30,10 +40,15 @@ public class BasicFileWalker implements FileWalker {
 
         rootDirs = new HashSet<>();
         rootDirs.add(root);
-
+        System.out.println("rootDirs initialised.");
         // set off a background thread to process changes that are noticed during listening
         BackgroundChangeListener backgroundListener = new BackgroundChangeListener();
-        backgroundListener.run();
+        Thread listener = new Thread(backgroundListener);
+        listener.start();
+    }
+    
+    public void closeListener() {
+    	stopExecution = true;
     }
 
     @Override
@@ -106,7 +121,7 @@ public class BasicFileWalker implements FileWalker {
             // see: https://docs.oracle.com/javase/tutorial/essential/io/notification.html
             // basically copied directly from this example
 
-            while (true) {
+            while (!stopExecution) {
                 WatchKey key = null;
                 try {
                     key = watcher.take(); // blocking
@@ -131,9 +146,7 @@ public class BasicFileWalker implements FileWalker {
                     if (kind == ENTRY_DELETE) {
                         // get the db to process the deletion
                         db.processDeletedFile(filename);
-                    }
-
-                    else {
+                    } else {
                         BasicFileAttributes attrs = null;
                         try {
                             attrs = Files.readAttributes(filename, BasicFileAttributes.class);

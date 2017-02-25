@@ -144,7 +144,7 @@ public class TfidfVectoriserTest {
 
 	// Test the vectorisation.
 	// tfidf.load();
-	List<Vector> vecs = tfidf.emailBatch2vec(messages);
+	List<Vector> vecs = tfidf.doc2vec(messages);
 	double[] components = vecs.get(0).toDoubleArray();
 	// tfidf.close();
 	assertNotNull(components);

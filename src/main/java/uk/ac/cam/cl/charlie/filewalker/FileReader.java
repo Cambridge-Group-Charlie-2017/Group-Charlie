@@ -20,8 +20,14 @@ public class FileReader {
 
     public static boolean isReadableFile(Path p) throws IOException {
         String mimeType = Files.probeContentType(p);
-        return mimeType.equals("text/plain");
-        // can worry about pdfs and others later
+        if(mimeType == null) {
+        	return false;
+        } else if(mimeType.equals("text/plain")) {
+        	return true;
+        } else { // can worry about pdfs and others later
+        	return false;
+        }
+         
     }
 
     public static Document readFile(Path p) throws IOException, UnreadableFileTypeException {

@@ -45,10 +45,14 @@ public final class FileDB {
     private static final int prioritySize = 100;
 
     private FileDB() {
-        fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
+    	//nextline can throw NullPointerException, should not be the case
+    	db = Database.getInstance();
+    	fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
+    	System.out.println("Database Instance acquired");
         vectoriser = TfidfVectoriser.getVectoriser();
         vectorisingQueue = new LinkedList<>();
         priorityFiles = new LinkedList<>();
+        System.out.println("FileDB instance acquired");
     }
 
     public static FileDB getInstance() {
