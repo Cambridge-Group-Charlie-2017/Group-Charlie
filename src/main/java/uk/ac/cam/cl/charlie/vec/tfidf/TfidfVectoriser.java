@@ -41,7 +41,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return singleton;
     }
 
-    private TfidfVectoriser() {
+    protected TfidfVectoriser() {
         globalCounter = new CachedWordCounter(PersistentWordCounter.getInstance());
         vectorDB = WordVecDB.getInstance();
     }

@@ -36,6 +36,10 @@ src/main/resources/word2vec/wordvectors.txt
 # Ignore Gradle GUI config
 gradle-app.setting
 
+#email dataset
+src/main/resources/bass-e.pst
+*.pst
+
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
 

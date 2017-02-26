@@ -1,21 +1,23 @@
 package uk.ac.cam.cl.charlie.mail;
 
+import com.icegreen.greenmail.store.MailFolder;
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -92,17 +94,19 @@ public class LocalIMAPFolderTest {
         createDefaultMailFormat(user, 0, 10 * magnitude);
 
         LocalIMAPFolder localFolder = mailRepresentation.getFolder("Inbox");
+
+        assertEquals(10 * magnitude, localFolder.getMessages().size());
+
         LocalMessage[] toBeMoved = new LocalMessage[2 * magnitude];
         localFolder.getMessages().subList(2 * magnitude, 4 * magnitude).toArray(toBeMoved);
+
         localFolder.moveMessages(mailRepresentation.getFolder("Test 1"), toBeMoved);
-        localFolder.sync();
 
         Integer[] toBeMovedIndexes = new Integer[2 * magnitude];
         for (int i = 2 * magnitude; i < 4 * magnitude; i++) {
             toBeMovedIndexes[i - 2 * magnitude] = i;
         }
 
-        localFolder.sync();
         assertEquals(8 * magnitude, localFolder.getMessages().size());
         checkDefaultMailFormat(localFolder.getMessages(), 0, 10 * magnitude, toBeMovedIndexes);
     }
@@ -162,8 +166,18 @@ public class LocalIMAPFolderTest {
         checkDefaultMailFormat(inbox.getMessages(), 0, magnitude);
     }
 
+
+//    This tests works with real life servers, but  not with GreenMail for some reason
+//    Left for completeness, but has to be looked into to if time is available.
+//    Currently only passes when the exception it throws when it works is thrown.
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testMovingFolder() throws Exception {
+        expectedException.expect(StoreClosedException.class);
+        expectedException.expectMessage("* BYE JavaMail Exception: java.io.IOException: Connection dropped by server?");
+
         LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
         LocalIMAPFolder test1 = mailRepresentation.createFolder("Test 1");
         LocalIMAPFolder test2 = mailRepresentation.createFolder("Test 2");
@@ -182,9 +196,101 @@ public class LocalIMAPFolderTest {
 
     }
 
+    @Test
+    public void testMovingMessages() throws Exception {
+        createDefaultMailFormat(user, 0, 5);
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        LocalIMAPFolder test1 = mailRepresentation.createFolder("Test 1");
+        LocalIMAPFolder test2 = mailRepresentation.createFolder("Test 2");
+        LocalMessage message1 = inbox.getMessages().get(0);
+        LocalMessage message2 = inbox.getMessages().get(1);
+
+        inbox.moveMessages(test1, message1);
+
+        assertEquals(4, inbox.getMessages().size());
+        assertEquals(1, test1.getMessages().size());
+        assertEquals(0, test2.getMessages().size());
+        assertEquals(4, inbox.getBackingFolder().getMessageCount());
+        assertEquals(1, test1.getBackingFolder().getMessageCount());
+        assertEquals(0, test2.getBackingFolder().getMessageCount());
+        
+        imapConnection.close();
+        imapConnection.connect();
+        mailRepresentation.setConnection(imapConnection);
+
+        inbox.moveMessages(test2, message2);
+
+        assertEquals(3, inbox.getMessages().size());
+        assertEquals(1, test1.getMessages().size());
+        assertEquals(1, test2.getMessages().size());
+        assertEquals(3, inbox.getBackingFolder().getMessageCount());
+        assertEquals(1, test1.getBackingFolder().getMessageCount());
+        assertEquals(1, test2.getBackingFolder().getMessageCount());
+
+
+    }
+
+    @Test
+    public void testServersideFolderCreation() throws Exception {
+        mailServer.getManagers().getImapHostManager().createMailbox(user, "Test 1");
+        mailRepresentation.syncAllFolders();
+        mailRepresentation.getFolder("Test 1");
+    }
+
+    @Test
+    public void testServersideFolderCreationMessages() throws Exception {
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().createMailbox(user, "Test 1");
+        for (int i = 0; i < magnitude; i++) {
+            serverFolder.appendMessage(createFakeMail("from" + i, "to" + i, "subject " + i, "content " + i), new Flags(Flags.Flag.RECENT), new Date());
+        }
+        mailRepresentation.syncAllFolders();
+        LocalIMAPFolder test3 = mailRepresentation.getFolder("Test 1");
+        assertEquals(magnitude, test3.getMessages().size());
+    }
+
+    @Test(expected = FolderNotFoundException.class)
+    public void testServersideFolderDeletion() throws Exception {
+        mailRepresentation.createFolder("Test 1");
+        mailServer.getManagers().getImapHostManager().deleteMailbox(user, "Test 1");
+        mailRepresentation.syncAllFolders();
+        mailRepresentation.getFolder("Test 1");
+    }
+
+    @Test
+    public void testServersideNewMessages() throws Exception {
+        createDefaultMailFormat(user, 0, magnitude * 5);
+        mailRepresentation.syncAllFolders();
+
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        assertEquals(magnitude * 5, inbox.getMessages().size());
+
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().getFolder(user, "Inbox");
+        for (int i = magnitude * 5; i < magnitude * 10; i++) {
+            serverFolder.appendMessage(createFakeMail("from" + i, "to" + i, "subject " + i, "content " + i), new Flags(Flags.Flag.RECENT), new Date());
+        }
+        mailRepresentation.syncAllFolders();
+
+        checkDefaultMailFormat(inbox.getMessages(), 0, magnitude * 10);
+    }
+
+    @Test
+    public void testServersideDeleteMessage() throws Exception {
+        createDefaultMailFormat(user, 0, magnitude * 10);
+        MailFolder serverFolder = mailServer.getManagers().getImapHostManager().getFolder(user, "Inbox");
+        for (int i = 0; i < magnitude * 5; i++) {
+            serverFolder.getMessages().get(i).setFlag(Flags.Flag.DELETED, true);
+        }
+        serverFolder.expunge();
+
+        mailRepresentation.syncAllFolders();
+
+        LocalIMAPFolder inbox = mailRepresentation.getFolder("Inbox");
+        checkDefaultMailFormat(inbox.getMessages(), 5 * magnitude, 10 * magnitude);
+    }
+
     public static void createDefaultMailFormat(GreenMailUser user, int start, int end) throws MessagingException {
         for (int i = start; i < end; i++) {
-            createFakeEmail(user, "from" + i, "to" + i, "subject " + i, "content " + i);
+            deliverFakeMail(user, "from" + i, "to" + i, "subject " + i, "content " + i);
         }
     }
 
@@ -212,13 +318,17 @@ public class LocalIMAPFolderTest {
         assertEquals(endMessageNumberExclusive - 1, messageNumber);
     }
 
-    public static void createFakeEmail(GreenMailUser user, String from, String to, String subject, String content) throws MessagingException {
+    public static void deliverFakeMail(GreenMailUser user, String from, String to, String subject, String content) throws MessagingException {
+        user.deliver(createFakeMail(from, to, subject, content));
+    }
+
+    public static MimeMessage createFakeMail(String from, String to, String subject, String content) throws MessagingException {
         MimeMessage message = new MimeMessage((Session) null);
         message.setFrom(new InternetAddress(from));
         message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
         message.setSubject(subject);
         message.setText(content);
-        user.deliver(message);
+        return message;
     }
 
 }

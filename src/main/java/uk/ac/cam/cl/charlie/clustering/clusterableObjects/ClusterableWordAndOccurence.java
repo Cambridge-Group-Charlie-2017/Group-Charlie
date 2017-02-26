@@ -11,19 +11,19 @@ import uk.ac.cam.cl.charlie.math.Vector;
 public class ClusterableWordAndOccurence extends ClusterableObject {
     private String word;
     private int occurences;
+    private int position;
 
-    public ClusterableWordAndOccurence(String word, int occurences) {
+    public ClusterableWordAndOccurence(String word,int occurences,int position){
         this.word = word;
         this.occurences = occurences;
+        this.position = position;
     }
 
-    public String getWord() {
+    public String getWord(){
         return word;
     }
 
-    public int getOccurences() {
-        return occurences;
-    }
+    public int getOccurences(){return occurences;}
 
     @Override
     public boolean equals(Object o) {

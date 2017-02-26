@@ -2,6 +2,7 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
@@ -23,7 +24,7 @@ public abstract class ClusterableObjectGroup {
     }
 
     public int size() {
-	return contents.size();
+	    return contents.size();
     }
 
     public ClusterableObject get(int i) {

@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
 import uk.ac.cam.cl.charlie.mail.exceptions.IMAPConnectionClosedException;
+import uk.ac.cam.cl.charlie.mail.offline.*;
 
 import javax.mail.*;
 import java.io.IOException;
@@ -26,24 +27,72 @@ public class LocalIMAPFolder {
     private String fullName;
     private long highestUID;
     private long UIDValidityValue;
+    private boolean isLocalOnly;
+    private char separator;
 
+    /**
+     * Constructor for creating a new <code>LocalIMAPFolder</code> when online
+     * @param parentFolder Parent folder of the created folder
+     * @param folder Serverfolder of which this local folder is a mirror
+     * @throws MessagingException
+     * @throws IOException
+     * @throws IMAPConnectionClosedException
+     */
     public LocalIMAPFolder(LocalIMAPFolder parentFolder, IMAPFolder folder) throws MessagingException, IOException, IMAPConnectionClosedException {
+        separator = folder.getSeparator();
         serverFolder = folder;
         messages = new ArrayList<>();
         fullName = folder.getFullName();
-        UIDValidityValue = folder.getUIDValidity();
+
+        log.info("Creating local mirror of folder '{}'.", fullName);
+
+        if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+            UIDValidityValue = folder.getUIDValidity();
+        }
         this.parentFolder = parentFolder;
+        isLocalOnly = false;
 
         subfolders = new HashMap<>();
         if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) createSubfolders();
         if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) initialCache();
     }
 
+
+    /**
+     * Constructor for creating a new <code>LocalIMAPFolder</code> when offline
+     * @param parentFolder Parent folder of the created folder
+     * @param newFolderName Name of the folder to be created
+     */
+    public LocalIMAPFolder(LocalIMAPFolder parentFolder, String newFolderName) {
+        separator = parentFolder.getSeparator();
+        serverFolder = null;
+        messages = new ArrayList<>();
+        fullName = String.join(Character.toString(separator), parentFolder.getFullName(), newFolderName);
+        UIDValidityValue = -1;
+        this.parentFolder = parentFolder;
+        isLocalOnly = true;
+
+        subfolders = new HashMap<>();
+    }
+
+    public static String getSubfolderListMatcher(String fullFolderName, char separator) {
+        return fullFolderName.equals("")
+                ? "*"
+                : String.join(Character.toString(separator), fullFolderName, "[^", "");
+    }
+
     private void createSubfolders() throws MessagingException, IOException, IMAPConnectionClosedException {
-        for (Folder f : serverFolder.list("*")) {
-            subfolders.put(f.getName().toLowerCase(), new LocalIMAPFolder(this, (IMAPFolder) f));
+        Folder[] subFolders = serverFolder.list(getSubfolderListMatcher(fullName, separator));
+        for (Folder f : subFolders) {
+            subfolders.putIfAbsent(f.getName().toLowerCase(), new LocalIMAPFolder(this, (IMAPFolder) f));
         }
     }
+
+    public char getSeparator() {
+        return separator;
+    }
+
+//    public boolean isLocalOnly() { return isLocalOnly; }
 
     public HashMap<String, LocalIMAPFolder> getSubfolders() { return subfolders; }
 
@@ -52,29 +101,38 @@ public class LocalIMAPFolder {
     }
 
     public void openConnection(IMAPConnection connection) throws MessagingException, IOException, IMAPConnectionClosedException {
-        log.info("Connected to server folder of '{}'.", fullName);
         serverFolder = connection.getFolder(fullName);
+        log.info("Connected to server folder of '{}'.", fullName);
+        isLocalOnly = false;
         if ((serverFolder.getType() & Folder.HOLDS_MESSAGES) != 0) {
             checkFolderOpen();
 
             if (serverFolder.getUIDValidity() != UIDValidityValue) {
-                log.error("UID invalid for folder '{}', local cache cleared.", fullName);
-                messages.clear();
-                initialCache();
-                return;
+                if (UIDValidityValue == -1) {
+                    UIDValidityValue = serverFolder.getUIDValidity();
+                } else {
+                    messages.clear();
+                    log.error("UID invalid for folder '{}', local cache cleared.", fullName);
+                    initialCache();
+                    return;
+                }
             }
             log.info("Upon reconnecting folder '{}' UID was valid.", fullName);
 
             for (LocalMessage m : messages) {
                 // TODO: what if it can't find a message bc it has moves?
-                Message serverMessage = serverFolder.getMessageByUID(m.getUID());
-                m.openConnection(serverMessage);
+                if (!m.isLocalOnly()) {
+                    Message serverMessage = serverFolder.getMessageByUID(m.getUID());
+                    m.openConnection(serverMessage);
+                }
             }
             serverFolder.close(false);
 
         }
         for (LocalIMAPFolder f : subfolders.values()) {
-            f.openConnection(connection);
+            if (!f.isLocalOnly) {
+                f.openConnection(connection);
+            }
         }
     }
 
@@ -121,9 +179,10 @@ public class LocalIMAPFolder {
     }
 
     public LocalIMAPFolder getFolder(String name) throws MessagingException {
+        name = name.toLowerCase();
         LocalIMAPFolder f;
-        if (name.contains(".")) {
-            int firstIndex = name.indexOf(".");
+        int firstIndex = name.indexOf(separator);
+        if (firstIndex != -1) {
             f = subfolders.get(name.substring(0, firstIndex)).getFolder(name.substring(firstIndex + 1));
         } else {
             f = subfolders.get(name);
@@ -136,26 +195,21 @@ public class LocalIMAPFolder {
         return fullName;
     }
 
-    public String getName() { return fullName.substring(fullName.lastIndexOf(".") + 1); }
+    public String getName() { return fullName.substring(fullName.lastIndexOf(separator) + 1); }
 
     public LocalIMAPFolder getParentFolder() { return parentFolder; }
 
     public void sync() throws MessagingException, IOException, IMAPConnectionClosedException {
+        if (isLocalOnly) return;
         if (!hasConnection()) throw new IMAPConnectionClosedException();
         if ((serverFolder.getType() & Folder.HOLDS_MESSAGES) != 0) {
             checkFolderOpen();
             checkForMovedOrDeletedMessages();
             checkForNewMessages();
         }
-        checkNewFolders();
+        createSubfolders();
 
         if (serverFolder.isOpen()) serverFolder.close(true);
-    }
-
-    private void checkNewFolders() throws MessagingException, IOException, IMAPConnectionClosedException {
-        for (Folder f : serverFolder.list("*")) {
-            subfolders.putIfAbsent(f.getName().toLowerCase(), new LocalIMAPFolder(this, (IMAPFolder) f));
-        }
     }
 
     private void checkForMovedOrDeletedMessages() throws MessagingException, IOException, IMAPConnectionClosedException {
@@ -216,6 +270,7 @@ public class LocalIMAPFolder {
     }
 
     public long getUID(Message m) throws MessagingException, IMAPConnectionClosedException {
+        // TODO check for isLocalOnly?
         long uid;
         if (serverFolder.isOpen()) {
             uid = serverFolder.getUID(m);
@@ -228,94 +283,103 @@ public class LocalIMAPFolder {
     }
 
     public void moveMessages(String subFolderName, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        checkFolderOpen();
         moveMessages(this.getFolder(subFolderName), localMessages);
     }
 
     public void moveMessages(LocalIMAPFolder f, LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
+        if (hasConnection()) {
+            checkFolderOpen();
+            f.checkFolderOpen();
+            // TODO: Check presence of all messages in current folder
+            moveMessagesServerside(f, localMessages);
+        } else {
+            OfflineChangeList.getInstance().addChange(new MessageMove(this, f, localMessages));
+            return;
+        }
+        moveMessagesLocal(f, localMessages);
+    }
+
+    private void moveMessagesLocal(LocalIMAPFolder f, LocalMessage[] localMessages) {
+        for (LocalMessage l : localMessages) {
+            l.closeConnection();
+            l.setIsLocalOnly(true);
+            this.messages.remove(l);
+            f.messages.add(l);
+        }
+    }
+
+    private void moveMessagesServerside(LocalIMAPFolder f, LocalMessage[] localMessages) throws MessagingException {
         Message[] imapMessages = Arrays.stream(localMessages).map(LocalMessage::getMessage).toArray(Message[]::new);
-        moveMessages(f, imapMessages);
-    }
-
-    public void moveMessages(String subFolderName, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        checkFolderOpen();
-        moveMessages(this.getFolder(subFolderName), imapMessages);
-    }
-
-    public void moveMessages(LocalIMAPFolder f, Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        checkFolderOpen();
-        f.checkFolderOpen();
-        // TODO: Check presence of all messages in current folder
         serverFolder.copyMessages(imapMessages, f.getBackingFolder());
         for (Message m : imapMessages) {
             m.setFlag(Flags.Flag.DELETED, true);
         }
+        serverFolder.close(true);
         f.closeFolder(false);
-        serverFolder.expunge();
-        checkForMovedOrDeletedMessages();
-        serverFolder.close(false);
     }
 
     public void deleteMessages(LocalMessage... localMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        Message[] imapMessages = Arrays.stream(localMessages).map(LocalMessage::getMessage).toArray(Message[]::new);
-        deleteMessages(imapMessages);
-    }
-
-    public void deleteMessages(Message... imapMessages) throws MessagingException, IMAPConnectionClosedException, IOException {
-        checkFolderOpen();
-        for (Message m : imapMessages) {
-            m.setFlag(Flags.Flag.DELETED, true);
+        for (LocalMessage m : localMessages) {
+            this.messages.remove(m);
         }
-        serverFolder.expunge();
-        checkForMovedOrDeletedMessages();
-        serverFolder.close(false);
+
+        if (!hasConnection()) {
+            OfflineChangeList.getInstance().addChange(new MessageDelete(this, localMessages));
+            return;
+        }
+
+        checkFolderOpen();
+        for (LocalMessage m : localMessages) {
+            m.getMessage().setFlag(Flags.Flag.DELETED, true);
+        }
+        serverFolder.close(true);
     }
 
     public void moveFolder(LocalIMAPFolder newParentFolder) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
-        IMAPFolder oldServerFolder = serverFolder;
+        // If connection is present, move the folder online
+        if (!hasConnection()) {
+            OfflineChangeList.getInstance().addChange(new FolderMove(fullName, newParentFolder.getFullName(), separator));
+        } else {
+            moveFolderServersideRecursive(newParentFolder);
+        }
 
-        moveFolderRecursive(newParentFolder);
-
-        oldServerFolder.close(false);
-        oldServerFolder.delete(true);
+        // Move the folder locally
         parentFolder.removeSubfolder(this);
         newParentFolder.addSubfolder(this);
+
+        // Update current folder fields
+        fullName = String.join(Character.toString(separator), newParentFolder.getFullName(), getName());
+        UIDValidityValue = -1;
+        parentFolder = newParentFolder;
+        isLocalOnly = true;
     }
 
-    private void moveFolderRecursive(LocalIMAPFolder newParentFolder) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
+    private void moveFolderServersideRecursive(LocalIMAPFolder newParentFolder) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException {
+        // Check the new parent folder can hold folders
         if ((newParentFolder.getBackingFolder().getType() & Folder.HOLDS_FOLDERS) == 0) {
             throw new FolderHoldsNoFoldersException();
         }
 
-        this.checkFolderOpen();
+        // Get a reference to the new folder location
         newParentFolder.checkFolderOpen();
+        Folder newFolder = newParentFolder.getBackingFolder().getFolder(this.getName());
+        newParentFolder.closeFolder(false);
 
-        // Create new folder
-        IMAPFolder movedFolder = (IMAPFolder) newParentFolder.getBackingFolder().getFolder(serverFolder.getName());
-        if (movedFolder.exists()) {
+        // Make sure it doesn't exist, fail if it does
+        if (newFolder.exists()) {
             throw new FolderAlreadyExistsException();
         }
-        movedFolder.create(serverFolder.getType());
-        movedFolder.open(Folder.READ_WRITE);
 
-        // Copy messages
-        serverFolder.copyMessages(serverFolder.getMessages(), movedFolder);
+        // Rename the folder
+        int type = serverFolder.getType();
+        serverFolder.renameTo(newFolder);
 
-        // Update current folder
-        serverFolder = movedFolder;
-        fullName = serverFolder.getFullName();
-        UIDValidityValue = serverFolder.getUIDValidity();
-        parentFolder = newParentFolder;
-
-
-        // Recursive call
-        if ((serverFolder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+        // Recursive call for all the sub folders
+        if ((type & Folder.HOLDS_FOLDERS) != 0) {
             for (LocalIMAPFolder f : subfolders.values()) {
-                f.moveFolderRecursive(this);
+                f.moveFolderServersideRecursive(this);
             }
         }
-
-
     }
 
     protected void addSubfolder(LocalIMAPFolder folder) {
@@ -327,6 +391,11 @@ public class LocalIMAPFolder {
     }
 
     public void delete() throws MessagingException {
-        serverFolder.delete(true);
+        parentFolder.removeSubfolder(this);
+        if (!hasConnection()) {
+            OfflineChangeList.getInstance().addChange(new FolderDeletion(this));
+        } else {
+            serverFolder.delete(true);
+        }
     }
 }
