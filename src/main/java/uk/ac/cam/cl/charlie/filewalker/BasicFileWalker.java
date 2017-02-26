@@ -59,13 +59,14 @@ public class BasicFileWalker implements FileWalker {
         p = p.toAbsolutePath();
         rootDirs.add(p);
         walk(p);
+        addToListen(p); //* Should also add to listen. Is this the correct
     }
 
     @Override
     public void removeRootDirectory(Path p) {
         p = p.toAbsolutePath();
         rootDirs.remove(p);
-        // not obvious how you remove listening to a directory
+        removeFromListen(p); //* Assuming you want to make this call here
     }
 
     @Override
@@ -106,7 +107,7 @@ public class BasicFileWalker implements FileWalker {
     private void addToListen(Path root) {
         root = root.toAbsolutePath();
         try {
-            // also need to walk down the tree and register any sub directories TODO: Is this meant to be a TODO comment?
+            // also need to walk down the tree and register any sub directories //*TODO: Is this meant to be a TODO comment?
             WatchKey watched = root.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
             watchedDirectories.put(root, watched);
         } catch (IOException e) {
@@ -117,9 +118,13 @@ public class BasicFileWalker implements FileWalker {
     private void removeFromListen(Path root) {
         //Call cancel() on the WatchKey object representing the directory 'root', remove from hashmap.
         root = root.toAbsolutePath();
-        watchedDirectories.get(root).cancel();
-        watchedDirectories.remove(root);
-        //TODO: Should this now traverse all subdirectories and do the same?
+        WatchKey watchKey = watchedDirectories.get(root);
+        if (watchKey != null) {
+            watchKey.cancel();
+            watchedDirectories.remove(root);
+        }
+
+        //*TODO: Should this now traverse all subdirectories and do the same?
     }
 
 

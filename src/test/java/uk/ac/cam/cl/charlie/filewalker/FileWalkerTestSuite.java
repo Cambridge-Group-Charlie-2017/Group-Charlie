@@ -57,6 +57,11 @@ public class FileWalkerTestSuite {
 		test.addRootDirectory(Paths.get(ROOT+"\\root3\\"));
 		test.startWalkingTree();
 	}
+
+	@Test
+    public void testRemoveRoot() {
+	    test.removeRootDirectory(Paths.get(ROOT + "\\root2\\"));
+    }
 	
 	@AfterClass
 	public static void reset() {
