@@ -1,6 +1,8 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
+import org.apache.tika.exception.TikaException;
 import uk.ac.cam.cl.charlie.vec.Document;
+import org.apache.tika.Tika;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,35 +12,55 @@ import java.nio.file.Path;
  * Created by shyam on 22/02/2017.
  */
 public class FileReader {
+    private static Tika tika = new Tika();
     private FileReader() {} // non-instantiable class
 
-    private static Document readPlainText(Path p) throws IOException {
-        String contents = new String(Files.readAllBytes(p));
-        String filename = p.getFileName().toString();
-        return new Document(p.toAbsolutePath(), contents);
+    private static Document readWithTika(Path p) throws IOException {
+        String content = null;
+        try {
+            content = tika.parseToString(p);
+        } catch (TikaException e) {
+            throw new IOException(e); // for our purposes the distinction doesn't really matter
+        }
+        return new Document(p.toAbsolutePath(), content);
     }
 
     public static boolean isReadableFile(Path p) throws IOException {
-        String mimeType = Files.probeContentType(p);
+        String mimeType = tika.detect(p.toString()); // to string forces it not to look inside the file
+        // this is just quicker and prevents any locks on files
         if(mimeType == null) {
-        	return false;
-        } else if(mimeType.equals("text/plain")) {
-        	return true;
-        } else { // can worry about pdfs and others later
-        	return false;
+            return false;
         }
+
+        // tika can parse a lot of files we don't want to pass - e.g. i doubt extracting text from
+        // .rar files is going to help us
+        switch (mimeType) {
+            case "text/html":
+                return true;
+            case "application/vnd.apple.iwork":
+                return true;
+            case "application/vnd.apple.pages":
+                return true;
+            case "application/msword":
+                return true;
+            case "application/x-mspublisher":
+                return true;
+            case "application/vnd.ms-powerpoint":
+                return true;
+            case "application/pdf":
+                return true;
+            case "text/plain":
+                return true;
+            case "application/rtf":
+                return true;
+            default:
+                return false;
+        }
+        // think I got the major ones
          
     }
 
     public static Document readFile(Path p) throws IOException, UnreadableFileTypeException {
-        String mimeType = Files.probeContentType(p);
-
-        // missing breaks aren't needed because they aren't needed ;)
-        switch (mimeType) {
-            case "text/plain":
-                return readPlainText(p);
-            default:
-                throw new UnreadableFileTypeException();
-        }
+        return readWithTika(p);
     }
 }

@@ -73,6 +73,8 @@ dependencies {
     testCompile 'com.icegreen:greenmail:1.5.3'
     testCompile 'com.pff:java-libpst:0.8.1'
 
+    // text extraction for nearly anything vaguely common
+    compile 'org.apache.tika:tika-parsers:1.14'
 }
 
 // Define the main class for the application
