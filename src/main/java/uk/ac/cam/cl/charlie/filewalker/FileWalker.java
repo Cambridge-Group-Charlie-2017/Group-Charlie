@@ -10,9 +10,11 @@ import java.util.stream.Stream;
 public interface FileWalker {
     public void addRootDirectory (Path p);
     public void removeRootDirectory (Path p);
+    
     public List<Path> getRootDirectories();
 
     public void startWalkingTree();
+    
 	public void closeListener();
 
 }

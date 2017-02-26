@@ -1,7 +1,10 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
+import static org.junit.Assert.assertFalse;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
@@ -57,11 +60,16 @@ public class FileWalkerTestSuite {
 		test.addRootDirectory(Paths.get(ROOT+"\\root3\\"));
 		test.startWalkingTree();
 	}
-
+	
 	@Test
-    public void testRemoveRoot() {
-	    test.removeRootDirectory(Paths.get(ROOT + "\\root2\\"));
-    }
+	public void duplicateAdd() {
+		test.addRootDirectory(Paths.get(ROOT + "\\root1\\"));
+		test.removeRootDirectory(Paths.get(ROOT + "\\root1\\"));
+		for(Path p: test.getRootDirectories()){
+			assertFalse(p.toString().equals(ROOT + "\\root1\\"));
+		}
+		test.addRootDirectory(Paths.get(ROOT + "\\root1\\"));
+	}
 	
 	@AfterClass
 	public static void reset() {
