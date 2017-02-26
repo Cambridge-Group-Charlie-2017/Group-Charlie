@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashMap;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -27,6 +28,7 @@ public class BasicFileWalker implements FileWalker {
     private Set<Path> rootDirs;
     private FileDB db;
     private WatchService watcher;
+    private HashMap<Path,WatchKey> watchedDirectories;
     
     private volatile boolean stopExecution = false;
 
@@ -38,6 +40,7 @@ public class BasicFileWalker implements FileWalker {
             throw new Error(e);
         }
 
+        watchedDirectories = new HashMap<>();
         rootDirs = new HashSet<>();
         rootDirs.add(root);
         System.out.println("rootDirs initialised.");
@@ -103,15 +106,20 @@ public class BasicFileWalker implements FileWalker {
     private void addToListen(Path root) {
         root = root.toAbsolutePath();
         try {
-            // also need to walk down the tree and register any sub directories
-            root.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+            // also need to walk down the tree and register any sub directories TODO: Is this meant to be a TODO comment?
+            WatchKey watched = root.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+            watchedDirectories.put(root, watched);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void removeFromListen(Path root) {
-        // this is not entirely obvious
+        //Call cancel() on the WatchKey object representing the directory 'root', remove from hashmap.
+        root = root.toAbsolutePath();
+        watchedDirectories.get(root).cancel();
+        watchedDirectories.remove(root);
+        //TODO: Should this now traverse all subdirectories and do the same?
     }
 
 

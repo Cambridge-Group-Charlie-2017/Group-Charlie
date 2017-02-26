@@ -27,6 +27,10 @@ src/main/resources/word2vec/wordvectors.txt
 
 ### Gradle ###
 .gradle
+
+#email dataset
+*.pst
+
 /build/
 
 # Ignore Gradle GUI config
