@@ -58,6 +58,7 @@ public class BasicFileWalker implements FileWalker {
         	System.out.println("Added new root " + p);
         	rootDirs.add(p);
         	walk(p);
+        	addToListen(p); //* Should also add to listen. Is this the correct approach?
         }
     }
 
