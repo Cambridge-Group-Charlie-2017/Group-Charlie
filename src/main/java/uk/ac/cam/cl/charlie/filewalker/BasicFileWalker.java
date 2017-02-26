@@ -59,7 +59,7 @@ public class BasicFileWalker implements FileWalker {
         p = p.toAbsolutePath();
         rootDirs.add(p);
         walk(p);
-        addToListen(p); //* Should also add to listen. Is this the correct
+        addToListen(p); //* Should also add to listen. Is this the correct approach?
     }
 
     @Override
