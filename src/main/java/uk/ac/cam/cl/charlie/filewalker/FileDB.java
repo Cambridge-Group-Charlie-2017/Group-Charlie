@@ -43,6 +43,7 @@ public final class FileDB {
     private VectorisingStrategy vectoriser;
 
     private static final int prioritySize = 100;
+    private static final double toleranceForSimilarity = 0.8;
 
     private FileDB() {
     	//nextline can throw NullPointerException, should not be the case
@@ -131,11 +132,12 @@ public final class FileDB {
         processFile(p);
     }
 
-    private Path getMostRelevantFile(Vector v) {
+    private Optional<Path> getMostRelevantFile(Vector v) {
         // query priority first
-        // currently no fallback or tolerance if priority files are crap
         if (priorityFiles.size() != 0) {
-            return getBestMatch(v, priorityFiles);
+            Optional<Path> prioritySuggestion = getBestMatch(v, priorityFiles);
+            Optional<Path> result = prioritySuggestion.isPresent() ? prioritySuggestion : getBestMatch(v, fullMap);
+            return result;
         }
         else {
             return getBestMatch(v, fullMap);
@@ -149,7 +151,7 @@ public final class FileDB {
         priorityFiles.add(0, new PathVectorPair(p,v));
     }
 
-    private static Path getBestMatch(Vector v, Map<Path, Vector> map) {
+    private static Optional<Path> getBestMatch(Vector v, Map<Path, Vector> map) {
         Path min = null;
         double dotProd = 0.0; // dot product == cosine distance assuming normalisation
         for (Map.Entry<Path, Vector> entry : map.entrySet()) {
@@ -159,10 +161,15 @@ public final class FileDB {
                 dotProd = latestCosine;
             }
         }
-        return min;
+        if (dotProd > toleranceForSimilarity) {
+            return Optional.of(min);
+        }
+        else {
+            return Optional.empty();
+        }
     }
 
-    private static Path getBestMatch (Vector v, List<PathVectorPair> l) {
+    private static Optional<Path> getBestMatch (Vector v, List<PathVectorPair> l) {
         Path min = null;
         double dotProd = 0.0;
 
@@ -173,8 +180,12 @@ public final class FileDB {
                 dotProd = latestCosine;
             }
         }
-
-        return min;
+        if (dotProd > toleranceForSimilarity) {
+            return Optional.of(min);
+        }
+        else {
+            return Optional.empty();
+        }
     }
 
 }

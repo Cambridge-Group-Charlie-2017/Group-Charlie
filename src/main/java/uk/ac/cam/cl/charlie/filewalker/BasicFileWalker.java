@@ -32,7 +32,7 @@ public class BasicFileWalker implements FileWalker {
     
     private volatile boolean stopExecution = false;
 
-    public BasicFileWalker(Path root) {
+    public BasicFileWalker() {
     	db = FileDB.getInstance();
         try {
             watcher = FileSystems.getDefault().newWatchService();
@@ -42,8 +42,14 @@ public class BasicFileWalker implements FileWalker {
 
         watchedDirectories = new HashMap<>();
         rootDirs = new HashSet<>();
-        rootDirs.add(root);
         System.out.println("rootDirs initialised.");
+
+    }
+
+    public void startWalking() throws FileWalkerNotInitalisedException {
+        if (watchedDirectories.isEmpty()) {
+            throw new FileWalkerNotInitalisedException();
+        }
         // set off a background thread to process changes that are noticed during listening
         BackgroundChangeListener backgroundListener = new BackgroundChangeListener();
         Thread listener = new Thread(backgroundListener);
@@ -59,7 +65,6 @@ public class BasicFileWalker implements FileWalker {
         p = p.toAbsolutePath();
         rootDirs.add(p);
         walk(p);
-        addToListen(p); //* Should also add to listen. Is this the correct approach?
     }
 
     @Override
@@ -94,7 +99,8 @@ public class BasicFileWalker implements FileWalker {
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    dir.register(watcher, ENTRY_DELETE, ENTRY_MODIFY, ENTRY_CREATE);
+                    WatchKey key = dir.register(watcher, ENTRY_DELETE, ENTRY_MODIFY, ENTRY_CREATE);
+                    watchedDirectories.put(dir, key);
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -104,27 +110,24 @@ public class BasicFileWalker implements FileWalker {
         }
     }
 
-    private void addToListen(Path root) {
-        root = root.toAbsolutePath();
-        try {
-            // also need to walk down the tree and register any sub directories //*TODO: Is this meant to be a TODO comment?
-            WatchKey watched = root.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-            watchedDirectories.put(root, watched);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void removeFromListen(Path root) {
         //Call cancel() on the WatchKey object representing the directory 'root', remove from hashmap.
-        root = root.toAbsolutePath();
-        WatchKey watchKey = watchedDirectories.get(root);
-        if (watchKey != null) {
-            watchKey.cancel();
-            watchedDirectories.remove(root);
+        try {
+            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    dir = dir.toAbsolutePath();
+                    WatchKey k = watchedDirectories.get(dir);
+                    if (k != null) {
+                        k.cancel();
+                        watchedDirectories.remove(dir);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new Error(e);
         }
-
-        //*TODO: Should this now traverse all subdirectories and do the same?
     }
 
 
