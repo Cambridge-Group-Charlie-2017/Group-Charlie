@@ -6,8 +6,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.Folder;
@@ -26,6 +25,7 @@ import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializer;
 import uk.ac.cam.cl.charlie.db.Serializers;
+import uk.ac.cam.cl.charlie.util.Deferred;
 
 public class SyncIMAPStore extends Store {
 
@@ -71,11 +71,25 @@ public class SyncIMAPStore extends Store {
         public abstract void perform(IMAPStore store) throws MessagingException;
     }
 
-    // In this implementation all IMAP handling will be done in the same thread
-    // to prevent synchronization problems. This is the executor, and all tasks
+    static class Task {
+        SyncTask task;
+        Deferred<Boolean> deferred;
+        boolean canRetry;
+
+        Task(SyncTask task, Deferred<Boolean> deferred, boolean canRetry) {
+            this.task = task;
+            this.deferred = deferred;
+            this.canRetry = canRetry;
+        }
+    }
+
+    // In this implementation all IMAP handling will be done in the same
+    // thread
+    // to prevent synchronization problems. This is the executor, and all
+    // tasks
     // will need to be submitted to this
     private Thread executor;
-    private LinkedBlockingQueue<FutureTask<?>> synctasks = new LinkedBlockingQueue<>();
+    private LinkedBlockingDeque<Task> synctasks = new LinkedBlockingDeque<>();
 
     // All components in this package is quite tightly related so share this
     // with the package
@@ -86,6 +100,13 @@ public class SyncIMAPStore extends Store {
 
     // Contains all open folders
     // Use WeakReference to avoid leaking memory
+    // XXX: We could use a strong referenced map here as keeping all folders
+    // in
+    // memory is not expensive and we need these objects during
+    // synchronization.
+    // However, we do want the non-existence folder to be claimed
+    // automatically.
+    // Maybe two seperate maps?
     ConcurrentMap<String, SyncIMAPFolder> folders = new MapMaker().weakValues().makeMap();
 
     SyncIMAPFolder defaultFolder;
@@ -188,6 +209,7 @@ public class SyncIMAPStore extends Store {
     public void close() {
         if (executor != null) {
             setConnected(false);
+            // Stop executor from polling tasks
             executor.interrupt();
             try {
                 executor.join();
@@ -235,39 +257,84 @@ public class SyncIMAPStore extends Store {
         throw new UnsupportedOperationException("getFolder(URLName) is not supported");
     }
 
-    protected Future<?> submitTask(SyncTask task) {
-        FutureTask<?> ftask = new FutureTask<>(() -> {
-            try {
-                connectRemote();
-                task.perform(store);
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
-        }, null);
-        synctasks.add(ftask);
-        return ftask;
+    protected Future<Boolean> submitUpdate(SyncTask task) {
+        Deferred<Boolean> deferred = new Deferred<>();
+        synctasks.add(new Task(task, deferred, true));
+        return deferred;
+    }
+
+    protected Future<Boolean> submitQuery(SyncTask task) {
+        Deferred<Boolean> deferred = new Deferred<>();
+        synctasks.add(new Task(task, deferred, false));
+        return deferred;
     }
 
     private void run() {
+        // When we start, do a initial full synchronization
         try {
             connectRemote();
             fullSynchronize(store);
         } catch (MessagingException e) {
-            e.printStackTrace();
+            if (!store.isConnected()) {
+                // Cannot connect to mail server
+                log.info("Failed to connect to mail server");
+            } else {
+                e.printStackTrace();
+            }
         }
 
         while (isConnected()) {
             try {
-                FutureTask<?> task = synctasks.poll(300, TimeUnit.SECONDS);
+                // If we don't have any tasks in 300 seconds, run a full
+                // synchronization. Technically we can use IMAP's IDLE
+                // functionality, but JavaMail states that the
+                // implementation is
+                // experimental
+                Task task = synctasks.poll(300, TimeUnit.SECONDS);
                 if (task == null) {
                     try {
                         connectRemote();
                         fullSynchronize(store);
                     } catch (MessagingException e) {
-                        e.printStackTrace();
+                        if (!store.isConnected()) {
+                            // Cannot connect to mail server
+                            log.info("Failed to connect to mail server");
+                        } else {
+                            e.printStackTrace();
+                        }
                     }
                 } else {
-                    task.run();
+                    try {
+                        connectRemote();
+                        task.task.perform(store);
+                        task.deferred.setValue(true);
+                    } catch (MessagingException e) {
+                        if (!store.isConnected()) {
+                            // Add a placeholder
+                            synctasks.add(task);
+                            Task processing = synctasks.poll();
+
+                            // Reject all pending queries
+                            while (processing != task) {
+                                if (processing.canRetry) {
+                                    synctasks.add(processing);
+                                } else {
+                                    processing.deferred.setValue(false);
+                                }
+                                processing = synctasks.poll();
+                            }
+
+                            if (task.canRetry) {
+                                synctasks.addFirst(task);
+                                log.info("Failed to connect to mail server");
+                                Thread.sleep(60000);
+                            } else {
+                                processing.deferred.setValue(false);
+                            }
+                        } else {
+                            task.deferred.throwException(e);
+                        }
+                    }
                 }
             } catch (InterruptedException e) {
                 // Interrupted, we might be closing the connection

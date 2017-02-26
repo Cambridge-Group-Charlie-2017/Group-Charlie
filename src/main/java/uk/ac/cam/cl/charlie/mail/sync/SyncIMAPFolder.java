@@ -51,7 +51,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
      * Get the status of the message. 1 indicates only envelope is fetched, 2
      * indicates all contents are fetched.
      */
-    private int deserializeStatus(byte[] array) {
+    int deserializeStatus(byte[] array) {
         return ByteBuffer.wrap(array).getInt();
     }
 
@@ -334,7 +334,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
     void downloadMessage(long uid) throws MessagingException {
         // Ensure connection
         SyncIMAPStore store = (SyncIMAPStore) this.store;
-        Future<?> f = store.submitTask((imapStore) -> {
+        Future<Boolean> f = store.submitQuery((imapStore) -> {
             IMAPFolder imapFolder = (IMAPFolder) imapStore.getFolder(fullname);
 
             long validity = imapFolder.getUIDValidity();
@@ -354,7 +354,11 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
             }
         });
         try {
-            f.get();
+            if (f.get()) {
+                return;
+            } else {
+                throw new MessagingException("Cannot load message from the server");
+            }
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -551,7 +555,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
     }
 
     public void synchronize() {
-        ((SyncIMAPStore) store).submitTask(this::doSynchronize);
+        ((SyncIMAPStore) store).submitUpdate(this::doSynchronize);
     }
 
     @Override

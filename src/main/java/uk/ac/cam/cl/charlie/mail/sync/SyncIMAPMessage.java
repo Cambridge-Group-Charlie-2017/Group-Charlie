@@ -34,7 +34,13 @@ public class SyncIMAPMessage extends MimeMessage {
             // the message
             SyncIMAPFolder folder = (SyncIMAPFolder) this.folder;
             folder.downloadMessage(uid);
-            folder.deserializeWithContent(folder.map.get(uid), this);
+            byte[] bytes = folder.map.get(uid);
+
+            if (folder.deserializeStatus(bytes) == 2) {
+                folder.deserializeWithContent(bytes, this);
+            } else {
+                throw new MessagingException("Cannot download message");
+            }
 
             initialized = true;
         }
