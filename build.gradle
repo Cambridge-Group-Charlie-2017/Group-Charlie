@@ -87,7 +87,7 @@ task downloadWord2Vec(type: Download) {
 }
 
 task downloadDataset(type: Download) {
-    src 'https://www.dropbox.com/s/6uq3skacxqq6vft/bass-e.pst?dl=0'
+    src 'https://www.dropbox.com/s/6uq3skacxqq6vft/bass-e.pst?dl=1'
     dest 'src/main/resources/enron/bass-e.pst'
     overwrite false
 }
