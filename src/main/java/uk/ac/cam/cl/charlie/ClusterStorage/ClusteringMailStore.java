@@ -1,5 +1,7 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.ClusterStorage;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
+import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
@@ -8,7 +10,6 @@ import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import javax.mail.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
