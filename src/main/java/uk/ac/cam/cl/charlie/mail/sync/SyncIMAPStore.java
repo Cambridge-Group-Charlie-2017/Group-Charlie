@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
+import javax.mail.AuthenticationFailedException;
 import javax.mail.Folder;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -275,8 +276,9 @@ public class SyncIMAPStore extends Store {
             connectRemote();
             fullSynchronize(store);
         } catch (MessagingException e) {
-            if (!store.isConnected()) {
+            if (!store.isConnected() && !(e instanceof AuthenticationFailedException)) {
                 // Cannot connect to mail server
+                e.printStackTrace();
                 log.info("Failed to connect to mail server");
             } else {
                 e.printStackTrace();
@@ -296,7 +298,7 @@ public class SyncIMAPStore extends Store {
                         connectRemote();
                         fullSynchronize(store);
                     } catch (MessagingException e) {
-                        if (!store.isConnected()) {
+                        if (!store.isConnected() && !(e instanceof AuthenticationFailedException)) {
                             // Cannot connect to mail server
                             log.info("Failed to connect to mail server");
                         } else {
@@ -309,7 +311,7 @@ public class SyncIMAPStore extends Store {
                         task.task.perform(store);
                         task.deferred.setValue(true);
                     } catch (MessagingException e) {
-                        if (!store.isConnected()) {
+                        if (!store.isConnected() && !(e instanceof AuthenticationFailedException)) {
                             // Add a placeholder
                             synctasks.add(task);
                             Task processing = synctasks.poll();
@@ -326,6 +328,7 @@ public class SyncIMAPStore extends Store {
 
                             if (task.canRetry) {
                                 synctasks.addFirst(task);
+                                e.printStackTrace();
                                 log.info("Failed to connect to mail server");
                                 Thread.sleep(60000);
                             } else {

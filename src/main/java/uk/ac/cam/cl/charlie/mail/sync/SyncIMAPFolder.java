@@ -534,10 +534,10 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
                     }).iterator());
 
                     imapFolder.fetch(oldMessage, profile);
+                }
 
-                    if (dirty.value) {
-                        rebuildUid();
-                    }
+                if (dirty.value) {
+                    rebuildUid();
                 }
             } finally {
                 imapFolder.close(false);
@@ -675,7 +675,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
             throw new MessagingException("Folder does not exist");
         }
 
-        if (msgnum <= 0 || msgnum > idUidMap.size()) {
+        if (msgnum <= 0 || msgnum > msgcount) {
             throw new MessagingException("Message id out of bound");
         }
 
@@ -729,7 +729,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
     @Override
     public void finalize() {
-        log.info("{} finalized");
+        log.info("{}: finalized", fullname);
     }
 
     @Override
