@@ -39,4 +39,8 @@ public class ClusterableWordAndOccurence extends ClusterableObject {
             return null;
         }
     }
+
+    public int getPosition() {
+        return position;
+    }
 }
