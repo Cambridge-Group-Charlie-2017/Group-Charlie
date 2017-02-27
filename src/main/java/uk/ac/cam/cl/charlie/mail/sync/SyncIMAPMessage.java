@@ -52,6 +52,13 @@ public class SyncIMAPMessage extends MimeMessage {
         return super.getContent();
     }
 
+    public Object fastGetContent() throws MessagingException, IOException {
+        if (content == null) {
+            return null;
+        }
+        return super.getContent();
+    }
+
     @Override
     public void setFlags(Flags flag, boolean set) throws MessagingException {
         super.setFlags(flag, set);

@@ -10,6 +10,10 @@ import javax.mail.internet.InternetAddress;
 
 import org.jsoup.Jsoup;
 
+import com.sun.mail.imap.IMAPMessage;
+
+import uk.ac.cam.cl.charlie.mail.sync.SyncIMAPMessage;
+
 /**
  * Helpers for easy accessing {@link Message}
  *
@@ -89,5 +93,25 @@ public class Messages {
 
     public static InternetAddress getFromAddress(Message msg) throws MessagingException {
         return (InternetAddress) msg.getFrom()[0];
+    }
+
+    public static String getInReplyTo(Message message) throws MessagingException {
+        if (message instanceof IMAPMessage) {
+            return ((IMAPMessage) message).getInReplyTo();
+        } else {
+            String[] headers = message.getHeader("In-Reply-To");
+            if (headers == null)
+                return null;
+            if (headers.length != 0)
+                return headers[0];
+        }
+        return null;
+    }
+
+    public static Object fastGetContent(Message message) throws MessagingException, IOException {
+        if (message instanceof SyncIMAPMessage) {
+            return ((SyncIMAPMessage) message).fastGetContent();
+        }
+        return null;
     }
 }
