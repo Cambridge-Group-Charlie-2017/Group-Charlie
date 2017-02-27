@@ -98,7 +98,7 @@ task populateDB (type: JavaExec) {
     outputs.upToDateWhen( { return true } );
     inputs.file('src/main/resources/word2vec/wordvectors.txt')
 }
-
+build.dependsOn downloadDataset
 test.dependsOn downloadDataset
 build.dependsOn downloadWord2Vec
 test.dependsOn downloadWord2Vec
