@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import uk.ac.cam.cl.charlie.db.Configuration;
 
 /**
@@ -17,7 +20,8 @@ public class Client {
 
     private static Client instance;
 
-    private CachedStore cstore = new CachedStore();
+    private static Logger log = LoggerFactory.getLogger(WebUIServer.class);
+    private CachedStore cstore;
 
     public static Client getInstance() {
         if (instance == null) {
@@ -40,19 +44,25 @@ public class Client {
      * GET /api/settings/config/:key
      */
     public String getConfiguration(String key) {
-        if (key.contains("password")) {
-            String ret = Configuration.getInstance().get(key);
-            if (ret == null) {
-                return null;
-            } else {
-                return "(password)";
-            }
-        }
         return Configuration.getInstance().get(key);
     }
 
     public CachedStore getStore() {
+        if (cstore == null) {
+            cstore = new CachedStore();
+        }
         return cstore;
+    }
+
+    public void putConfiguration(String key, String value) {
+        Configuration.getInstance().put(key, value);
+    }
+
+    public void changeAccount() {
+        log.info("Changing account");
+        if (cstore != null)
+            cstore.teardown();
+        cstore = new CachedStore();
     }
 
 }

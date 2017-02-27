@@ -34,29 +34,29 @@ public class CachedStore {
     long foldersLastUpdate = 0;
     private Cache<String, Message> messageCache = CacheBuilder.newBuilder().maximumSize(16).build();
 
+    public CachedStore() {
+        store = createStore();
+    }
+
     private Store createStore() {
         try {
+            Configuration config = Configuration.getInstance();
+
             Properties properties = new Properties();
             properties.put("mail.store.protocol", "imap");
-            properties.put("mail.imap.host", "imap.hermes.cam.ac.uk");
+            properties.put("mail.imap.host", config.get("mail.imap.host"));
             properties.put("mail.imap.ssl.enable", true);
             properties.put("mail.imap.connectiontimeout", 6000);
             properties.put("mail.imap.timeout", 3000);
             properties.put("mail.imap.writetimeout", 3000);
 
-            Session session = Session.getDefaultInstance(properties);
+            Session session = Session.getInstance(properties);
             // session.setDebug(true);
 
             // store = session.getStore();
 
-            Configuration config = Configuration.getInstance();
-
-            config.put("mail.smtp.host", "smtp.hermes.cam.ac.uk");
-
             store = new SyncIMAPStore(session, null);
             store.connect(config.get("mail.imap.username"), config.get("mail.imap.password"));
-
-            // reloadFolders(store);
 
             return store;
         } catch (MessagingException e) {
@@ -64,7 +64,7 @@ public class CachedStore {
         }
     }
 
-    private void teardown() {
+    public void teardown() {
         try {
             store.close();
         } catch (MessagingException e) {
@@ -74,10 +74,6 @@ public class CachedStore {
     }
 
     public synchronized <T> T doQuery(Query<Store, T> func) {
-        if (store == null) {
-            store = createStore();
-        }
-
         try {
             return func.query(store);
         } catch (Exception e) {

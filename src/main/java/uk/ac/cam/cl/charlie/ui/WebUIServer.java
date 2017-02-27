@@ -6,6 +6,8 @@ import static spark.Spark.ipAddress;
 import static spark.Spark.options;
 import static spark.Spark.patch;
 import static spark.Spark.port;
+import static spark.Spark.post;
+import static spark.Spark.put;
 import static spark.Spark.staticFiles;
 
 import java.awt.Desktop;
@@ -19,23 +21,31 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.mail.Address;
 import javax.mail.FetchProfile;
 import javax.mail.Flags.Flag;
 import javax.mail.Folder;
 import javax.mail.Message;
+import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Part;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Files;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 import spark.Request;
@@ -126,6 +136,9 @@ public class WebUIServer {
                 String value = Client.getInstance().getConfiguration(key);
                 if (value == null)
                     return "null";
+                if (key.contains("password")) {
+                    return "(password)";
+                }
                 return new JsonPrimitive(value).toString();
             } catch (RuntimeException e) {
                 response.status(404);
@@ -133,8 +146,18 @@ public class WebUIServer {
             }
         });
 
+        options("/api/settings/config", (request, response) -> {
+            response.header("Access-Control-Allow-Methods", "PUT");
+            return "";
+        });
+        put("/api/settings/config", this::putConfigs);
+        post("/api/settings/changeAccount", this::changeAccount);
+
+        post("/api/send", this::send);
+
         get("/resources/background", this::resourcesBackground);
 
+        get("/api/status", this::getStatus);
         get("/api/folders", this::getFolders);
         get("/api/folders/:folder/messages", this::getMessageCollections);
         get("/api/messages/:msgid", this::getMessage);
@@ -173,6 +196,98 @@ public class WebUIServer {
         Spark.exception(Exception.class, (exception, request, response) -> {
             exception.printStackTrace();
         });
+    }
+
+    private Object putConfigs(Request req, Response res) throws Exception {
+        JsonElement element = new JsonParser().parse(req.body());
+        if (!element.isJsonObject()) {
+            res.status(400);
+            return "Invalid request format";
+        }
+        JsonObject object = element.getAsJsonObject();
+        for (Entry<String, JsonElement> entry : object.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue().getAsString();
+            Client.getInstance().putConfiguration(key, value);
+            log.info("config {} updated", key);
+        }
+        return "true";
+    }
+
+    private Object changeAccount(Request req, Response res) throws Exception {
+        Client.getInstance().changeAccount();
+        return "true";
+    }
+
+    private Object getStatus(Request req, Response res) throws Exception {
+        if (Client.getInstance().getConfiguration("mail.imap.username") == null) {
+            return "\"INIT\"";
+        } else {
+            return "\"NORMAL\"";
+        }
+    }
+
+    private Object send(Request req, Response res) throws Exception {
+        Properties properties = new Properties();
+        properties.put("mail.transport.protocol", "smtp");
+        properties.put("mail.smtp.from", client.getConfiguration("mail.address"));
+        properties.put("mail.smtp.host", client.getConfiguration("mail.smtp.host"));
+        properties.put("mail.smtp.ssl.enable", true);
+        properties.put("mail.smtp.auth", true);
+        properties.put("mail.debug.auth", true);
+
+        Session session = Session.getInstance(properties, new javax.mail.Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(client.getConfiguration("mail.smtp.username"),
+                        client.getConfiguration("mail.smtp.password"));
+            }
+        });
+        session.setDebug(true);
+
+        Transport transport = session.getTransport();
+
+        JsonElement element = new JsonParser().parse(req.body());
+        JsonObject object = element.getAsJsonObject();
+
+        MimeMessage msg = new MimeMessage(session);
+        for (JsonElement e : object.get("to").getAsJsonArray()) {
+            JsonObject contact = e.getAsJsonObject();
+            InternetAddress addr = new InternetAddress(contact.get("address").getAsString(),
+                    contact.get("name").getAsString());
+            msg.addRecipient(RecipientType.TO, addr);
+        }
+        for (JsonElement e : object.get("cc").getAsJsonArray()) {
+            JsonObject contact = e.getAsJsonObject();
+            InternetAddress addr = new InternetAddress(contact.get("address").getAsString(),
+                    contact.get("name").getAsString());
+            msg.addRecipient(RecipientType.CC, addr);
+        }
+        for (JsonElement e : object.get("bcc").getAsJsonArray()) {
+            JsonObject contact = e.getAsJsonObject();
+            InternetAddress addr = new InternetAddress(contact.get("address").getAsString(),
+                    contact.get("name").getAsString());
+            msg.addRecipient(RecipientType.BCC, addr);
+        }
+
+        String name = client.getConfiguration("mail.name");
+        String address = client.getConfiguration("mail.address");
+
+        InternetAddress addr = new InternetAddress(address, name);
+        msg.setFrom(addr);
+
+        msg.setSubject(object.get("subject").getAsString());
+        msg.setContent(object.get("content").getAsString(), "text/html");
+
+        String reply = object.get("inReplyTo").getAsString();
+        if (!reply.isEmpty()) {
+            msg.addHeader("In-Reply-To", reply);
+        }
+
+        transport.connect();
+        transport.sendMessage(msg, msg.getAllRecipients());
+
+        return "true";
     }
 
     private Object getMessage(Request req, Response res) throws Exception {
