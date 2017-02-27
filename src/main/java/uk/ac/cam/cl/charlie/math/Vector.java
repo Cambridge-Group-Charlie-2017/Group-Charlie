@@ -109,4 +109,13 @@ public class Vector {
 	public int hashCode() {
 		return Arrays.hashCode(components);
 	}
+	
+	public static Vector weightedAverage(Vector addition, Vector main, double weight) {
+		double[] average = main.components;
+		double[] add = addition.components;
+		for(int i = 0; i < average.length; ++i) {
+			average[i] = average[i] + weight * add[i];
+		}
+		return new Vector(average, false);
+	}
 }
