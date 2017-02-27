@@ -158,12 +158,6 @@ public class BasicFileWalker implements FileWalker {
                     if (kind == OVERFLOW) {
                         continue;
                     }
-                    try {
-						Thread.sleep(300);
-					} catch (InterruptedException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
                     // cast:
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
                     Path dir = (Path)key.watchable();

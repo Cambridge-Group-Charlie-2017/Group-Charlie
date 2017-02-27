@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -91,11 +92,11 @@ public final class FileDB {
                         // just ignore it - if the file is now magically changed just return, and ignore it
                     }
                 } else {
-                    Document d = FileReader.readFile(p);
+                	Document d = FileReader.readFile(p); 
                     if (vectorisingQueue.size() != 0) {
                         // haven't flushed the queue yet - this is probably the first opportunity
                         vectorisingQueue.add(d);
-                        List<Vector> vectors = vectoriser.batchdoc2vec(vectorisingQueue);
+                       List<Vector> vectors = vectoriser.batchdoc2vec(vectorisingQueue);
                         if (vectors.size() != vectorisingQueue.size()) {
                             throw new Error("Assertion failure - the length of the list of vectors should match" +
                                     "the length of the list of documents");
@@ -126,7 +127,7 @@ public final class FileDB {
             log.debug("file apparently no longer readable or accessible", e);
             return; // can't just die because a file is no longer readable or has magically changed
             // just ignore it! Missing a file is not hugely important
-        }
+        } 
 
     }
 
