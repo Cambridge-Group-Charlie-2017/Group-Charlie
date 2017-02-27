@@ -99,6 +99,7 @@ task populateDB (type: JavaExec) {
     inputs.file('src/main/resources/word2vec/wordvectors.txt')
 }
 
+test.dependsOn downloadDataset
 build.dependsOn downloadWord2Vec
 test.dependsOn downloadWord2Vec
 populateDB.dependsOn downloadWord2Vec
