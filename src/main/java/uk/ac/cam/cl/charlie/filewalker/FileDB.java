@@ -1,19 +1,26 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 import uk.ac.cam.cl.charlie.vec.tfidf.VectorSerialiser;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -23,6 +30,7 @@ public final class FileDB {
 
     private Database db;
 
+    /* Not needed anymore if we agree on using a HashMap for priorityFiles
     private class PathVectorPair {
         public Path p;
         public Vector v;
@@ -31,9 +39,9 @@ public final class FileDB {
             this.p = p;
             this.v = v;
         }
-    }
+    }*/
 
-    private List<PathVectorPair> priorityFiles;
+    private Map<Path, Vector> priorityFiles;
     private Map<Path, Vector> fullMap;
 
     private static Logger log = LoggerFactory.getLogger(FileDB.class);
@@ -46,13 +54,12 @@ public final class FileDB {
     private static final double toleranceForSimilarity = 0.8;
 
     private FileDB() {
-    	//nextline can throw NullPointerException, should not be the case
     	db = Database.getInstance();
     	fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
     	System.out.println("Database Instance acquired");
         vectoriser = TfidfVectoriser.getVectoriser();
         vectorisingQueue = new LinkedList<>();
-        priorityFiles = new LinkedList<>();
+        priorityFiles = new HashMap<Path, Vector>(prioritySize);
         System.out.println("FileDB instance acquired");
     }
 
@@ -112,7 +119,6 @@ public final class FileDB {
                         Vector v = vectoriser.doc2vec(d);
                         fullMap.put(path,v);
                         putIntoPriority(path, v);
-
                     }
                 }
             }
@@ -126,13 +132,27 @@ public final class FileDB {
 
     public void processDeletedFile(Path p) {
         fullMap.remove(p);
+        priorityFiles.remove(p);        
     }
 
     public void processModifiedFile(Path p, BasicFileAttributes attrs) {
         processFile(p);
     }
 
-    private Optional<Path> getMostRelevantFile(Vector v) {
+
+    public Vector getVector(Path p) {//note that the path might not exist or there were not enough files yet to vectorise
+    	return fullMap.get(p);
+    }
+    
+    public Set<Path> getPriorityFiles() {
+    	Set<Path> paths = new HashSet<Path>(prioritySize);
+    	for(Path p: priorityFiles.keySet()) {
+    		paths.add(p);
+    	}
+    	return paths;
+    }
+    
+    public Optional<Path> getMostRelevantFile(Vector v) {
         // query priority first
         if (priorityFiles.size() != 0) {
             Optional<Path> prioritySuggestion = getBestMatch(v, priorityFiles);
@@ -143,12 +163,12 @@ public final class FileDB {
             return getBestMatch(v, fullMap);
         }
     }
-
+    
     private void putIntoPriority(Path p, Vector v) {
         if (!(priorityFiles.size() < prioritySize)) {
             priorityFiles.remove(prioritySize - 1);
         }
-        priorityFiles.add(0, new PathVectorPair(p,v));
+        priorityFiles.put(p,v);
     }
 
     private static Optional<Path> getBestMatch(Vector v, Map<Path, Vector> map) {
@@ -169,17 +189,21 @@ public final class FileDB {
         }
     }
 
-    private static Optional<Path> getBestMatch (Vector v, List<PathVectorPair> l) {
+
+    /* Not needed anymore
+    private static Optional<Path> getBestMatch (Vector v, Set<PathVectorPair> s) {
+>>>>>>> refs/heads/mailbox
         Path min = null;
         double dotProd = 0.0;
 
-        for (PathVectorPair pv : l) {
-            double latestCosine = Math.abs(pv.v.dot(v));
+        for (PathVectorPair pvp : s) {
+            double latestCosine = Math.abs(pvp.v.dot(v));
             if (min == null || latestCosine > dotProd) {
-                min = pv.p;
+                min = pvp.p;
                 dotProd = latestCosine;
             }
         }
+<<<<<<< HEAD
         if (dotProd > toleranceForSimilarity) {
             return Optional.of(min);
         }
@@ -187,5 +211,9 @@ public final class FileDB {
             return Optional.empty();
         }
     }
+=======
 
+        return min;
+    }*/
+    
 }

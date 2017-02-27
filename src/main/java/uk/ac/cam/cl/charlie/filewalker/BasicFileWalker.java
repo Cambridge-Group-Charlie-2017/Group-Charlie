@@ -16,10 +16,10 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashMap;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -63,8 +63,11 @@ public class BasicFileWalker implements FileWalker {
     @Override
     public void addRootDirectory(Path p) {
         p = p.toAbsolutePath();
-        rootDirs.add(p);
-        walk(p);
+        if(!rootDirs.contains(p)) {
+        	System.out.println("Added new root " + p);
+        	rootDirs.add(p);
+        	walk(p);
+        	}
     }
 
     @Override
@@ -132,7 +135,8 @@ public class BasicFileWalker implements FileWalker {
 
 
     private class BackgroundChangeListener implements Runnable {
-        @Override
+        @SuppressWarnings("unchecked")
+		@Override
         public void run() {
             // see: https://docs.oracle.com/javase/tutorial/essential/io/notification.html
             // basically copied directly from this example
@@ -145,7 +149,6 @@ public class BasicFileWalker implements FileWalker {
                 } catch (InterruptedException e) {
                     continue;
                 }
-
                 for (WatchEvent<?> event : key.pollEvents()) {
                     WatchEvent.Kind<?> kind = event.kind();
 
@@ -156,28 +159,30 @@ public class BasicFileWalker implements FileWalker {
 
                     // cast:
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path filename = ev.context();
+                    Path dir = (Path)key.watchable();
+                    Path relfilename = ev.context();
+                    Path fullFilename = dir.resolve(relfilename);
 
                     // decide what to do with the file event
 
                     if (kind == ENTRY_DELETE) {
                         // get the db to process the deletion
-                        db.processDeletedFile(filename);
+                        db.processDeletedFile(fullFilename);
                     } else {
                         BasicFileAttributes attrs = null;
                         try {
-                            attrs = Files.readAttributes(filename, BasicFileAttributes.class);
+                            attrs = Files.readAttributes(relfilename, BasicFileAttributes.class);
                         } catch (IOException e) {
-                            throw new Error(e);
+                            continue;
                         }
 
                         if (kind == ENTRY_CREATE) {
                             // add a new file to the db
-                            db.processNewFile(filename, attrs);
+                            db.processNewFile(fullFilename, attrs);
                         }
                         else if (kind == ENTRY_MODIFY) {
                             // modify an existing file - the hard case
-                            db.processModifiedFile(filename, attrs);
+                            db.processModifiedFile(fullFilename, attrs);
                         }
                     }
                 }
