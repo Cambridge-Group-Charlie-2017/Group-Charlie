@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.WatchEvent;
@@ -134,7 +135,8 @@ public class BasicFileWalker implements FileWalker {
 
 
     private class BackgroundChangeListener implements Runnable {
-        @Override
+        @SuppressWarnings("unchecked")
+		@Override
         public void run() {
             // see: https://docs.oracle.com/javase/tutorial/essential/io/notification.html
             // basically copied directly from this example
@@ -147,7 +149,6 @@ public class BasicFileWalker implements FileWalker {
                 } catch (InterruptedException e) {
                     continue;
                 }
-
                 for (WatchEvent<?> event : key.pollEvents()) {
                     WatchEvent.Kind<?> kind = event.kind();
 
@@ -158,28 +159,30 @@ public class BasicFileWalker implements FileWalker {
 
                     // cast:
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path filename = ev.context();
+                    Path dir = (Path)key.watchable();
+                    Path relfilename = ev.context();
+                    Path fullFilename = dir.resolve(relfilename);
 
                     // decide what to do with the file event
 
                     if (kind == ENTRY_DELETE) {
                         // get the db to process the deletion
-                        db.processDeletedFile(filename);
+                        db.processDeletedFile(fullFilename);
                     } else {
                         BasicFileAttributes attrs = null;
                         try {
-                            attrs = Files.readAttributes(filename, BasicFileAttributes.class);
+                            attrs = Files.readAttributes(relfilename, BasicFileAttributes.class);
                         } catch (IOException e) {
-                            throw new Error(e);
+                            continue;
                         }
 
                         if (kind == ENTRY_CREATE) {
                             // add a new file to the db
-                            db.processNewFile(filename, attrs);
+                            db.processNewFile(fullFilename, attrs);
                         }
                         else if (kind == ENTRY_MODIFY) {
                             // modify an existing file - the hard case
-                            db.processModifiedFile(filename, attrs);
+                            db.processModifiedFile(fullFilename, attrs);
                         }
                     }
                 }

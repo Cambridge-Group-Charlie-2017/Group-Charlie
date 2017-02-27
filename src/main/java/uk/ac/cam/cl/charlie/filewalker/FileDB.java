@@ -23,6 +23,7 @@ public final class FileDB {
 
     private Database db;
 
+    /* Not needed anymore if we agree on using a HashMap for priorityFiles
     private class PathVectorPair {
         public Path p;
         public Vector v;
@@ -31,9 +32,9 @@ public final class FileDB {
             this.p = p;
             this.v = v;
         }
-    }
+    }*/
 
-    private List<PathVectorPair> priorityFiles;
+    private Map<Path, Vector> priorityFiles;
     private Map<Path, Vector> fullMap;
 
     private static Logger log = LoggerFactory.getLogger(FileDB.class);
@@ -45,13 +46,12 @@ public final class FileDB {
     private static final int prioritySize = 100;
 
     private FileDB() {
-    	//nextline can throw NullPointerException, should not be the case
     	db = Database.getInstance();
     	fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
     	System.out.println("Database Instance acquired");
         vectoriser = TfidfVectoriser.getVectoriser();
         vectorisingQueue = new LinkedList<>();
-        priorityFiles = new LinkedList<>();
+        priorityFiles = new HashMap<Path, Vector>(prioritySize);
         System.out.println("FileDB instance acquired");
     }
 
@@ -111,7 +111,6 @@ public final class FileDB {
                         Vector v = vectoriser.doc2vec(d);
                         fullMap.put(path,v);
                         putIntoPriority(path, v);
-
                     }
                 }
             }
@@ -125,13 +124,26 @@ public final class FileDB {
 
     public void processDeletedFile(Path p) {
         fullMap.remove(p);
+        priorityFiles.remove(p);        
     }
 
     public void processModifiedFile(Path p, BasicFileAttributes attrs) {
         processFile(p);
     }
 
-    private Path getMostRelevantFile(Vector v) {
+    public Vector getVector(Path p) {//note that the path might not exist or there were not enough files yet to vectorise
+    	return fullMap.get(p);
+    }
+    
+    public Set<Path> getPriorityFiles() {
+    	Set<Path> paths = new HashSet<Path>(prioritySize);
+    	for(Path p: priorityFiles.keySet()) {
+    		paths.add(p);
+    	}
+    	return paths;
+    }
+    
+    public Path getMostRelevantFile(Vector v) {
         // query priority first
         // currently no fallback or tolerance if priority files are crap
         if (priorityFiles.size() != 0) {
@@ -141,12 +153,12 @@ public final class FileDB {
             return getBestMatch(v, fullMap);
         }
     }
-
+    
     private void putIntoPriority(Path p, Vector v) {
         if (!(priorityFiles.size() < prioritySize)) {
             priorityFiles.remove(prioritySize - 1);
         }
-        priorityFiles.add(0, new PathVectorPair(p,v));
+        priorityFiles.put(p,v);
     }
 
     private static Path getBestMatch(Vector v, Map<Path, Vector> map) {
@@ -162,19 +174,20 @@ public final class FileDB {
         return min;
     }
 
-    private static Path getBestMatch (Vector v, List<PathVectorPair> l) {
+    /* Not needed anymore
+    private static Path getBestMatch (Vector v, Set<PathVectorPair> s) {
         Path min = null;
         double dotProd = 0.0;
 
-        for (PathVectorPair pv : l) {
-            double latestCosine = Math.abs(pv.v.dot(v));
+        for (PathVectorPair pvp : s) {
+            double latestCosine = Math.abs(pvp.v.dot(v));
             if (min == null || latestCosine > dotProd) {
-                min = pv.p;
+                min = pvp.p;
                 dotProd = latestCosine;
             }
         }
 
         return min;
-    }
+    }*/
 
 }
