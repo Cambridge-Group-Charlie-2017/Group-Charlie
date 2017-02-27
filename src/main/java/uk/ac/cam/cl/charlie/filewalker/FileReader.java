@@ -1,12 +1,12 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
-import org.apache.tika.exception.TikaException;
-import uk.ac.cam.cl.charlie.vec.Document;
-import org.apache.tika.Tika;
-
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.apache.tika.Tika;
+import org.apache.tika.exception.TikaException;
+
+import uk.ac.cam.cl.charlie.vec.Document;
 
 /**
  * Created by shyam on 22/02/2017.

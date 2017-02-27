@@ -5,12 +5,14 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.CharSet;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -48,7 +50,8 @@ public class FileWalkerTestSuite {
 			e.printStackTrace();
 		} 
 		db = FileDB.getInstance();
-		test = new BasicFileWalker(Paths.get(ROOT+"\\root1\\"));
+		test = new BasicFileWalker();
+		test.addRootDirectory(Paths.get(ROOT+"\\root1\\"));
 	}
 
 	@AfterClass
@@ -126,7 +129,7 @@ public class FileWalkerTestSuite {
 		//appending file 101.txt to end of 100.txt, expecting the vector for text 100.txt to change
 		File testfile = new File(ROOT + "\\root1\\subfolder1\\100.txt");
 		File appendfile = new File(ROOT + "\\root1\\subfolder1\\101.txt");
-		FileUtils.writeStringToFile(testfile, FileUtils.readFileToString(appendfile), true);
+		FileUtils.writeStringToFile(testfile, FileUtils.readFileToString(appendfile, (Charset) null), (Charset) null, true);
 		assertTrue(originalVec != db.getVector(Paths.get(ROOT + "\\root1\\subfolder1\\100.txt")));
 		FileUtils.deleteDirectory(new File(ROOT+"\\root1\\subfolder1"));
 	}

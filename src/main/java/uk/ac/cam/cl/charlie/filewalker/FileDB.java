@@ -132,7 +132,7 @@ public final class FileDB {
 
     public void processDeletedFile(Path p) {
         fullMap.remove(p);
-        priorityFiles.remove(p);        
+        if(priorityFiles.remove(p) != null) System.out.println("Removed " + p.toString());
     }
 
     public void processModifiedFile(Path p, BasicFileAttributes attrs) {
