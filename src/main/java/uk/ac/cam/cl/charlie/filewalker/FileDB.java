@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.filewalker;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -57,11 +56,9 @@ public final class FileDB {
     private FileDB() {
     	db = Database.getInstance();
     	fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
-    	System.out.println("Database Instance acquired");
-        vectoriser = TfidfVectoriser.getVectoriser();
+    	vectoriser = TfidfVectoriser.getVectoriser();
         vectorisingQueue = new LinkedList<>();
         priorityFiles = new HashMap<Path, Vector>(prioritySize);
-        System.out.println("FileDB instance acquired");
     }
 
     public static FileDB getInstance() {
@@ -133,7 +130,7 @@ public final class FileDB {
 
     public void processDeletedFile(Path p) {
         fullMap.remove(p);
-        if(priorityFiles.remove(p) != null) System.out.println("Removed " + p.toString());
+        priorityFiles.remove(p);
     }
 
     public void processModifiedFile(Path p, BasicFileAttributes attrs) {

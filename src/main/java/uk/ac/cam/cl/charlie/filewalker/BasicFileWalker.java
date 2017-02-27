@@ -66,7 +66,6 @@ public class BasicFileWalker implements FileWalker {
     public void addRootDirectory(Path p) {
         p = p.toAbsolutePath();
         if(!rootDirs.contains(p)) {
-        	System.out.println("Added new root " + p);
         	rootDirs.add(p);
         	walk(p);
         	}
