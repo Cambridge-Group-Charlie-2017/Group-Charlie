@@ -3,6 +3,7 @@ package uk.ac.cam.cl.charlie.clustering;
 import java.util.ArrayList;
 import java.util.List;
 
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
@@ -24,28 +25,37 @@ import javax.mail.Message;
  * clustering.
  */
 public class EMClusterer extends Clusterer {
-    private final String DEFAULT_ARFF = "vectors.arff";
-
     //
     public EMClusterer(ArrayList<Message> messages) {
+    	getVectoriser().train(messages);
     	evalClusters(messages);
 	}
     public EMClusterer(ClusterableObjectGroup objects) throws Exception{
+		if (objects instanceof ClusterableMessageGroup) { //train if new set of messages
+			ArrayList<ClusterableObject> msgObjects = objects.getContents();
+			ArrayList<Message> messages = new ArrayList<>();
+			for (ClusterableObject mObj : msgObjects)
+				messages.add(((ClusterableMessage)mObj).getMessage());
+			getVectoriser().train(messages);
+		}
+
+		//cluster
     	setClusters(run(objects));
 	}
-    public EMClusterer(/*args?*/) { //initialise with current IMAP structure.
+    public EMClusterer(/*args?*/) { //initialise with current IMAP structure. Prevents reclustering.
     	//TODO: Implement. Should be as simple as calling following function.
 		//initialiseClusters(args?);
 	}
 
 	protected void initialiseClusters() {
-    	//TODO
+    	//TODO: Given information about the IMAP structure, initialise the clusters.
 	}
 
     // Note: currently set up to train on every vector. If this is uses too much
     // memory, could train on a subset.
     @Override
-    public ClusterGroup run(ClusterableObjectGroup objects) throws Exception {
+    protected ClusterGroup run(ClusterableObjectGroup objects) throws Exception {
+
 
 		List<Vector> vecs = objects.getVecs();
 

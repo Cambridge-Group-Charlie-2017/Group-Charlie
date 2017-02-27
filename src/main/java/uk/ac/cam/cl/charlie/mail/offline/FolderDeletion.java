@@ -17,6 +17,6 @@ public class FolderDeletion implements OfflineChange {
 
     @Override
     public void handleChange(LocalMailRepresentation mailRepresentation) throws MessagingException {
-        mailRepresentation.deleteFolder(folderToDelete);
+        mailRepresentation.getImapConnection().getFolder(folderToDelete.getFullName()).delete(true);
     }
 }

@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.mail.offline;
 
-import uk.ac.cam.cl.charlie.mail.IMAPConnection;
 import uk.ac.cam.cl.charlie.mail.LocalMailRepresentation;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderAlreadyExistsException;
 import uk.ac.cam.cl.charlie.mail.exceptions.FolderHoldsNoFoldersException;
@@ -9,26 +8,31 @@ import uk.ac.cam.cl.charlie.mail.exceptions.InvalidFolderNameException;
 
 import javax.mail.MessagingException;
 import java.io.IOException;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 /**
  * Created by Simon on 07/02/2017.
  */
 public class OfflineChangeList {
-    Stack<OfflineChange> changes;
+    private static OfflineChangeList instance = new OfflineChangeList();
+    public static OfflineChangeList getInstance() { return instance; }
 
-    public OfflineChangeList() {
-        changes = new Stack<>();
+
+    Queue<OfflineChange> changes;
+
+    private OfflineChangeList() {
+        changes = new ArrayDeque<>();
     }
 
     public void performChanges(LocalMailRepresentation mailRepresentation) throws MessagingException, IMAPConnectionClosedException, FolderAlreadyExistsException, FolderHoldsNoFoldersException, IOException, InvalidFolderNameException {
         while (!changes.isEmpty()) {
-            changes.pop().handleChange(mailRepresentation);
+            changes.poll().handleChange(mailRepresentation);
         }
     }
 
     public void addChange(OfflineChange change) {
-        changes.push(change);
+        changes.add(change);
     }
 
     public void clearChanges() {
