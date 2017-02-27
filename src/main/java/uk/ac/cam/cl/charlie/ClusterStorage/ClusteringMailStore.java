@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.ClusterStorage;
 
+import uk.ac.cam.cl.charlie.clustering.ClusterableMessageGroup;
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
@@ -8,6 +9,7 @@ import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 
 import javax.mail.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,17 +20,33 @@ import java.util.Map;
 public class ClusteringMailStore extends Store {
     private Store store;
     private boolean valid;
-    Map<String, VirtualFolder> virtualFolders = new HashMap<>();
+    private Map<String, VirtualFolder> virtualFolders = new HashMap<>();
+    private PersistantIDStore table = new PersistantIDStore();
     /**
      * Constructor.
      *
      * @param    session Session object for this Store.
      * @param    urlname    URLName object to be used for this Store
      */
-    protected ClusteringMailStore(Session session, URLName urlname,Store store) {
+    protected ClusteringMailStore(Session session, URLName urlname, Store store) {
         super(session, urlname);
         this.store = store;
         valid = false;
+    }
+
+    public void addClusters(ClusterGroup clusterGroup) {
+        if (clusterGroup.size() == 0)
+            return;
+        if (!(clusterGroup.get(0).getContents().get(0) instanceof ClusterableMessage))
+            return;
+
+        try {
+            table.wipeDatabase();
+        } catch (IOException e) {
+            throw new Error(e);
+        }
+
+        //TODO: add new entries
     }
 
     public void beginCluster() throws MessagingException {

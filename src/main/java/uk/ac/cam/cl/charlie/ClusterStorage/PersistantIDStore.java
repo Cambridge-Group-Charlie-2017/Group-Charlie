@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Created by Ben on 27/02/2017.
@@ -86,11 +86,7 @@ public class PersistantIDStore {
 
         try {
             for(iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
-                String key = asString(iterator.peekNext().getKey());
-                String value = asString(iterator.peekNext().getValue());
-                System.out.println(key+" = "+value);
-
-                Map.Entry<byte[],byte[]> next = iterator.peekNext();
+                Entry<byte[],byte[]> next = iterator.peekNext();
                 if (s.equals(new String(next.getValue()))) {
                     keysWithValue.add(ByteBuffer.wrap(next.getKey()).getInt());
                 }
@@ -104,6 +100,22 @@ public class PersistantIDStore {
             keys[i] = keysWithValue.get(i);
         }
         return keys;
+    }
+
+    public void wipeDatabase() throws IOException{
+        DBIterator iterator = db.iterator();
+        WriteBatch batch = db.createWriteBatch();
+        try {
+            for(iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+                Entry<byte[],byte[]> next = iterator.peekNext();
+                batch.delete(next.getKey());
+            }
+            db.write(batch);
+        } finally {
+            // Make sure you close the iterator & batch to avoid resource leaks.
+            iterator.close();
+            batch.close();
+        }
     }
 
     private byte[] bytes(int n) {
