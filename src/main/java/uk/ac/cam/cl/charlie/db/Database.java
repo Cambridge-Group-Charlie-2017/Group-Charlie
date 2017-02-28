@@ -65,7 +65,7 @@ public class Database {
 	@SuppressWarnings("unchecked")
 	PersistentMap<K, V> map = (PersistentMap<K, V>) databases.get(name);
 	if (map != null) {
-	    if (!map.keySerializer.equals(keySerializer) || map.valueSerializer.equals(valueSerializer)) {
+	    if (!map.keySerializer.equals(keySerializer) || !map.valueSerializer.equals(valueSerializer)) {
 		throw new RuntimeException("Serializers does not match with existing connections");
 	    }
 	} else {

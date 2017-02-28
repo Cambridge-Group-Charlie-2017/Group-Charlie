@@ -5,7 +5,6 @@ import java.io.InputStream;
 
 import javax.mail.Flags;
 import javax.mail.MessagingException;
-import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
 public class SyncIMAPMessage extends MimeMessage {
@@ -14,7 +13,7 @@ public class SyncIMAPMessage extends MimeMessage {
     boolean initialized = false;
 
     public SyncIMAPMessage(SyncIMAPFolder folder, long uid) throws MessagingException {
-        super((Session) null);
+        super(folder.getStore().getSession());
 
         this.folder = folder;
         this.uid = uid;
@@ -34,7 +33,13 @@ public class SyncIMAPMessage extends MimeMessage {
             // the message
             SyncIMAPFolder folder = (SyncIMAPFolder) this.folder;
             folder.downloadMessage(uid);
-            folder.deserializeWithContent(folder.map.get(uid), this);
+            byte[] bytes = folder.map.get(uid);
+
+            if (folder.deserializeStatus(bytes) == 2) {
+                folder.deserializeWithContent(bytes, this);
+            } else {
+                throw new MessagingException("Cannot download message");
+            }
 
             initialized = true;
         }
@@ -43,6 +48,13 @@ public class SyncIMAPMessage extends MimeMessage {
     @Override
     public Object getContent() throws MessagingException, IOException {
         checkContent();
+        return super.getContent();
+    }
+
+    public Object fastGetContent() throws MessagingException, IOException {
+        if (content == null) {
+            return null;
+        }
         return super.getContent();
     }
 
