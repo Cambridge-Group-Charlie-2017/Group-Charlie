@@ -174,7 +174,8 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
             dos.writeUTF(m.getMessageID() == null ? "" : m.getMessageID());
 
-            dos.writeLong(m.getSentDate().getTime());
+            Date date = m.getSentDate();
+            dos.writeLong(date == null ? 0 : date.getTime());
 
             dos.writeUTF(m.getContentType());
             dos.writeInt(m.getSize());
