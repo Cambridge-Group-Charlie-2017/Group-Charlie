@@ -18,15 +18,15 @@ public class PersistentWordCounter extends WordCounter {
     protected PersistentMap<String, Integer> map;
 
     private PersistentWordCounter() {
-	database = Database.getInstance();
-	map = database.getMap("word_frequencies", Serializers.STRING, Serializers.INTEGER);
+        database = Database.getInstance();
+        map = database.getMap("word_frequencies", Serializers.STRING, Serializers.INTEGER);
     }
 
     public static PersistentWordCounter getInstance() {
-	if (instance == null) {
-	    instance = new PersistentWordCounter();
-	}
-	return instance;
+        if (instance == null) {
+            instance = new PersistentWordCounter();
+        }
+        return instance;
     }
 
     @Override
@@ -36,15 +36,15 @@ public class PersistentWordCounter extends WordCounter {
 
     @Override
     public int frequency(String word) {
-	Integer freq = map.get(word);
-	if (freq == null)
-	    return 0;
-	return freq;
+        Integer freq = map.get(word);
+        if (freq == null)
+            return 0;
+        return freq;
     }
 
     @Override
     public Set<String> words() {
-	throw new UnsupportedOperationException("Querying all words from a persisted word counter is too expensive");
+	    throw new UnsupportedOperationException("Querying all words from a persisted word counter is too expensive");
     }
 
 }

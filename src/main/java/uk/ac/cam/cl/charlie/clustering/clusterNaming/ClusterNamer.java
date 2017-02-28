@@ -7,15 +7,15 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 
 import org.apache.commons.lang.WordUtils;
-import uk.ac.cam.cl.charlie.clustering.ClusterableObjectGroup;
 import uk.ac.cam.cl.charlie.clustering.ClusterableWordGroup;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWord;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
+import uk.ac.cam.cl.charlie.vec.tfidf.CachedWordCounter;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 /**
  * @author M Boyce
@@ -23,6 +23,9 @@ import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 public class ClusterNamer {
     private static HashSet<String> stopWords = new HashSet<>(StopWords.getStopWords());
 
+    // Controls the max occurrences of a word before it is considered a stop word
+    private static final double MAX_OCCURRENCE = 0.2;
+    // Controls the proportion of email that need a certain feature for it to be accepted
     private static double MIN_PROPORTION_CORRECT = 0.8;
 
     /**
@@ -176,6 +179,11 @@ public class ClusterNamer {
 
 
     public static void word2VecNaming(Cluster cluster) throws Exception {
+        TfidfVectoriser vectoriser = TfidfVectoriser.getVectoriser();
+        CachedWordCounter persistentWordCounter = vectoriser.getWordCounter();
+        double totalNumberOfDocs = vectoriser.getTotalNumberOfDocs();
+
+
         ArrayList<Message> messages = new ArrayList<>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<>(Collections.reverseOrder());
         HashMap<String, Integer> wordTotalPositionMap = new HashMap<>();
@@ -189,7 +197,7 @@ public class ClusterNamer {
             try {
             String[] subjectWords = m.getSubject().toLowerCase().split(" ");
             for (int j = 0; j < subjectWords.length; j++) {
-                if (!stopWords.contains(subjectWords[j])) {
+                if ((persistentWordCounter.frequency(subjectWords[j]) / totalNumberOfDocs)< MAX_OCCURRENCE){//!stopWords.contains(subjectWords[j])) {
                     int count = 0;
                     int curPosTotal = 0;
                     if (wordFrequencySubject.containsKey(subjectWords[j])) {
@@ -264,6 +272,55 @@ public class ClusterNamer {
     }
 
     /**
+     * Tries to find the most common words in email that do not appear as often in
+     * other clusters
+     * @param clusters
+     */
+    public static void clusterGroupNaming(ClusterGroup clusters) {
+        ArrayList<ArrayList<ClusterableWordAndOccurence>> clusterWordCounts = new ArrayList<>();
+        //Count number of occurrences of words in each cluster's message's subject line
+        for(Cluster c : clusters){
+            clusterWordCounts.add(countWords(c,20));
+        }
+        //Check to see if is any other clusters name
+        for(int i = 0; i < clusters.size(); i++){
+            ArrayList<ClusterableWordAndOccurence> currentClusterWords = clusterWordCounts.get(i);
+            ArrayList<ClusterableWordAndOccurence> wordsToUse = new ArrayList<>();
+            boolean canUseWord = true;
+            //Check against other clusters
+            Iterator<ClusterableWordAndOccurence> currentClusterIterator = currentClusterWords.iterator();
+            while(currentClusterIterator.hasNext()) {
+                ClusterableWordAndOccurence currentWord = currentClusterIterator.next();
+                for (int j = i + 1; j < clusters.size(); j++) {
+                    ArrayList<ClusterableWordAndOccurence> checkingAgainstCluster = clusterWordCounts.get(j);
+                    Iterator<ClusterableWordAndOccurence> checkingAgainstIterator = checkingAgainstCluster.iterator();
+                    while(checkingAgainstIterator.hasNext()){
+                        ClusterableWordAndOccurence checkingWord = checkingAgainstIterator.next();
+                        if(currentWord.getWord() == checkingWord.getWord()){
+                            //Remove Word From Both
+                            checkingAgainstIterator.remove();
+                            currentClusterIterator.remove();
+                            canUseWord = false;
+                        }
+                    }
+                }
+                if(canUseWord){
+                    //Add Word to cluster name
+                    wordsToUse.add(currentWord);
+                }
+            }
+
+            //Try Setting name
+            String folderName = wordsToUseToString(wordsToUse);
+            if(folderName.equals("")){
+                name(clusters.get(i));
+            }else{
+                clusters.get(i).setName(folderName +"Temp: Cluster Group Namer");//TODO: REMOVE
+            }
+        }
+    }
+
+    /**
      * Generic naming of the cluster that tries simple methods first aand if
      * they are not good enough try more complicated methods
      * 
@@ -295,5 +352,87 @@ public class ClusterNamer {
             }
         }
         return cluster.getName();
+    }
+
+    /**Orders wordsToUse based on the words average position in the subject line
+     *
+     * @param wordsToUse
+     * @return
+     */
+    public static String wordsToUseToString(ArrayList<ClusterableWordAndOccurence> wordsToUse){
+        String folderName ="";
+        // Sort words to use based on Average positions
+        for (int i = 0; i < wordsToUse.size(); i++) {
+            ClusterableWordAndOccurence tempWord = wordsToUse.get(i);
+            for (int j = i - 1; j >= 0 && wordsToUse.get(i).getPosition() < wordsToUse.get(j).getPosition(); j--) {
+                wordsToUse.set(j + 1, wordsToUse.get(j));
+                wordsToUse.set(j, tempWord);
+            }
+        }
+
+        // Create clusterName
+        for (ClusterableWordAndOccurence aWordsToUse : wordsToUse) {
+            folderName += aWordsToUse.getWord() + " ";
+        }
+
+        return folderName;
+    }
+
+    /**Counts the number of occurrences of each word removing common words
+     *
+     * @param cluster
+     * @param max_amount if -1 then returns all else returns at most max_amount
+     * @return
+     */
+    public static ArrayList<ClusterableWordAndOccurence> countWords(Cluster cluster,int max_amount){
+        TfidfVectoriser vectoriser = TfidfVectoriser.getVectoriser();
+        CachedWordCounter persistentWordCounter = vectoriser.getWordCounter();
+        double totalNumberOfDocs = vectoriser.getTotalNumberOfDocs();
+
+
+        ArrayList<Message> messages = new ArrayList<>();
+        TreeMap<String, Integer> wordFrequencySubject = new TreeMap<>(Collections.reverseOrder());
+        HashMap<String, Integer> wordTotalPositionMap = new HashMap<>();
+
+        for(ClusterableObject obj : cluster.getContents())
+            messages.add(((ClusterableMessage)obj).getMessage());
+
+        for (int i = 0; i < messages.size(); i++) {
+            Message m = messages.get(i);
+
+            try {
+                String[] subjectWords = m.getSubject().toLowerCase().split(" ");
+                for (int j = 0; j < subjectWords.length; j++) {
+                    if ((persistentWordCounter.frequency(subjectWords[j]) / totalNumberOfDocs)< MAX_OCCURRENCE){//!stopWords.contains(subjectWords[j])) {
+                        int count = 0;
+                        int curPosTotal = 0;
+                        if (wordFrequencySubject.containsKey(subjectWords[j])) {
+                            count = wordFrequencySubject.get(subjectWords[j]);
+                            curPosTotal = wordTotalPositionMap.get(subjectWords[j]);
+                        }
+                        wordFrequencySubject.put(subjectWords[j], count + 1);
+                        wordTotalPositionMap.put(subjectWords[j], curPosTotal + j);
+                    }
+                }
+
+            } catch (MessagingException e) {
+                System.out.println(e.getMessage());
+
+            }
+        }
+
+        // Map to array list
+        ArrayList<ClusterableWordAndOccurence> words = new ArrayList<>();
+        Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
+        while (iterator.hasNext() && (max_amount == -1 || words.size()<max_amount)) {
+            Map.Entry<String, Integer> entry = iterator.next();//TODO: Position
+            // Calculate Relative positions
+            int averagePosition = wordTotalPositionMap.get(entry.getKey())
+                    / wordFrequencySubject.get(entry.getKey());
+            ClusterableWordAndOccurence w = new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),averagePosition);
+            words.add(new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),averagePosition));
+        }
+
+        return words;
     }
 }

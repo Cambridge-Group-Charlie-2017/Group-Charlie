@@ -16,6 +16,7 @@ import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Vector;
@@ -161,6 +162,27 @@ public class ClusterNamerTest {
 
         for(int i=0;i<clusters.size();i++) {
             System.out.println("Cluster Name: " + clusters.get(i).getName()+ "\n");
+        }
+    }
+
+
+    @Test
+    public void clusterGroupNamingTest() throws Exception {
+        String filename = "src/main/resources/enron/bass-e.pst";
+        Date initial = new Date();
+        PSTFile pstFile = new PSTFile(filename);
+        ArrayList<ClusterableMessage> clusterableMessages = processFolder(pstFile.getRootFolder());
+        System.out.println("Loaded messages into memory");
+
+
+        ClusterableMessageGroup clusterableObjectGroup = new ClusterableMessageGroup(clusterableMessages);
+        EMClusterer clusterer = new EMClusterer(clusterableObjectGroup);
+        ClusterGroup clusters = clusterer.getClusters();
+
+        ClusterNamer.clusterGroupNaming(clusters);
+
+        for(int i=0;i<clusters.size();i++) {
+            System.out.println("Cluster Name: " + clusters.get(i).getName());
         }
     }
 
