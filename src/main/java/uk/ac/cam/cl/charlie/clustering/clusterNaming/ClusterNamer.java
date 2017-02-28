@@ -53,14 +53,14 @@ public class ClusterNamer {
             String[] subjectWords = m.getSubject().toLowerCase().split(" ");
             for (int j = 0; j < subjectWords.length; j++) {
                 if (!stopWords.contains(subjectWords[j])) {
-                int count = 0;
-                int curPosTotal = 0;
-                if (wordFrequencySubject.containsKey(subjectWords[j])) {
-                    count = wordFrequencySubject.get(subjectWords[j]);
-                    curPosTotal = wordTotalPositionMap.get(subjectWords[j]);
-                }
-                wordFrequencySubject.put(subjectWords[j], count + 1);
-                wordTotalPositionMap.put(subjectWords[j], curPosTotal + j);
+                    int count = 0;
+                    int curPosTotal = 0;
+                    if (wordFrequencySubject.containsKey(subjectWords[j])) {
+                        count = wordFrequencySubject.get(subjectWords[j]);
+                        curPosTotal = wordTotalPositionMap.get(subjectWords[j]);
+                    }
+                    wordFrequencySubject.put(subjectWords[j], count + 1);
+                    wordTotalPositionMap.put(subjectWords[j], curPosTotal + j);
                 }
             }
 
@@ -141,26 +141,26 @@ public class ClusterNamer {
 
 	for (int i = 0; i < messages.size(); i++) {
 	    try {
-		Address[] from = ((ClusterableMessage) messages.get(i)).getMessage().getFrom();
-		String[] address = from[0].toString().split("@");
+            Address[] from = ((ClusterableMessage) messages.get(i)).getMessage().getFrom();
+            String[] address = from[0].toString().split("@");
 
-		// Remove the .com /.net ect
-		String[] tempDomain = address[1].split("\\.");
-		String domain = "";
+            // Remove the .com /.net ect
+            String[] tempDomain = address[1].split("\\.");
+            String domain = "";
 
-		for (int j = 0; j < tempDomain.length - 1; j++) {
-		    domain += tempDomain[j];
-		}
+            for (int j = 0; j < tempDomain.length - 1; j++) {
+                domain += tempDomain[j];
+            }
 
-		// Increment the count of relevant domain
-		int count = 0;
-		if (domains.containsKey(domain)) {
-		    count = domains.get(domain);
-		}
-		domains.put(domain, count + 1);
+            // Increment the count of relevant domain
+            int count = 0;
+            if (domains.containsKey(domain)) {
+                count = domains.get(domain);
+            }
+            domains.put(domain, count + 1);
 
-	    } catch (MessagingException e) {
-		e.printStackTrace();
+            } catch (MessagingException e) {
+            e.printStackTrace();
 	    }
 	}
 
@@ -178,22 +178,26 @@ public class ClusterNamer {
     public static void word2VecNaming(Cluster cluster) throws Exception {
         ArrayList<Message> messages = new ArrayList<>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<>(Collections.reverseOrder());
+        HashMap<String, Integer> wordTotalPositionMap = new HashMap<>();
 
         for(ClusterableObject obj : cluster.getContents())
             messages.add(((ClusterableMessage)obj).getMessage());
 
-     for (int i = 0; i < messages.size(); i++) {
+        for (int i = 0; i < messages.size(); i++) {
             Message m = messages.get(i);
 
             try {
             String[] subjectWords = m.getSubject().toLowerCase().split(" ");
             for (int j = 0; j < subjectWords.length; j++) {
                 if (!stopWords.contains(subjectWords[j])) {
-                int count = 0;
-                if (wordFrequencySubject.containsKey(subjectWords[j])) {
-                    count = wordFrequencySubject.get(subjectWords[j]);
-                }
-                wordFrequencySubject.put(subjectWords[j], count + 1);
+                    int count = 0;
+                    int curPosTotal = 0;
+                    if (wordFrequencySubject.containsKey(subjectWords[j])) {
+                        count = wordFrequencySubject.get(subjectWords[j]);
+                        curPosTotal = wordTotalPositionMap.get(subjectWords[j]);
+                    }
+                    wordFrequencySubject.put(subjectWords[j], count + 1);
+                    wordTotalPositionMap.put(subjectWords[j], curPosTotal + j);
                 }
             }
 
@@ -208,8 +212,11 @@ public class ClusterNamer {
         Iterator<Map.Entry<String, Integer>> iterator = wordFrequencySubject.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Integer> entry = iterator.next();//TODO: Position
-            ClusterableWordAndOccurence w = new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),0);
-            words.add(new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),0));
+            // Calculate Relative positions
+            int averagePosition = wordTotalPositionMap.get(entry.getKey())
+                        / wordFrequencySubject.get(entry.getKey());
+            ClusterableWordAndOccurence w = new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),averagePosition);
+            words.add(new ClusterableWordAndOccurence(entry.getKey(), entry.getValue(),averagePosition));
         }
         ClusterableWordGroup toCluster = new ClusterableWordGroup(words);
 
@@ -218,22 +225,39 @@ public class ClusterNamer {
         String folderName = "";
         int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
 
+        ArrayList<ClusterableWordAndOccurence> wordsToUse = new ArrayList<>();
+
         for (int i = 0; i < clusters.size(); i++) {
             Cluster gc = clusters.get(i);
             ArrayList<ClusterableObject> w = gc.getContents();
 
             // Get most common word in a cluster
             int mostCommonOccurences = 0;
-            String mostCommonWord = "";
+            ClusterableWordAndOccurence mostCommonWord = null;
             for (int j = 0; j < w.size(); j++) {
                 ClusterableWordAndOccurence word = (ClusterableWordAndOccurence) w.get(j);
                 if (word.getOccurences() > mostCommonOccurences) {
                     mostCommonOccurences = word.getOccurences();
-                    mostCommonWord = word.getWord();
+                    mostCommonWord = word;
                 }
             }
-            folderName += mostCommonWord + " ";
+            wordsToUse.add(mostCommonWord);
         }
+
+        // Sort words to use based on Average positions
+        for (int i = 0; i < wordsToUse.size(); i++) {
+            ClusterableWordAndOccurence tempWord = wordsToUse.get(i);
+            for (int j = i - 1; j >= 0 && wordsToUse.get(i).getPosition() < wordsToUse.get(j).getPosition(); j--) {
+                wordsToUse.set(j + 1, wordsToUse.get(j));
+                wordsToUse.set(j, tempWord);
+            }
+        }
+
+        // Create clusterName
+        for (ClusterableWordAndOccurence aWordsToUse : wordsToUse) {
+            folderName += aWordsToUse.getWord() + " ";
+        }
+
 
         // Set folderName
         cluster.setName(folderName);
@@ -247,18 +271,25 @@ public class ClusterNamer {
      */
     public static String name(Cluster cluster) {
         try {
-            senderNaming(cluster);
+            subjectNaming(cluster);
         } catch (ClusterNamingException e) {
-            // Sender naming method is not good enough
+            // subjectNaming naming method is not good enough
             try {
-                subjectNaming(cluster);
+                senderNaming(cluster);
             } catch (ClusterNamingException e1) {
-                // subjectNaming method is not good enough
+                // sender method is not good enough
                 try {
                     word2VecNaming(cluster);
                 } catch (Exception e2) {
-                    cluster.setName("Cluster "+ Math.random());
-                    e2.printStackTrace();
+                    try {
+                        String subject = ((ClusterableMessage) cluster.getContents().get(0)).getMessage().getSubject();
+                        if(subject.equals(""))
+                            cluster.setName("Failed to name: " + Math.random()) ;
+                        else
+                            cluster.setName(subject);
+                    } catch (MessagingException e3) {
+                        cluster.setName("Failed to Name" + Math.random());
+                    }
                 }
 
             }
