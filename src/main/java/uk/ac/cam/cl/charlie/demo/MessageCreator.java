@@ -1,4 +1,4 @@
-package uk.ac.cam.cl.charlie.clustering;
+package uk.ac.cam.cl.charlie.demo;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -20,9 +20,9 @@ import java.util.List;
  * @author Matthew Boyce
  */
 public class MessageCreator {
-    public static Message createMessage(String to, String from, String subject, String body, List<File> attachments) {
+    public static MimeMessage createMessage(String to, String from, String subject, String body, List<File> attachments) {
         try {
-            Message message = new MimeMessage(Session.getInstance(System.getProperties()));
+            MimeMessage message = new MimeMessage(Session.getInstance(System.getProperties()));
             message.setFrom(new InternetAddress(from));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
             message.setSubject(subject);

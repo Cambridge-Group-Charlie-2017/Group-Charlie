@@ -4,7 +4,6 @@ import com.pff.PSTException;
 import com.pff.PSTFile;
 import com.pff.PSTFolder;
 import com.pff.PSTMessage;
-import org.joda.time.DateTime;
 import org.junit.Test;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamingException;
@@ -13,6 +12,7 @@ import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
+import uk.ac.cam.cl.charlie.demo.MessageCreator;
 
 
 import java.io.File;
@@ -144,7 +144,7 @@ public class ClusterNamerTest {
 
     @Test
     public void clusteringTest() throws Exception {
-        String filename = "src/main/resources/bass-e.pst";
+        String filename = "src/main/resources/enron/bass-e.pst";
         PSTFile pstFile = new PSTFile(filename);
         ArrayList<ClusterableMessage> clusterableMessages = processFolder(pstFile.getRootFolder());
 

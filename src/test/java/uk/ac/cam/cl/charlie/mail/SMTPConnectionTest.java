@@ -31,7 +31,7 @@ public class SMTPConnectionTest {
 
     @Before
     public void setUp() throws MessagingException {
-        mailServer = new GreenMail(ServerSetupTest.SMTP_IMAP);
+        mailServer = new GreenMail(new ServerSetup(3025, "localhost", "smtp"));
         mailServer.start();
 
         mailServer.setUser(SENDING_USER_EMAIL_ADDRESS, SENDING_USER_NAME, USER_PASSWORD);
