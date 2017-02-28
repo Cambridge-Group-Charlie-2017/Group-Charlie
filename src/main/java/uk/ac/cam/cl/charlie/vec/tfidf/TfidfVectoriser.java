@@ -40,7 +40,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return singleton;
     }
 
-    private TfidfVectoriser() {
+    protected TfidfVectoriser() {
         globalCounter = new CachedWordCounter(PersistentWordCounter.getInstance());
         vectorDB = WordVecDB.getInstance();
     }
@@ -132,7 +132,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
             // To decide which method is best, testing is required
             Vector tail = calculateDocVector(body);
             Vector head = sent2vec(msg.getSubject());
-            Vector result = Vector.concat(head, tail);
+            Vector result = Vector.weightedAverage(head, tail, 0.2);
             return result;
         } catch (MessagingException | IOException e) {
             return null;

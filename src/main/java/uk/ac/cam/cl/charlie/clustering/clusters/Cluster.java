@@ -5,10 +5,11 @@ import java.util.List;
 
 import javax.mail.Message;
 
-import uk.ac.cam.cl.charlie.clustering.Clusterer;
-import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 public abstract class Cluster {
@@ -19,33 +20,33 @@ public abstract class Cluster {
     private int clusterSize;
 
     public int getDimensionality() {
-        return dimensionality;
+	    return dimensionality;
     }
 
     public int getClusterSize() {
-        return clusterSize;
+	    return clusterSize;
     }
 
     public ArrayList<ClusterableObject> getContents() {
-        return contents;
+	    return contents;
     }
 
     public String getName() {
-        return clusterName;
+	    return clusterName;
     }
 
     // Naming is a separate process to clustering, so the name can be assigned
     // later.
     public void setName(String name) {
-        clusterName = name;
+	    clusterName = name;
     }
 
     public boolean contains(ClusterableObject obj) {
-        return contents.contains(obj);
+	    return contents.contains(obj);
     }
 
     public boolean containsMessage(Message msg) {
-        return contents.contains(new ClusterableMessage(msg));
+    	return contents.contains(new ClusterableMessage(msg));
     }
 
     /*
@@ -60,9 +61,9 @@ public abstract class Cluster {
 
     // Extract relevant metadata from the initial contents.
     protected Cluster(ArrayList<ClusterableObject> initialContents) {
-        contents = initialContents;
-        clusterSize = initialContents.size();
-        dimensionality = initialContents.get(0).getVector().size();
+    	contents = initialContents;
+	    clusterSize = initialContents.size();
+	    dimensionality = initialContents.get(0).getVector().size();
     }
 
     protected abstract void updateMetadataAfterAdding(ClusterableObject msg);
@@ -77,10 +78,16 @@ public abstract class Cluster {
 
     public List<Vector> getContentVecs() {
         List<Message> messages = new ArrayList<>();
+        List<Vector> vectors = new ArrayList<>();
         for (ClusterableObject obj : contents) {
-            messages.add(((ClusterableMessage) obj).getMessage());
+            if(obj instanceof ClusterableMessage)
+                messages.add(((ClusterableMessage) obj).getMessage());
+            else if(obj instanceof ClusterableWordAndOccurence)
+                vectors.add(((ClusterableWordAndOccurence)obj).getVec());
         }
-        return Clusterer.getVectoriser().doc2vec(messages);
+
+        vectors.addAll(Clusterer.getVectoriser().doc2vec(messages));
+        return vectors;
     }
 
     // updateServer() method? Could take mailbox as argument and use Mailbox to

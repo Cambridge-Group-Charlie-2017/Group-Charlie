@@ -24,8 +24,6 @@ public class IMAPConnection extends Store {
     private static final Logger log = LoggerFactory.getLogger(IMAPConnection.class);
 
     private final String host;
-    private final String port;
-    private final String provider;
     private final PasswordAuthentication authenticator;
 
     private final Store sessionStore;
@@ -39,8 +37,6 @@ public class IMAPConnection extends Store {
         );
         this.host = host;
         this.authenticator = new PasswordAuthentication(username, password);
-        this.port = port;
-        this.provider = provider;
 
         sessionStore = session.getStore(provider);
 
@@ -52,6 +48,10 @@ public class IMAPConnection extends Store {
         connectionProperties.put("mail.store.protocol", provider);
         connectionProperties.put("mail.imap.host", host);
         connectionProperties.put("mail.imap.port", port);
+
+        // Debugging purposes only, needs to be fixed
+        connectionProperties.put("mail.imaps.ssl.trust", "*");
+
         return connectionProperties;
     }
 
@@ -113,9 +113,9 @@ public class IMAPConnection extends Store {
     }
 
     public IMAPFolder createFolder(IMAPFolder parentFolder, String newFolderName) throws FolderAlreadyExistsException, MessagingException, FolderHoldsNoFoldersException, InvalidFolderNameException {
-        if (newFolderName.contains(".")) {
+        if (newFolderName.indexOf(parentFolder.getSeparator()) != -1) {
             log.error("Invalid folder name '{}' with parent '{}'", newFolderName, parentFolder.getFullName());
-            throw new InvalidFolderNameException("The folder name can't contain a '.'");
+            throw new InvalidFolderNameException("The folder name can't contain a " + parentFolder.getSeparator());
         }
 
         if (!parentFolder.exists()) {

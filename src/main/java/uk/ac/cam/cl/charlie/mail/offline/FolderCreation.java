@@ -24,6 +24,7 @@ public class FolderCreation implements OfflineChange {
 
     @Override
     public void handleChange(LocalMailRepresentation mailRepresentation) throws FolderHoldsNoFoldersException, InvalidFolderNameException, IMAPConnectionClosedException, IOException, FolderAlreadyExistsException, MessagingException {
-        mailRepresentation.createFolder(parentFolder, folderName);
+        mailRepresentation.getImapConnection().createFolder(parentFolder.getBackingFolder(), folderName);
+        parentFolder.getFolder(folderName).openConnection(mailRepresentation.getImapConnection());
     }
 }
