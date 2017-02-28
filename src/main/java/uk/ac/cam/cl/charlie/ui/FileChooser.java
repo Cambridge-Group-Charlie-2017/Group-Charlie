@@ -53,7 +53,7 @@ public class FileChooser {
 
         // Set up output buffer
         int bufferLength = 260;
-        int bufferSize = 4 * bufferLength + 1;
+        int bufferSize = 4 * (bufferLength + 1);
         Memory buffer = new Memory(bufferSize);
         buffer.clear();
         if (file != null) {
