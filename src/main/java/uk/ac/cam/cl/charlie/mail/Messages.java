@@ -7,6 +7,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 import org.jsoup.Jsoup;
 
@@ -113,5 +114,13 @@ public class Messages {
             return ((SyncIMAPMessage) message).fastGetContent();
         }
         return null;
+    }
+
+    public static String getMessageID(Message message) throws MessagingException {
+        if (message instanceof MimeMessage) {
+            return ((MimeMessage) message).getMessageID();
+        } else {
+            return null;
+        }
     }
 }

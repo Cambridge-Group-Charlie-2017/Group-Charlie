@@ -137,7 +137,7 @@ public class WebUIServer {
                 if (value == null)
                     return "null";
                 if (key.contains("password")) {
-                    return "(password)";
+                    return "\"(password)\"";
                 }
                 return new JsonPrimitive(value).toString();
             } catch (RuntimeException e) {
@@ -234,7 +234,6 @@ public class WebUIServer {
         properties.put("mail.smtp.host", client.getConfiguration("mail.smtp.host"));
         properties.put("mail.smtp.ssl.enable", true);
         properties.put("mail.smtp.auth", true);
-        properties.put("mail.debug.auth", true);
 
         Session session = Session.getInstance(properties, new javax.mail.Authenticator() {
             @Override
@@ -243,7 +242,6 @@ public class WebUIServer {
                         client.getConfiguration("mail.smtp.password"));
             }
         });
-        session.setDebug(true);
 
         Transport transport = session.getTransport();
 
@@ -511,6 +509,7 @@ public class WebUIServer {
                 msgObj.addProperty("unread", !msgs[i].getFlags().contains(Flag.SEEN));
                 msgObj.addProperty("flagged", msgs[i].getFlags().contains(Flag.FLAGGED));
                 msgObj.addProperty("inReplyTo", Messages.getInReplyTo(msgs[i]));
+                msgObj.addProperty("mid", Messages.getMessageID(msgs[i]));
 
                 msgObj.addProperty("hasAttachment", msgs[i].isMimeType("multipart/mixed"));
 
