@@ -130,6 +130,14 @@ public class WebUIServer {
         staticFiles.externalLocation(System.getProperty("user.dir") + "/src/main/resources/public");
         // staticFileLocation("/public");
 
+        // Perform some operations
+        get("/api/native/select_folder", (request, response) -> {
+            File file = new DirectoryChooser().open();
+            if (file == null)
+                return "null";
+            return new JsonPrimitive(file.getAbsolutePath()).toString();
+        });
+
         get("/api/settings/config/:key", (request, response) -> {
             String key = request.params("key");
             try {
