@@ -786,4 +786,9 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
         }
     }
 
+    @Override
+    public SyncIMAPStore getStore() {
+        return (SyncIMAPStore) store;
+    }
+
 }

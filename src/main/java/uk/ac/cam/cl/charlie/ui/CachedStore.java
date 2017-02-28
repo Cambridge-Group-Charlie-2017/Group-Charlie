@@ -49,6 +49,7 @@ public class CachedStore {
             properties.put("mail.imap.connectiontimeout", 6000);
             properties.put("mail.imap.timeout", 3000);
             properties.put("mail.imap.writetimeout", 3000);
+            properties.put("mail.mime.address.strict", false);
 
             Session session = Session.getInstance(properties);
             // session.setDebug(true);

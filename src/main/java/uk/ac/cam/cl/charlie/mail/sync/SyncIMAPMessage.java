@@ -5,7 +5,6 @@ import java.io.InputStream;
 
 import javax.mail.Flags;
 import javax.mail.MessagingException;
-import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
 public class SyncIMAPMessage extends MimeMessage {
@@ -14,7 +13,7 @@ public class SyncIMAPMessage extends MimeMessage {
     boolean initialized = false;
 
     public SyncIMAPMessage(SyncIMAPFolder folder, long uid) throws MessagingException {
-        super((Session) null);
+        super(folder.getStore().getSession());
 
         this.folder = folder;
         this.uid = uid;

@@ -346,4 +346,8 @@ public class SyncIMAPStore extends Store {
         }
     }
 
+    protected Session getSession() {
+        return session;
+    }
+
 }
