@@ -34,6 +34,8 @@ public class ClusteringMailStore extends Store {
         valid = false;
     }
 
+    //Drunk when coding this function. Probably a good idea to double check it.
+    //Wipe current clusters, replaces with new cluster group.
     public void addClusters(ClusterGroup clusterGroup) {
         if (clusterGroup.size() == 0)
             return;
@@ -46,31 +48,29 @@ public class ClusteringMailStore extends Store {
             throw new Error(e);
         }
 
-        //TODO: add new entries
-    }
-
-    public void beginCluster() throws MessagingException {
-        Folder inbox = store.getFolder("Inbox");
         ArrayList<Message> messages = new ArrayList<>();
-        for(int i=0; i < inbox.getMessageCount(); i++)
-            messages.add(inbox.getMessage(i));
+        ArrayList<String> clusterNameList = new ArrayList<>();
+        for (Cluster cluster : clusterGroup) {
 
-        Clusterer clusterer = new EMClusterer(messages);
-
-        ClusterGroup clusters = clusterer.getClusters();
-        for(int i = 0; i < clusters.size(); i++){
-            VirtualFolder virtualFolder = new VirtualFolder(store);
-            Cluster cluster = clusters.get(i);
-
-            virtualFolder.setFolderName(cluster.getName());
-            ArrayList<ClusterableObject> clusteredObjects = cluster.getContents();
-            Message[] clusteredMessages = new Message[clusteredObjects.size()];
-            for(int j = 0; j < clusteredObjects.size(); j++)
-                clusteredMessages[i] = ((ClusterableMessage)clusteredObjects.get(i)).getMessage();
-            virtualFolder.appendMessages(clusteredMessages);
-            virtualFolders.put(virtualFolder.getName(),virtualFolder);
+            ArrayList<ClusterableObject> objects = cluster.getContents();
+            for (ClusterableObject obj : objects) {
+                messages.add(((ClusterableMessage) obj).getMessage());
+                clusterNameList.add(cluster.getName());
+            }
         }
-        valid = true;
+
+        int[] messageIDs = new int[messages.size()];
+        String[] clusterNames = new String[messages.size()];
+        for (int i = 0; i < messages.size(); i++)
+            messageIDs[i] = messages.get(i).getMessageNumber();
+
+        clusterNames = clusterNameList.toArray(clusterNames);
+
+        try {
+            table.batchInsert(messageIDs, clusterNames);
+        } catch (IOException e) {
+            throw new Error(e);
+        }
     }
 
     @Override
