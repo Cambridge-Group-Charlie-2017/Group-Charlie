@@ -103,9 +103,17 @@ public class EMClusterer extends Clusterer {
 			ClusterEvaluation eval = new ClusterEvaluation();
 			eval.setClusterer(cl);
 			eval.evaluateClusterer(new Instances(data));
-			//If not clustered properly, try again with n=5 to ensure a grouping is found.
+
+			//If no clusters found, try again with n=5. If too many, try again with n=8. (numbers somewhat arbitrary)
 			if (cl.numberOfClusters() <= 0) {
 				String[] options2 = { "-I", "5", "-N", "5" };
+				cl.setOptions(options);
+				cl.buildClusterer(data);
+				eval = new ClusterEvaluation();
+				eval.setClusterer(cl);
+				eval.evaluateClusterer(new Instances(data));
+			} else if (cl.numberOfClusters() > 10) {
+				String[] options2 = { "-I", "5", "-N", "8" };
 				cl.setOptions(options);
 				cl.buildClusterer(data);
 				eval = new ClusterEvaluation();
