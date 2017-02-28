@@ -76,7 +76,7 @@ dependencies {
 }
 
 // Define the main class for the application
-mainClassName = 'App'
+mainClassName = 'uk.ac.cam.cl.charlie.ui.WebUIServer'
 
 task downloadWord2Vec(type: Download) {
     src 'https://www.dropbox.com/s/8q626nhgrx6ez5m/wordvectors.txt?dl=1'
