@@ -2,11 +2,9 @@ package uk.ac.cam.cl.charlie.clustering;
 
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfCachingVectoriser;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 import javax.mail.Message;
