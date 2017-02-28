@@ -171,4 +171,14 @@ public class TfidfVectoriser implements VectorisingStrategy {
     public boolean minimumBatchSizeReached() {
         return globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) >= minBatchSize;
     }
+
+
+
+    public CachedWordCounter getWordCounter(){
+        return globalCounter;
+    }
+
+    public double getTotalNumberOfDocs(){
+        return globalCounter.frequency(TOTAL_NUMBER_OF_DOCS);
+    }
 }

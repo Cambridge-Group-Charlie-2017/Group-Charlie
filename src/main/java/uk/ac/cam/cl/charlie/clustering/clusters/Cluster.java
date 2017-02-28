@@ -61,6 +61,7 @@ public abstract class Cluster {
      */
     abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
 
+    //returns whether high, or low, match strength value is preferable.
     public abstract boolean isHighMatchGood();
 
     // Extract relevant metadata from the initial contents.
@@ -93,8 +94,4 @@ public abstract class Cluster {
         vectors.addAll(Clusterer.getVectoriser().doc2vec(messages));
         return vectors;
     }
-
-    // updateServer() method? Could take mailbox as argument and use Mailbox to
-    // update server. Update could also be in
-    // addMessage()
 }
