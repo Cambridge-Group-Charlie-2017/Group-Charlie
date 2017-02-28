@@ -146,6 +146,10 @@ public class VirtualFolder extends Folder {
         Collections.addAll(messages, msgs);
     }
 
+    public void removeMessage(Message msg) {
+        messages.remove(msg);
+    }
+
     @Override
     public Message[] expunge() throws MessagingException {
         //remove all messages marked DELETED. This is automatically done by ClusteringMailStore.

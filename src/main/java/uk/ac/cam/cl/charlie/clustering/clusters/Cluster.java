@@ -49,11 +49,15 @@ public abstract class Cluster {
     	return contents.contains(new ClusterableMessage(msg));
     }
 
-    /*
+    /**
      * Abstract method used for testing which cluster is the best match for a
      * specific Message. Actual implementation varies between implementations.
      * For EMCluster, the output is proportional to the Naive Bayes probability
      * of a match, so higher values are better.
+     *
+     * @param msg
+     * @return
+     * @throws IncompatibleDimensionalityException
      */
     abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
 

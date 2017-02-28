@@ -11,6 +11,7 @@ import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import javax.mail.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,7 +87,6 @@ public class ClusteringMailStore extends Store {
         ArrayList<Message> messages = new ArrayList<>();
         ArrayList<String> clusterNameList = new ArrayList<>();
         for (Cluster cluster : clusterGroup) {
-
             ArrayList<ClusterableObject> objects = cluster.getContents();
             for (ClusterableObject obj : objects) {
                 messages.add(((ClusterableMessage) obj).getMessage());
@@ -110,18 +110,44 @@ public class ClusteringMailStore extends Store {
 
     public void delete(Message msg) {
         table.delete(msg.getMessageNumber());
-        //TODO: also delete from on-memory structure
+        if (virtualFolders.containsValue(msg.getFolder())) {
+            //TODO: is this the correct way?
+            ((VirtualFolder) msg.getFolder()).removeMessage(msg);
+            return;
+        }
     }
 
     //Only valid if message is already in a cluster (not a user-created folder).
     public void move(Message msg, String clusterName) {
         table.move(msg.getMessageNumber(), clusterName);
-        //TODO: make changes to folders if clusterName exists on IMAP structure move there? Then only call delete(), not move()
+        Message[] singleMessageArray = {msg};
+        try {
+            delete(msg);
+            virtualFolders.get(clusterName).appendMessages(singleMessageArray);
+        } catch (MessagingException e) {
+            throw new Error(e);
+        }
+
+        //TODO: If clusterName exists on IMAP structure move there? Then only call delete(), not move()
     }
 
-    public void addNew(Message msg, String clusterName) {
-        table.insert(msg.getMessageNumber(), clusterName);
-        //TODO: make changes to folders. Possibly if clusterName exists on IMAP structure add to there?
+    public void addMessage(Message msg, String clusterName) {
+        Message[] singleMessage = {msg};
+        addMessagesToCluster(singleMessage, clusterName);
+    }
+
+    public void addMessagesToCluster(Message[] messages, String clusterName) {
+        VirtualFolder folder = virtualFolders.get(clusterName); //TODO: handle if clustername is invalid
+        for (int i  = 0; i < messages.length; i++) {
+            table.insert(messages[i].getMessageNumber(), clusterName);
+        }
+        try {
+            folder.appendMessages(messages);
+        } catch (MessagingException e) {
+            throw new Error(e);
+        }
+
+        //TODO: Possibly if clusterName exists on IMAP structure add to there?
     }
 
 

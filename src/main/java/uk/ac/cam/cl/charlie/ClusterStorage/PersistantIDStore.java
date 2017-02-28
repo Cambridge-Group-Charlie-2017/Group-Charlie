@@ -22,6 +22,10 @@ import java.util.Map.Entry;
 public class PersistantIDStore {
     DB db; //key = msgnumber, val = clustername
 
+    /*
+     * Initialise database in same directory as the vector database.
+     * Get the database instance
+     */
     public PersistantIDStore() {
         String path = OS.getAppDataDirectory("AutoArchive");
         String dbpath = path + File.separator + "ClusterStore.db";
@@ -35,9 +39,11 @@ public class PersistantIDStore {
         }
     }
 
+    //Add single entry
     public void insert(int num, String name) {
         db.put(bytes(num), bytes(name));
     }
+    //Add batch (more efficient
     public void batchInsert(int[] nums, String[] names) throws IOException{
         WriteBatch batch = db.createWriteBatch();
         try {
@@ -52,9 +58,11 @@ public class PersistantIDStore {
         }
     }
 
+    //Delete single entry
     public void delete(int num) {
         db.delete(bytes(num));
     }
+    //Delete batch (more efficient
     public void batchDelete(int[] nums) throws IOException{
         WriteBatch batch = db.createWriteBatch();
         try {
@@ -68,6 +76,7 @@ public class PersistantIDStore {
         }
     }
 
+    //Get a list of all unique values stored in the
     public String[] getVals() throws IOException{
         DBIterator iterator = db.iterator();
         ArrayList<String> valArr = new ArrayList<>();
@@ -83,7 +92,6 @@ public class PersistantIDStore {
             // Make sure you close the iterator to avoid resource leaks.
             iterator.close();
         }
-
         String[] vals = new String[valArr.size()];
         for (int i = 0; i < valArr.size(); i++) {
             vals[i] = valArr.get(i);
@@ -91,15 +99,18 @@ public class PersistantIDStore {
         return vals;
     }
 
+    //Assigns 'num' a new 'name'
     public void move(int num, String name) {
         delete(num);
         insert(num, name);
     }
+    //batch reassign
     public void batchMove(int[] nums, String[] names) throws IOException{
         batchDelete(nums);
         batchInsert(nums, names);
     }
 
+    //Return all keys with supplied value
     public int[] getAllWithvalue(String s) throws IOException{
         DBIterator iterator = db.iterator();
         ArrayList<Integer> keysWithValue = new ArrayList<>();
@@ -122,6 +133,7 @@ public class PersistantIDStore {
         return keys;
     }
 
+    //Totally wipe database (in preparation for new clustering)
     public void wipeDatabase() throws IOException{
         DBIterator iterator = db.iterator();
         WriteBatch batch = db.createWriteBatch();
@@ -138,6 +150,7 @@ public class PersistantIDStore {
         }
     }
 
+    //Need to convert keys and values into byte[] to enter into database
     private byte[] bytes(int n) {
         return ByteBuffer.allocate(4).putInt(n).array();
     }
