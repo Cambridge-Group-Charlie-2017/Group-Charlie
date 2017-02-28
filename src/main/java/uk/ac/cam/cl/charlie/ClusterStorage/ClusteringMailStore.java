@@ -32,6 +32,7 @@ public class ClusteringMailStore extends Store {
         super(session, urlname);
         this.store = store;
         valid = false;
+        //TODO: import current folder structure from database
     }
 
     //Drunk when coding this function. Probably a good idea to double check it.
@@ -73,6 +74,24 @@ public class ClusteringMailStore extends Store {
         }
     }
 
+    public void delete(Message msg) {
+        table.delete(msg.getMessageNumber());
+        //TODO: also delete from on-memory structure
+    }
+
+    //Only valid if message is already in a cluster (not a user-created folder).
+    public void move(Message msg, String clusterName) {
+        table.move(msg.getMessageNumber(), clusterName);
+        //TODO: make changes to folders if clusterName exists on IMAP structure move there? Then only call delete(), not move()
+    }
+
+    public void addNew(Message msg, String clusterName) {
+        table.insert(msg.getMessageNumber(), clusterName);
+        //TODO: make changes to folders. Possibly if clusterName exists on IMAP structure add to there?
+    }
+
+
+
     @Override
     public Folder getDefaultFolder() throws MessagingException {
         return store.getDefaultFolder();
@@ -82,11 +101,11 @@ public class ClusteringMailStore extends Store {
     public Folder getFolder(String name) throws MessagingException {
         if(valid) {
             if (name == "Inbox")
-                return store.getFolder(name);
-            else if (virtualFolders.containsKey(name))
+                return store.getFolder("Inbox");
+            else if (virtualFolders.containsKey(name)) //Is a recalculated cluster
                 return virtualFolders.get(name);
             else
-                return store.getFolder(name);
+                return store.getFolder(name); //User-created folder
         }else{
             return store.getFolder(name);
         }
@@ -94,6 +113,6 @@ public class ClusteringMailStore extends Store {
 
     @Override
     public Folder getFolder(URLName url) throws MessagingException {
-        return null;
+        return null; //not applicable.
     }
 }
