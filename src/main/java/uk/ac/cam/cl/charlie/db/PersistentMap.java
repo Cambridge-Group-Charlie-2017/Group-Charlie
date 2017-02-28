@@ -303,10 +303,12 @@ public class PersistentMap<K, V> implements Map<K, V> {
     @Override
     public void clear() {
         DBIterator iter = db.iterator();
+        WriteBatch batch = db.createWriteBatch();
         for (iter.seekToFirst(); iter.hasNext();) {
             Entry<byte[], byte[]> entry = iter.next();
-            db.delete(entry.getKey());
+            batch.delete(entry.getKey());
         }
+        db.write(batch);
     }
 
     public BatchWriter batch() {

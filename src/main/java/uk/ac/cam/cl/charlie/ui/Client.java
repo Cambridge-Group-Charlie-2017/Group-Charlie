@@ -4,10 +4,19 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
+import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
 
 /**
@@ -63,6 +72,45 @@ public class Client {
         if (cstore != null)
             cstore.teardown();
         cstore = new CachedStore();
+    }
+
+    public void startClustering() {
+        if (cstore == null) {
+            cstore = new CachedStore();
+        }
+        Message[] message = cstore.doFolderQuery("Inbox", folder -> {
+            int cnt = folder.getMessageCount();
+            return folder.getMessages(Math.max(1, cnt - 500), cnt);
+        });
+        ArrayList<Message> msg = new ArrayList<>(Arrays.asList(message));
+        log.info("Start downloading all emails");
+        try {
+            Iterator<Message> iter = msg.iterator();
+            while (iter.hasNext()) {
+                Message m = iter.next();
+                if (m.getSize() >= 65536) {
+                    iter.remove();
+                } else {
+                    m.getContent();
+                }
+            }
+        } catch (MessagingException | IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        log.info("Downloaded all emails");
+
+        EMClusterer cluster = new EMClusterer(msg);
+        ClusterGroup group = cluster.getClusters();
+
+        cstore.doFolderQuery("Inbox", folder -> {
+            ClusteredFolder cfolder = (ClusteredFolder) folder;
+            cfolder.addClusters(group);
+            // Invalidate folder cache
+            cstore.foldersLastUpdate = 0;
+            return null;
+        });
+
     }
 
 }

@@ -11,6 +11,7 @@ public class SyncIMAPMessage extends MimeMessage {
 
     long uid;
     boolean initialized = false;
+    int size;
 
     public SyncIMAPMessage(SyncIMAPFolder folder, long uid) throws MessagingException {
         super(folder.getStore().getSession());
@@ -42,6 +43,15 @@ public class SyncIMAPMessage extends MimeMessage {
             }
 
             initialized = true;
+        }
+    }
+
+    @Override
+    public int getSize() throws MessagingException {
+        if (content == null) {
+            return size;
+        } else {
+            return super.getSize();
         }
     }
 

@@ -230,6 +230,8 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
             String contentType = dis.readUTF();
             msg.setHeader("Content-Type", contentType);
+
+            msg.size = dis.readInt();
         } catch (IOException e) {
             throw new AssertionError(e);
         }
@@ -250,7 +252,7 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
             m.writeTo(dos);
         } catch (IOException e) {
-            throw new AssertionError(e);
+            throw new MessagingException("", e);
         }
         return bos.toByteArray();
     }
@@ -428,8 +430,6 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
                         int len = i + 1024 < message.length ? 1024 : message.length - i;
                         Message[] chunk = new Message[len];
                         System.arraycopy(message, i, chunk, 0, len);
-                        // Clean up to allow GC
-                        Arrays.fill(message, i, i + len, null);
 
                         log.info("{}: Fetching email {} to {}", fullname, imapFolder.getUID(chunk[0]),
                                 imapFolder.getUID(chunk[len - 1]));
@@ -450,6 +450,8 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
                             map.put(uid, serialized);
                         }
                     }
+
+                    notifyMessageAddedListeners(message);
                 }
 
                 // Now checking flags of all fetched messages

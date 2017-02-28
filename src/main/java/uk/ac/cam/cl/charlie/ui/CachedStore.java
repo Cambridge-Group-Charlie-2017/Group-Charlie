@@ -16,6 +16,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sun.mail.imap.IMAPMessage;
 
+import uk.ac.cam.cl.charlie.clustering.store.ClusteredStore;
 import uk.ac.cam.cl.charlie.db.Configuration;
 import uk.ac.cam.cl.charlie.mail.sync.SyncIMAPStore;
 
@@ -57,6 +58,7 @@ public class CachedStore {
             // store = session.getStore();
 
             store = new SyncIMAPStore(session, null);
+            store = new ClusteredStore(session, null, store);
             store.connect(config.get("mail.imap.username"), config.get("mail.imap.password"));
 
             return store;
@@ -167,6 +169,7 @@ public class CachedStore {
 
             if (folders.containsKey(name)) {
                 if (folders.containsKey(fullname)) {
+                    log.error("Folder name {} duplicates", fullname);
                     throw new Error("Folder name duplication!");
                 } else {
                     // Name existing already, force to revert
