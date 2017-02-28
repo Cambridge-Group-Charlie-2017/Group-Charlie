@@ -1,9 +1,7 @@
 package uk.ac.cam.cl.charlie.ClusterStorage;
+
 import org.iq80.leveldb.DB;
-
-import static org.iq80.leveldb.impl.Iq80DBFactory.asString;
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
-
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.WriteBatch;
@@ -14,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map.Entry;
 
 /**
@@ -69,6 +66,29 @@ public class PersistantIDStore {
             //close the batch to avoid resource leaks.
             batch.close();
         }
+    }
+
+    public String[] getVals() throws IOException{
+        DBIterator iterator = db.iterator();
+        ArrayList<String> valArr = new ArrayList<>();
+
+        try {
+            for(iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+                Entry<byte[],byte[]> next = iterator.peekNext();
+                if (!valArr.contains(new String(next.getValue()) ) ) {
+                    valArr.add(new String(next.getValue()));
+                }
+            }
+        } finally {
+            // Make sure you close the iterator to avoid resource leaks.
+            iterator.close();
+        }
+
+        String[] vals = new String[valArr.size()];
+        for (int i = 0; i < valArr.size(); i++) {
+            vals[i] = valArr.get(i);
+        }
+        return vals;
     }
 
     public void move(int num, String name) {

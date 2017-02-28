@@ -20,8 +20,9 @@ import java.util.Map;
 public class ClusteringMailStore extends Store {
     private Store store;
     private boolean valid;
-    private Map<String, VirtualFolder> virtualFolders = new HashMap<>();
+    private Map<String, VirtualFolder> virtualFolders = new HashMap<>(); //map from folder name to folder
     private PersistantIDStore table = new PersistantIDStore();
+    private VirtualFolder root = VirtualFolder.getRoot(this);
     /**
      * Constructor.
      *
@@ -32,7 +33,40 @@ public class ClusteringMailStore extends Store {
         super(session, urlname);
         this.store = store;
         valid = false;
-        //TODO: import current folder structure from database
+        String[] folderNames;
+        try {
+            folderNames = table.getVals();
+        } catch (IOException e) {
+            throw new Error(e);
+        }
+
+        //import current folder structure from database
+        for (String val : folderNames) {
+            VirtualFolder folder = new VirtualFolder(this, root);
+
+            int[] msgIDs;
+            try {
+                msgIDs = table.getAllWithvalue(val);
+            } catch (IOException e) {
+                throw new Error(e);
+            }
+            ArrayList<Message> messages = new ArrayList<>();
+            for (int id : msgIDs) {
+                try {
+                    messages.add(store.getFolder("Inbox").getMessage(id));
+                } catch (MessagingException e) {
+                    throw new Error(e);
+                }
+            }
+            Message[] messageArr = new Message[messages.size()];
+            messageArr = messages.toArray(messageArr);
+            try {
+                folder.appendMessages(messageArr);
+            } catch (MessagingException e) {
+                throw new Error(e);
+            }
+            virtualFolders.put(val, folder);
+        }
     }
 
     //Drunk when coding this function. Probably a good idea to double check it.

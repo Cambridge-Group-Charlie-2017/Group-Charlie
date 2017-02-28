@@ -23,6 +23,17 @@ public class VirtualFolder extends Folder {
         this.parent = parent;
     }
 
+    private static VirtualFolder root;
+    private VirtualFolder(Store store) { //root folder
+        super(store);
+    }
+    public static VirtualFolder getRoot(Store store) { //singleton pattern for root folder.
+        if (root == null) {
+            root = new VirtualFolder(store);
+        }
+        return root;
+    }
+
     @Override
     public String getName() {
         return folderName;
