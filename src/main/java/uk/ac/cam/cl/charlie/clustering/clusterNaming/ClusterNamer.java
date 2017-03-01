@@ -20,6 +20,9 @@ import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.mail.Messages;
 import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
+import uk.ac.cam.cl.charlie.vec.tfidf.PersistentWordCounter;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
+import uk.ac.cam.cl.charlie.vec.tfidf.WordCounter;
 
 /**
  * @author M Boyce
@@ -332,16 +335,20 @@ public class ClusterNamer {
 
         BasicWordCounter documentFrequency = new BasicWordCounter();
         BasicWordCounter termFrequencies = new BasicWordCounter();
-        int numberOfMessages = messages.size();
 
         for (Message msg : messages) {
             Map<String,Integer> counts = new HashMap<>();
             try {
-                String[] words = Messages.getBodyText(msg).split("[^A-Za-z0-9']");
+                String[] words = msg.getSubject().split("[^A-Za-z0-9']");
                 // count the words
                 for (int i = 0; i < words.length; ++i) {
+                    if (words[i].equals(""))
+                        continue;
                     if (counts.containsKey(words[i])) {
                         counts.put(words[i], counts.get(words[i]) + 1); // increment by 1
+                    }
+                    else {
+                        counts.put(words[i], 1);
                     }
                 }
                 // update term frequency with total, and document frequency by 1 if word was present
@@ -349,17 +356,28 @@ public class ClusterNamer {
                     documentFrequency.increment(w, 1);
                     termFrequencies.increment(w, counts.get(w));
                 }
-            } catch (MessagingException | IOException e) {
+            } catch (MessagingException e) {
                 throw new Error(e);
             }
         }
         // now need to zip the two counters together and produce a sorted list
         List<WordTFIDFPair> results = new ArrayList<>();
+        int numberOfMessages = messages.size();
         for (String w : documentFrequency.words()) {
             double tfidf = calcTFIDF(numberOfMessages, termFrequencies.frequency(w), documentFrequency.frequency(w));
             results.add(new WordTFIDFPair(w, tfidf));
         }
         Collections.sort(results);
-        return results.get(results.size() - 1).word;
+        if (results.size() == 0) {
+            return "no name";
+        }
+        else if (results.size() < 3) {
+            return results.get(results.size() - 1).word;
+        }
+        else {
+            int i = results.size() - 1;
+            String res = results.get(i).word + " " + results.get(i - 1).word + " " + results.get(i - 2).word;
+            return res;
+        }
     }
 }
