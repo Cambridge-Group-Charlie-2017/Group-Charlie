@@ -85,49 +85,6 @@ public class Client {
         cstore = new CachedStore();
     }
 
-    private void refreshMessages() {
-        //get new messages from server
-        Message[] newMessages = cstore.doFolderQuery("Inbox", folder->{
-            //return all messages marked RECENT. (new messages)
-            return folder.search(new FlagTerm(new Flags(Flags.Flag.RECENT), true));
-        });
-
-        //Classift each new message into clusters.
-        for (Message m : newMessages) {
-            String name;
-            try {
-                name = clusters.insert(new ClusterableMessage(m));
-            } catch (IncompatibleDimensionalityException e) {
-                e.printStackTrace();
-                return;
-            }
-
-            //TODO: update cstore accordingly
-        }
-    }
-
-    private void initNewMailChecker() {
-        Thread newMailTask = new Thread() {
-            public void run() {
-
-                while(true) {
-                    try {
-                        //sleep 2 mins then classify new.
-                        sleep(60000);
-
-                    } catch (InterruptedException e) {
-                        //shouldn't occur.
-                        e.printStackTrace();
-                        throw new Error(e);
-                    }
-                    refreshMessages();
-                }
-            }
-        };
-        newMailTask.setDaemon(true);
-        newMailTask.start();
-    }
-
     public void startClustering() {
         if (cstore == null) {
             cstore = new CachedStore();

@@ -1,10 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering.store;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import javax.mail.Flags;
@@ -12,10 +9,15 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.UIDFolder;
+import javax.mail.event.MessageCountEvent;
+import javax.mail.event.MessageCountListener;
 
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
+import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializers;
@@ -26,9 +28,30 @@ public class ClusteredFolder extends Folder {
     Map<String, VirtualFolder> virtualFolders = new HashMap<>();
     PersistentMap<Long, String> clusterMap;
 
+    //TODO: how is clusterGroup loaded?
+    ClusterGroup clusterGroup;
+    private ArrayList<Message> newMessages = new ArrayList<>();
+
+
     public ClusteredFolder(ClusteredStore store, Folder actual) {
         super(store);
         this.actual = actual;
+
+        MessageCountListener messageListener = new MessageCountListener() {
+            @Override
+            public void messagesAdded(MessageCountEvent e) {
+                //add to new messages
+                Message[] msgs = e.getMessages();
+                for (Message m : msgs)
+                    newMessages.add(m);
+            }
+
+            @Override
+            public void messagesRemoved(MessageCountEvent e) {
+                //TODO: Should anything be done here?
+            }
+        };
+        actual.addMessageCountListener(messageListener);
 
         try {
             clusterMap = Database.getInstance().getMap(
@@ -43,9 +66,12 @@ public class ClusteredFolder extends Folder {
 
     private void load() {
         virtualFolders.clear();
+        clusterGroup = new ClusterGroup();
 
+        //load virtualFolders
         for (Entry<Long, String> entry : clusterMap.entrySet()) {
             VirtualFolder vf = virtualFolders.get(entry.getValue());
+
             if (vf == null) {
                 vf = new VirtualFolder(getStore(), this, entry.getValue());
                 virtualFolders.put(entry.getValue(), vf);
@@ -58,10 +84,31 @@ public class ClusteredFolder extends Folder {
                 e.printStackTrace();
             }
         }
+
+        //load clusterGroup
+        HashMap<String, ArrayList<ClusterableMessage>> map = new HashMap<>();
+        for (Entry<Long, String> entry : clusterMap.entrySet()) {
+            if (!map.containsKey(entry.getValue()))
+                map.put(entry.getValue(), new ArrayList<>());
+            try {
+                map.get(entry.getValue()).add(new ClusterableMessage(((UIDFolder) actual).getMessageByUID(entry.getKey())));
+            }   catch (MessagingException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        for (String s : map.keySet()) {
+            try {
+                clusterGroup.add(new EMCluster(map.get(s)));
+            } catch (IncompatibleDimensionalityException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void addClusters(ClusterGroup<Message> clusterGroup) {
         clusterMap.clear();
+        this.clusterGroup = clusterGroup;
 
         for (Cluster<Message> cluster : clusterGroup) {
             for (ClusterableObject<Message> obj : cluster.getObjects()) {
@@ -77,6 +124,42 @@ public class ClusteredFolder extends Folder {
         }
 
         load();
+    }
+
+    public void refreshMessages() {
+        for (Message m : newMessages) {
+            String name;
+            try {
+                //insert into clusterGroup and into the corresponding virtualFolder.
+                name = clusterGroup.insert(new ClusterableMessage(m));
+                virtualFolders.get(name).addMessage(m);
+            } catch (IncompatibleDimensionalityException e) {
+                e.printStackTrace();
+            }
+        }
+        //refresh ArrayList, all new messages now dealt with.
+        newMessages = new ArrayList<>();
+    }
+
+    public void initNewMailChecker() {
+        Thread newMailTask = new Thread() {
+            public void run() {
+
+                while(true) {
+                    try {
+                        //sleep 1 min then classify new emails
+                        sleep(60000);
+                        refreshMessages();
+                    } catch (InterruptedException e) {
+                        //shouldn't occur.
+                        e.printStackTrace();
+                        throw new Error(e);
+                    }
+                }
+            }
+        };
+        newMailTask.setDaemon(true);
+        newMailTask.start();
     }
 
     @Override
@@ -184,5 +267,4 @@ public class ClusteredFolder extends Folder {
     public Message[] expunge() throws MessagingException {
         return actual.expunge();
     }
-
 }
