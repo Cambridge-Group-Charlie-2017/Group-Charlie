@@ -20,7 +20,7 @@ import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.vec.Document;
 import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
 import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
-import uk.ac.cam.cl.charlie.vec.tfidf.VectorSerialiser;
+import uk.ac.cam.cl.charlie.vec.tfidf.kvstore.VectorSerialiser;
 
 /**
  * Created by shyam on 20/02/2017.
@@ -54,11 +54,10 @@ public final class FileDB {
     private static final double toleranceForSimilarity = 0.8;
 
     private FileDB() {
-    	db = Database.getInstance();
-    	fullMap = db.getMap("files", new PathSerialiser(), new VectorSerialiser());
-    	vectoriser = TfidfVectoriser.getVectoriser();
+        fullMap = Database.getInstance().getMap("files", new PathSerialiser(), new VectorSerialiser());
+        vectoriser = TfidfVectoriser.getVectoriser();
         vectorisingQueue = new LinkedList<>();
-        priorityFiles = new HashMap<Path, Vector>(prioritySize);
+        priorityFiles = new HashMap<>(prioritySize);
     }
 
     public static FileDB getInstance() {

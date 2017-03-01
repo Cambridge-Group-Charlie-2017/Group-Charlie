@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -14,7 +13,6 @@ import com.google.common.cache.CacheBuilder;
 
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
-import uk.ac.cam.cl.charlie.db.Serializer;
 import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.math.Vector;
 
@@ -32,40 +30,6 @@ public final class WordVecDB {
     private Database db;
     PersistentMap<String, Vector> map;
     String vectorDBName = "vectors";
-
-    private class VectorSerialiser extends Serializer<Vector> {
-        @Override
-        public boolean typecheck(Object obj) {
-            return obj instanceof Vector;
-        }
-
-        @Override
-        public byte[] serialize(Vector object) {
-            ByteBuffer buf = ByteBuffer.allocate(object.size() * 8);
-
-            for (int i = 0; i < object.size(); ++i) {
-                buf.putDouble(object.get(i));
-            }
-            return buf.array();
-        }
-
-        @Override
-        public Vector deserialize(byte[] bytes) {
-            if (bytes.length % 8 != 0) {
-                throw new IllegalArgumentException();
-            }
-
-            ByteBuffer buf = ByteBuffer.wrap(bytes);
-
-            double[] array = new double[bytes.length / 8];
-
-            for (int i = 0; i < array.length; ++i) {
-                array[i] = buf.getDouble();
-            }
-
-            return new Vector(array);
-        }
-    }
 
     private WordVecDB() {
         cache = CacheBuilder.newBuilder().maximumSize(2000).build();
