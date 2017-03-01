@@ -9,18 +9,23 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
+import javax.mail.FetchProfile;
+import javax.mail.Flags;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.search.FlagTerm;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
+import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
 
@@ -36,6 +41,7 @@ public class Client {
 
     private static Logger log = LoggerFactory.getLogger(WebUIServer.class);
     private CachedStore cstore;
+    private ClusterGroup<Message> clusters;
 
     public static Client getInstance() {
         if (instance == null) {
@@ -79,6 +85,49 @@ public class Client {
         cstore = new CachedStore();
     }
 
+    private void refreshMessages() {
+        //get new messages from server
+        Message[] newMessages = cstore.doFolderQuery("Inbox", folder->{
+            //return all messages marked RECENT. (new messages)
+            return folder.search(new FlagTerm(new Flags(Flags.Flag.RECENT), true));
+        });
+
+        //Classift each new message into clusters.
+        for (Message m : newMessages) {
+            String name;
+            try {
+                name = clusters.insert(new ClusterableMessage(m));
+            } catch (IncompatibleDimensionalityException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            //TODO: update cstore accordingly
+        }
+    }
+
+    private void initNewMailChecker() {
+        Thread newMailTask = new Thread() {
+            public void run() {
+
+                while(true) {
+                    try {
+                        //sleep 2 mins then classify new.
+                        sleep(60000);
+
+                    } catch (InterruptedException e) {
+                        //shouldn't occur.
+                        e.printStackTrace();
+                        throw new Error(e);
+                    }
+                    refreshMessages();
+                }
+            }
+        };
+        newMailTask.setDaemon(true);
+        newMailTask.start();
+    }
+
     public void startClustering() {
         if (cstore == null) {
             cstore = new CachedStore();
@@ -109,15 +158,15 @@ public class Client {
 
         EMClusterer<Message> cluster = new EMClusterer<>(
                 msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
-        ClusterGroup<Message> group = cluster.getClusters();
+        clusters = cluster.getClusters();
 
-        for (Cluster<Message> c : group) {
+        for (Cluster<Message> c : clusters) {
             ClusterNamer.doName(c);
         }
 
         cstore.doFolderQuery("Inbox", folder -> {
             ClusteredFolder cfolder = (ClusteredFolder) folder;
-            cfolder.addClusters(group);
+            cfolder.addClusters(clusters);
             // Invalidate folder cache
             cstore.foldersLastUpdate = 0;
             return null;

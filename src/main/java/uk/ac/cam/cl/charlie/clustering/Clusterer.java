@@ -13,7 +13,6 @@ import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 public abstract class Clusterer<T> {
 
     private ClusterGroup<T> clusters;
-    // private Mailbox mailbox;
 
     private static VectorisingStrategy vectoriser = TfidfVectoriser.getVectoriser();
 
