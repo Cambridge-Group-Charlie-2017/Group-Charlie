@@ -112,7 +112,7 @@ public class Client {
         ClusterGroup<Message> group = cluster.getClusters();
 
         for (Cluster<Message> c : group) {
-            ClusterNamer.name(c);
+            ClusterNamer.doName(c);
         }
 
         cstore.doFolderQuery("Inbox", folder -> {

@@ -1,6 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
@@ -18,7 +19,10 @@ import com.pff.PSTFolder;
 import com.pff.PSTMessage;
 
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer.NamingResult;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamingException;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.SenderNamer;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.SubjectNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
@@ -39,8 +43,10 @@ public class ClusterNamerTest {
                     MessageCreator.createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "A", files)));
 
         Cluster<Message> c = new EMCluster<>(messages);
-        String name = ClusterNamer.senderNaming(c);
-        assertEquals("companyname", name);
+        SenderNamer namer = new SenderNamer();
+        NamingResult result = namer.name(c);
+        assertNotNull(result);
+        assertEquals("companyname", result.getName());
     }
 
     @Test
@@ -52,9 +58,9 @@ public class ClusterNamerTest {
                     "Bob@" + i + "-companyname.com", "Project X", "", files)));
 
         EMCluster<Message> c = new EMCluster<>(messages);
-
-        // Should never reach as should throw error
-        assertNull(ClusterNamer.senderNaming(c));
+        SenderNamer namer = new SenderNamer();
+        NamingResult result = namer.name(c);
+        assertNull(result);
     }
 
     @Test
@@ -85,10 +91,11 @@ public class ClusterNamerTest {
         }
 
         EMCluster<Message> c = new EMCluster<>(messages);
-
-        String name = ClusterNamer.subjectNaming(c);
-        System.out.println(name);
-        assertEquals("Project X ", name);
+        SubjectNamer namer = new SubjectNamer();
+        NamingResult result = namer.name(c);
+        assertNotNull(result);
+        System.out.println(result.getName());
+        assertEquals("Project X ", result.getName());
     }
 
     @Test
@@ -120,7 +127,7 @@ public class ClusterNamerTest {
 
         EMCluster<Message> c = new EMCluster<>(messages);
 
-        String name = ClusterNamer.name(c);
+        String name = ClusterNamer.doName(c);
         System.out.println(name);
         assertEquals("Project X ", name);
     }
@@ -140,7 +147,7 @@ public class ClusterNamerTest {
         Date clustered = new Date();
 
         for (int i = 0; i < clusters.size(); i++) {
-            System.out.println("Cluster Name: " + ClusterNamer.name(clusters.get(i)) + "\n");
+            System.out.println("Cluster Name: " + ClusterNamer.doName(clusters.get(i)) + "\n");
             for (int j = 0; j < clusters.get(i).getObjects().size(); j++)
                 System.out.println(clusters.get(i).getObjects().get(j).getObject().getSubject() + "\n");
             System.out.println("\n\n\n");
@@ -166,7 +173,7 @@ public class ClusterNamerTest {
         EMClusterer<Message> clusterer = new EMClusterer<>(clusterableMessages);
         ClusterGroup<Message> clusters = clusterer.getClusters();
         for (int i = 0; i < clusters.size(); i++) {
-            System.out.println("Cluster Name: " + ClusterNamer.name(clusters.get(i)) + "\n");
+            System.out.println("Cluster Name: " + ClusterNamer.doName(clusters.get(i)) + "\n");
             for (int j = 0; j < clusters.get(i).getObjects().size(); j++)
                 System.out.println(clusters.get(i).getObjects().get(j).getObject().getSubject() + "\n");
             System.out.println("\n\n\n");
