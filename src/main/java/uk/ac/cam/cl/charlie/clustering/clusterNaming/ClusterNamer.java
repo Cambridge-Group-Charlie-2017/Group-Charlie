@@ -277,30 +277,28 @@ public class ClusterNamer {
      * @param cluster
      */
     public static String name(Cluster cluster) {
-//        try {
-//            subjectNaming(cluster);
-//        } catch (ClusterNamingException e) {
-//            // subjectNaming naming method is not good enough
-//            try {
-//                senderNaming(cluster);
-//            } catch (ClusterNamingException e1) {
-//                // sender method is not good enough
-//                try {
-//                    word2VecNaming(cluster);
-//                } catch (Exception e2) {
-//                    try {
-//                        String subject = ((ClusterableMessage) cluster.getContents().get(0)).getMessage().getSubject();
-//                        if(subject.equals(""))
-//                            cluster.setName("Failed to name: " + Math.random()) ;
-//                        else
-//                            cluster.setName(subject);
-//                    } catch (MessagingException e3) {
-//                        cluster.setName("Failed to Name" + Math.random());
-//                    }
-//                }
-//
-//            }
-        return nameTFIDF(cluster);
+        try {
+            subjectNaming(cluster);
+        } catch (ClusterNamingException e) {
+            // subjectNaming naming method is not good enough
+            try {
+                senderNaming(cluster);
+            } catch (ClusterNamingException e1) {
+                // sender method is not good enough
+                try {
+                    nameTFIDF(cluster);
+                } catch (Exception e2) {
+                    try {
+                        String subject = ((ClusterableMessage) cluster.getContents().get(0)).getMessage().getSubject();
+                        if(subject.equals(""))
+                            cluster.setName("Failed to name: " + Math.random()) ;
+                        else
+                            cluster.setName(subject);
+                    } catch (MessagingException e3) {
+                        cluster.setName("Failed to Name" + Math.random());
+                    }
+                }
+        }
     }
 
     private static class WordTFIDFPair implements Comparable<WordTFIDFPair> {
