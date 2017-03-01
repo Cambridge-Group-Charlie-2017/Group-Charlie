@@ -1,5 +1,8 @@
 package uk.ac.cam.cl.charlie.clustering;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
@@ -36,8 +39,8 @@ public class ClusterNamerTest {
                     MessageCreator.createMessage("blabla@gmail.com", "Bob@companyname.com", "Project X", "A", files)));
 
         Cluster<Message> c = new EMCluster<>(messages);
-        ClusterNamer.senderNaming(c);
-        assert (c.getName().equals("companyname"));
+        String name = ClusterNamer.senderNaming(c);
+        assertEquals("companyname", name);
     }
 
     @Test
@@ -50,13 +53,8 @@ public class ClusterNamerTest {
 
         EMCluster<Message> c = new EMCluster<>(messages);
 
-        try {
-            ClusterNamer.senderNaming(c);
-            // Should never reach as should throw error
-            assert (false);
-        } catch (ClusterNamingException e) {
-            // Should reach this if task passes
-        }
+        // Should never reach as should throw error
+        assertNull(ClusterNamer.senderNaming(c));
     }
 
     @Test
@@ -88,9 +86,9 @@ public class ClusterNamerTest {
 
         EMCluster<Message> c = new EMCluster<>(messages);
 
-        ClusterNamer.subjectNaming(c);
-        System.out.println(c.getName());
-        assert (c.getName().equals("Project X "));
+        String name = ClusterNamer.subjectNaming(c);
+        System.out.println(name);
+        assertEquals("Project X ", name);
     }
 
     @Test
@@ -122,9 +120,9 @@ public class ClusterNamerTest {
 
         EMCluster<Message> c = new EMCluster<>(messages);
 
-        ClusterNamer.name(c);
-        System.out.println(c.getName());
-        assert (c.getName().equals("Project X "));
+        String name = ClusterNamer.name(c);
+        System.out.println(name);
+        assertEquals("Project X ", name);
     }
 
     @Test

@@ -1,22 +1,18 @@
 package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
-
 import java.io.IOException;
-import java.util.*;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
 
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.Part;
 
 import org.apache.commons.lang.WordUtils;
 
@@ -28,8 +24,6 @@ import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.mail.Messages;
 import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
 import uk.ac.cam.cl.charlie.vec.tfidf.PersistentWordCounter;
-import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
-import uk.ac.cam.cl.charlie.vec.tfidf.WordCounter;
 
 /**
  * @author M Boyce
@@ -46,7 +40,7 @@ public class ClusterNamer {
      *
      * @param cluster
      */
-    public static void subjectNaming(Cluster<Message> cluster) throws ClusterNamingException {
+    public static String subjectNaming(Cluster<Message> cluster) {
         ArrayList<ClusterableObject<Message>> messages = cluster.getObjects();
 
         HashMap<String, Integer> wordFrequencySubject = new HashMap<>();
@@ -133,10 +127,9 @@ public class ClusterNamer {
         // Set cluster name
         if (!(clusterName.toLowerCase().equals("") || clusterName.toLowerCase().equals("re: ")
                 || clusterName.toLowerCase().equals("fwd: ")))
-            cluster.setName(WordUtils.capitalize(clusterName));
+            return WordUtils.capitalize(clusterName);
         else {
-            cluster.setName("Error Naming Cluster");
-            throw new ClusterNamingException("Basic naming failed");
+            return null;
         }
     }
 
@@ -146,7 +139,7 @@ public class ClusterNamer {
      *
      * @param cluster
      */
-    public static void senderNaming(Cluster<Message> cluster) throws ClusterNamingException {
+    public static String senderNaming(Cluster<Message> cluster) {
         ArrayList<ClusterableObject<Message>> messages = cluster.getObjects();
 
         // Map storing number of occurrences of each domain name in the sender
@@ -182,13 +175,13 @@ public class ClusterNamer {
         // of the Cluster this name holds for
         Map.Entry<String, Integer> mostCommonDomain = domains.lastEntry();
         if (mostCommonDomain.getValue() / messages.size() > MIN_PROPORTION_CORRECT) {
-            cluster.setName(mostCommonDomain.getKey());
+            return mostCommonDomain.getKey();
         } else {
-            throw new ClusterNamingException("Cannot use sender as folder name");
+            return null;
         }
     }
 
-    public static void word2VecNaming(Cluster<Message> cluster) throws Exception {
+    public static String word2VecNaming(Cluster<Message> cluster) {
         ArrayList<Message> messages = new ArrayList<>();
         TreeMap<String, Integer> wordFrequencySubject = new TreeMap<>(Collections.reverseOrder());
         HashMap<String, Integer> wordTotalPositionMap = new HashMap<>();
@@ -271,7 +264,7 @@ public class ClusterNamer {
         }
 
         // Set folderName
-        cluster.setName(folderName);
+        return folderName;
     }
 
     /**
@@ -281,28 +274,32 @@ public class ClusterNamer {
      * @param cluster
      */
     public static String name(Cluster<Message> cluster) {
+        String name = subjectNaming(cluster);
+        if (name != null) {
+            cluster.setName(name);
+            return name;
+        }
+        // subjectNaming naming method is not good enough
+        name = senderNaming(cluster);
+        if (name != null) {
+            cluster.setName(name);
+            return name;
+        }
+        // sender method is not good enough
+        name = nameTFIDF(cluster);
+        if (name != null) {
+            cluster.setName(name);
+            return name;
+        }
+
         try {
-            subjectNaming(cluster);
-        } catch (ClusterNamingException e) {
-            // subjectNaming naming method is not good enough
-            try {
-                senderNaming(cluster);
-            } catch (ClusterNamingException e1) {
-                // sender method is not good enough
-                try {
-                    nameTFIDF(cluster);
-                } catch (Exception e2) {
-                    try {
-                        String subject = cluster.getObjects().get(0).getObject().getSubject();
-                        if (subject.equals(""))
-                            cluster.setName("Failed to name: " + Math.random());
-                        else
-                            cluster.setName(subject);
-                    } catch (MessagingException e3) {
-                        cluster.setName("Failed to Name" + Math.random());
-                    }
-                }
-            }
+            String subject = cluster.getObjects().get(0).getObject().getSubject();
+            if (subject.equals(""))
+                cluster.setName("Failed to name: " + Math.random());
+            else
+                cluster.setName(subject);
+        } catch (MessagingException e3) {
+            cluster.setName("Failed to Name" + Math.random());
         }
         return cluster.getName();
     }
@@ -320,65 +317,48 @@ public class ClusterNamer {
         public int compareTo(WordTFIDFPair o) {
             if (this.tfidfval == o.tfidfval) {
                 return 0;
-            }
-            else {
+            } else {
                 return this.tfidfval < o.tfidfval ? -1 : 1;
             }
         }
     }
 
     private static double calcTFIDF(int totalNumberDocs, int termFrequency, int numberDocsAppearedIn) {
-        return (double) termFrequency * Math.log((double) totalNumberDocs / (double) numberDocsAppearedIn);
+        return termFrequency * Math.log((double) totalNumberDocs / (double) numberDocsAppearedIn);
     }
 
-
-    private static String nameTFIDF(Cluster<Message>cluster) {
+    private static String nameTFIDF(Cluster<Message> cluster) {
         ArrayList<Message> messages = new ArrayList<>();
-        for(ClusterableObject<Message> obj : cluster.getObjects())
+        for (ClusterableObject<Message> obj : cluster.getObjects())
             messages.add(obj.getObject());
 
-        BasicWordCounter documentFrequency = new BasicWordCounter();
+        PersistentWordCounter documentFrequencies = PersistentWordCounter.getInstance();
         BasicWordCounter termFrequencies = new BasicWordCounter();
 
         for (Message msg : messages) {
-            Map<String,Integer> counts = new HashMap<>();
             try {
-                String[] words = msg.getSubject().split("[^A-Za-z0-9']");
-                // count the words
-                for (int i = 0; i < words.length; ++i) {
-                    if (words[i].equals(""))
-                        continue;
-                    if (counts.containsKey(words[i])) {
-                        counts.put(words[i], counts.get(words[i]) + 1); // increment by 1
-                    }
-                    else {
-                        counts.put(words[i], 1);
-                    }
+                BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
+
+                for (String w : counter.words()) {
+                    termFrequencies.increment(w);
                 }
-                // update term frequency with total, and document frequency by 1 if word was present
-                for (String w : counts.keySet()) {
-                    documentFrequency.increment(w, 1);
-                    termFrequencies.increment(w, counts.get(w));
-                }
-            } catch (MessagingException e) {
-                throw new Error(e);
+            } catch (MessagingException | IOException e) {
+
             }
         }
         // now need to zip the two counters together and produce a sorted list
         List<WordTFIDFPair> results = new ArrayList<>();
         int numberOfMessages = messages.size();
-        for (String w : documentFrequency.words()) {
-            double tfidf = calcTFIDF(numberOfMessages, termFrequencies.frequency(w), documentFrequency.frequency(w));
+        for (String w : termFrequencies.words()) {
+            double tfidf = calcTFIDF(numberOfMessages, termFrequencies.frequency(w), documentFrequencies.frequency(w));
             results.add(new WordTFIDFPair(w, tfidf));
         }
         Collections.sort(results);
         if (results.size() == 0) {
             return "no name";
-        }
-        else if (results.size() < 3) {
+        } else if (results.size() < 3) {
             return results.get(results.size() - 1).word;
-        }
-        else {
+        } else {
             int i = results.size() - 1;
             String res = results.get(i).word + " " + results.get(i - 1).word + " " + results.get(i - 2).word;
             return res;
