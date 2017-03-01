@@ -2,54 +2,57 @@
 package uk.ac.cam.cl.charlie.clustering.clusters;
 
 import java.util.ArrayList;
-import java.util.Vector;
+import java.util.List;
+
+import javax.mail.Message;
 
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
-import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
-import uk.ac.cam.cl.charlie.vec.VectorisingStrategy;
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /*
  * Created by Ben on 05/02/2017.
  */
-public class EMCluster extends Cluster {
+public class EMCluster<T> extends Cluster<T> {
 
     // vectors storing the current mean and variance vectors of the messages
     // associated with this cluster.
-    private Vector<Double> average;
-    private Vector<Double> variance;
+    private Vector average;
+    private Vector variance;
 
     // Only constructor for EMCluster. Requires initial contents with which the
     // cluster will be initialised.
-    public EMCluster(ArrayList<ClusterableObject> messages) {
+    public EMCluster(ArrayList<ClusterableObject<T>> messages) {
         super(messages);
 
-        int dimensionality = getDimensionality();
-        int n = getClusterSize();
+        int dimension = getDimension();
+        int n = getSize();
 
         // Get the vectors for the messages.
-        uk.ac.cam.cl.charlie.math.Vector[] vecs = getContentVecs().toArray(new uk.ac.cam.cl.charlie.math.Vector[0]);
+        List<Vector> vecs = getVectors();
 
         // initialise average and variance vectors using message vectors.
-        average = new Vector<>();
-        variance = new Vector<>();
-        for (int i = 0; i < dimensionality; i++) {
+        double[] averageData = new double[dimension];
+        double[] varianceData = new double[dimension];
+        for (int i = 0; i < dimension; i++) {
             double sumOfSquares = 0;
             double sum = 0;
             // Calculate sum and sum of squares over all vectors for element i
             for (int j = 0; j < n; j++) {
-                double xi = vecs[j].get(i);
+                double xi = vecs.get(j).get(i);
                 sum += xi;
                 sumOfSquares += (xi * xi);
             }
             // calculate mean and variance of element i
             double avgX = sum / n;
             double varX = ((n - 1) / (double) n) * ((sumOfSquares / n) - avgX * avgX);
-            average.add(i, avgX);
-            variance.add(i, varX);
+            averageData[i] = avgX;
+            varianceData[i] = varX;
         }
+
+        average = new Vector(averageData);
+        variance = new Vector(averageData);
     }
 
     /*
@@ -59,19 +62,11 @@ public class EMCluster extends Cluster {
      * added message.
      */
     @Override
-    protected void updateMetadataAfterAdding(ClusterableObject msg) {
+    protected void updateMetadataAfterAdding(ClusterableObject<T> msg) {
         // changes variance and average arrays.
-        // once vectoriser implemented, replace with genuine getVec method.
 
-        VectorisingStrategy vectoriser = EMClusterer.getVectoriser();
-
-        // Note: clustersize has not been incremented yet at this point.
-        for (int i = 0; i < getDimensionality(); i++) {
-
-            double newAvg = (getClusterSize() * average.get(i)
-                    + vectoriser.doc2vec(((ClusterableMessage) msg).getMessage()).get(i)) / (getClusterSize() + 1);
-            average.set(i, newAvg);
-        }
+        // Note: size has not been incremented yet at this point.
+        average = average.scale(getSize()).add(msg.getVector()).scale(1 / (getSize() + 1));
 
         // Recalculating variance would be expensive. Maybe best not bother and
         // assume it stays constant.
@@ -85,7 +80,7 @@ public class EMCluster extends Cluster {
     private final int elementsToCompare = 100;
 
     @Override
-    public double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException {
+    public double matchStrength(ClusterableObject<T> msg) throws IncompatibleDimensionalityException {
         // return log of weighted Bayes probability. Assumes each category has
         // equal probability.
         // Note it's not the actual probability - that would require multiplying
@@ -98,15 +93,15 @@ public class EMCluster extends Cluster {
         // probability becomes too small at high dimensions.
 
         uk.ac.cam.cl.charlie.math.Vector vec;
-        vec = Clusterer.getVectoriser().doc2vec(((ClusterableMessage) msg).getMessage());
+        vec = Clusterer.getVectoriser().doc2vec((Message) msg.getObject());
 
-        if (vec.size() != getDimensionality())
+        if (vec.size() != getDimension())
             throw new IncompatibleDimensionalityException();
 
-        int dimensionality = getDimensionality();
+        int dimension = getDimension();
         int interval = vec.size() / elementsToCompare;
         double logProb = 0;
-        for (int i = 0; i < dimensionality; i += interval) {
+        for (int i = 0; i < dimension; i += interval) {
             double diff = vec.get(i) - average.get(i);
 
             // Calculate Gaussian probability of membership of this cluster

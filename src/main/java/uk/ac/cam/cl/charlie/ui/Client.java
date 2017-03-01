@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -14,7 +15,11 @@ import javax.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
@@ -100,8 +105,15 @@ public class Client {
         }
         log.info("Downloaded all emails");
 
-        EMClusterer cluster = new EMClusterer(msg);
-        ClusterGroup group = cluster.getClusters();
+        Clusterer.getVectoriser().train(msg);
+
+        EMClusterer<Message> cluster = new EMClusterer<>(
+                msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
+        ClusterGroup<Message> group = cluster.getClusters();
+
+        for (Cluster<Message> c : group) {
+            ClusterNamer.name(c);
+        }
 
         cstore.doFolderQuery("Inbox", folder -> {
             ClusteredFolder cfolder = (ClusteredFolder) folder;

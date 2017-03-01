@@ -4,26 +4,21 @@ import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
- * Created by M Boyce on 11/02/2017.
+ * @author M Boyce
+ * @author Gary Guo
  */
-public class ClusterableWord extends ClusterableObject {
-    private String word;
+public class ClusterableWord extends ClusterableObject<String> {
 
     public ClusterableWord(String word) {
-        this.word = word;
-    }
-
-    public String getWord() {
-        return word;
+        super(word, null);
     }
 
     @Override
-    public Vector getVec() {
-        return Clusterer.getVectoriser().word2vec(word).get();
+    public Vector getVector() {
+        if (vec == null) {
+            vec = Clusterer.getVectoriser().word2vec(object).get();
+        }
+        return vec;
     }
 
-    @Override
-    public boolean equals(Object word2) {
-        return word.equals(word2);
-    }
 }
