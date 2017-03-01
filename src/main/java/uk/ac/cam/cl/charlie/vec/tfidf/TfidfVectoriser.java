@@ -30,6 +30,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
     private static String TOTAL_NUMBER_OF_DOCS = "";
 
     private final int vectorDimensions = 300;
+    private final int minBatchSize = 20;
 
     // Using singleton pattern.
     private static TfidfVectoriser singleton;
@@ -77,6 +78,8 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     public void train(Message msg) {
         try {
+            train(msg.getSubject());
+
             BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
 
             for (String w : counter.words()) {
@@ -98,14 +101,11 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     // To be used for metadata such as subject of a document or email.
     public Vector sent2vec(String subject) {
-        train(subject);
-
         return calculateDocVector(subject);
     }
 
     @Override
     public Vector doc2vec(Document doc) {
-        train(doc);
         // todo add any other content to do with names or other meta data
         return calculateDocVector(doc.getContent());
     }
@@ -152,7 +152,7 @@ public class TfidfVectoriser implements VectorisingStrategy {
             Optional<Vector> wordVec = word2vec(w);
             if (wordVec.isPresent()) {
                 double totalDocsWith = globalCounter.frequency(w);
-                double weighting = words.frequency(w) * Math.log(totalDocs / totalDocsWith);
+                double weighting = words.frequency(w) * Math.log(totalDocs / (totalDocsWith + 1));
 
                 vec = vec.add(wordVec.get().scale(weighting));
             }
@@ -161,4 +161,13 @@ public class TfidfVectoriser implements VectorisingStrategy {
         return vec.normalize();
     }
 
+    @Override
+    public int getMinimumBatchSize() {
+        return minBatchSize;
+    }
+
+    @Override
+    public boolean minimumBatchSizeReached() {
+        return globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) >= minBatchSize;
+    }
 }

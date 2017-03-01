@@ -64,7 +64,6 @@ public class EMCluster<T> extends Cluster<T> {
     @Override
     protected void updateMetadataAfterAdding(ClusterableObject<T> msg) {
         // changes variance and average arrays.
-
         // Note: size has not been incremented yet at this point.
         average = average.scale(getSize()).add(msg.getVector()).scale(1 / (getSize() + 1));
 
@@ -91,7 +90,6 @@ public class EMCluster<T> extends Cluster<T> {
         // only consider a subset of elements. if all probabilities are
         // multiplied then the resulting
         // probability becomes too small at high dimensions.
-
         uk.ac.cam.cl.charlie.math.Vector vec;
         vec = Clusterer.getVectoriser().doc2vec((Message) msg.getObject());
 

@@ -8,7 +8,6 @@ import static junit.framework.TestCase.assertNotSame;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import javax.mail.Message;
 import javax.mail.internet.MimeMultipart;
@@ -16,7 +15,6 @@ import javax.mail.internet.MimeMultipart;
 import org.junit.Test;
 
 import uk.ac.cam.cl.charlie.math.Vector;
-import uk.ac.cam.cl.charlie.vec.tfidf.kvstore.WordVecDB;
 
 public class TfidfVectoriserTest {
 
@@ -153,6 +151,6 @@ public class TfidfVectoriserTest {
 	// System.out.println(Arrays.toString(components));
     }
 
-    // todo add tests for the doc2vec functionality
+    // todo add tests for the emailBatch2vec functionality
 
 }
