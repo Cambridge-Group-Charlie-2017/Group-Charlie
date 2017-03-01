@@ -1,8 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.TreeMap;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -11,6 +9,7 @@ import javax.mail.internet.InternetAddress;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.mail.Messages;
+import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
 
 /**
  * Given a cluster of emails generates and sets the name for the cluster based
@@ -21,6 +20,7 @@ import uk.ac.cam.cl.charlie.mail.Messages;
 public class SenderNamer extends ClusterNamer {
 
     private static double MIN_PROPORTION_CORRECT = 0.5;
+    private static double MAX_CONFIDENCE = 0.9;
 
     @Override
     public NamingResult name(Cluster<Message> cluster) {
@@ -29,7 +29,7 @@ public class SenderNamer extends ClusterNamer {
 
         // Map storing number of occurrences of each domain name in the sender
         // address of the messages in the cluster
-        TreeMap<String, Integer> domains = new TreeMap<>();
+        BasicWordCounter counter = new BasicWordCounter();
 
         for (int i = 0; i < messages.size(); i++) {
             try {
@@ -37,33 +37,32 @@ public class SenderNamer extends ClusterNamer {
                 String[] address = from.getAddress().split("@");
 
                 // Remove the .com /.net ect
-                String[] tempDomain = address[1].split("\\.");
-                String domain = "";
+                // String[] tempDomain = address[1].split("\\.");
+                // String domain = "";
 
-                for (int j = 0; j < tempDomain.length - 1; j++) {
-                    domain += tempDomain[j];
-                }
-
-                // Increment the count of relevant domain
-                int count = 0;
-                if (domains.containsKey(domain)) {
-                    count = domains.get(domain);
-                }
-                domains.put(domain, count + 1);
-
+                counter.increment(address[1]);
+                //
+                // for (int j = 0; j < tempDomain.length - 1; j++) {
+                // domain += tempDomain[j];
+                // }
             } catch (MessagingException e) {
                 e.printStackTrace();
             }
         }
 
+        String domain = counter.words().stream()
+                // Sort by descending frequency
+                .sorted((w1, w2) -> counter.frequency(w2) - counter.frequency(w1))
+                // Get first element
+                .findFirst().get();
+
         // Test to see if is a good name for cluster by seeing what proportion
         // of the Cluster this name holds for
-        Map.Entry<String, Integer> mostCommonDomain = domains.lastEntry();
-        double confidence = mostCommonDomain.getValue() / messages.size();
+        double confidence = (double) counter.frequency(domain) / messages.size();
         if (confidence < MIN_PROPORTION_CORRECT) {
             return null;
         }
-        return new NamingResult(mostCommonDomain.getKey(), confidence);
+        return new NamingResult(domain, confidence * MAX_CONFIDENCE);
     }
 
 }

@@ -1,7 +1,7 @@
 package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -11,49 +11,32 @@ import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
-import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
 
 public class Word2VecNamer extends ClusterNamer {
 
     @Override
     public NamingResult name(Cluster<Message> cluster) {
-        ArrayList<Message> messages = new ArrayList<>();
-        BasicWordCounter wordFrequencySubject = new BasicWordCounter();
-        HashMap<String, Integer> wordTotalPositionMap = new HashMap<>();
+        List<ClusterableObject<Message>> messages = cluster.getObjects();
 
-        for (ClusterableObject<Message> obj : cluster.getObjects())
-            messages.add(obj.getObject());
+        PositionedWordCounter counter = new PositionedWordCounter();
 
-        for (Message m : messages) {
+        for (ClusterableObject<Message> cm : messages) {
+            Message m = cm.getObject();
+
             try {
-                String[] subjectWords = m.getSubject().toLowerCase().split("[^A-Za-z0-9']");
-
-                for (int i = 0; i < subjectWords.length; i++) {
-                    if (subjectWords[i].isEmpty())
-                        continue;
-                    if (!stopWords.contains(subjectWords[i])) {
-                        wordFrequencySubject.increment(subjectWords[i]);
-
-                        int curPosTotal = 0;
-                        if (wordTotalPositionMap.containsKey(subjectWords[i])) {
-                            curPosTotal = wordTotalPositionMap.get(subjectWords[i]);
-                        }
-                        wordTotalPositionMap.put(subjectWords[i], curPosTotal + i);
-                    }
-                }
-
+                counter.count(m.getSubject());
             } catch (MessagingException e) {
-                System.out.println(e.getMessage());
-
+                e.printStackTrace();
             }
         }
 
-        // Map to array list
+        // Calculate average position
         ArrayList<ClusterableWordAndOccurence> words = new ArrayList<>();
-        for (String w : wordFrequencySubject.words()) {
-            // Calculate Relative positions
-            int freq = wordFrequencySubject.frequency(w);
-            int averagePosition = wordTotalPositionMap.get(w) / freq;
+        for (String w : counter.words()) {
+            if (stopWords.contains(w))
+                continue;
+            int freq = counter.frequency(w);
+            int averagePosition = counter.position(w);
             ClusterableWordAndOccurence cw = new ClusterableWordAndOccurence(w, freq, averagePosition);
             words.add(cw);
         }

@@ -1,6 +1,5 @@
 package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,7 +9,6 @@ import javax.mail.MessagingException;
 
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
-import uk.ac.cam.cl.charlie.mail.Messages;
 import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
 import uk.ac.cam.cl.charlie.vec.tfidf.PersistentWordCounter;
 
@@ -46,12 +44,12 @@ public class TfidfNamer extends ClusterNamer {
 
         for (Message msg : messages) {
             try {
-                BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
+                BasicWordCounter counter = BasicWordCounter.count(msg.getSubject());
 
                 for (String w : counter.words()) {
                     termFrequencies.increment(w);
                 }
-            } catch (MessagingException | IOException e) {
+            } catch (MessagingException e) {
 
             }
         }
