@@ -2,51 +2,42 @@ package uk.ac.cam.cl.charlie.clustering.clusters;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import javax.mail.Message;
-
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
-import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
 
-public abstract class Cluster {
+public abstract class Cluster<T> {
 
-    protected String clusterName;
-    protected ArrayList<ClusterableObject> contents;
-    private int dimensionality;
-    private int clusterSize;
+    protected String name;
+    protected ArrayList<ClusterableObject<T>> objects;
+    private int dimension;
 
-    public int getDimensionality() {
-	    return dimensionality;
+    public int getDimension() {
+        return dimension;
     }
 
-    public int getClusterSize() {
-	    return clusterSize;
+    public int getSize() {
+        return objects.size();
     }
 
-    public ArrayList<ClusterableObject> getContents() {
-	    return contents;
+    public ArrayList<ClusterableObject<T>> getObjects() {
+        return objects;
     }
 
     public String getName() {
-	    return clusterName;
+        return name;
     }
 
     // Naming is a separate process to clustering, so the name can be assigned
     // later.
     public void setName(String name) {
-	    clusterName = name;
+        this.name = name;
     }
 
-    public boolean contains(ClusterableObject obj) {
-	    return contents.contains(obj);
-    }
-
-    public boolean containsMessage(Message msg) {
-    	return contents.contains(new ClusterableMessage(msg));
+    public boolean contains(ClusterableObject<T> obj) {
+        return objects.contains(obj);
     }
 
     /*
@@ -55,42 +46,27 @@ public abstract class Cluster {
      * For EMCluster, the output is proportional to the Naive Bayes probability
      * of a match, so higher values are better.
      */
-    abstract double matchStrength(ClusterableObject msg) throws IncompatibleDimensionalityException;
+    abstract double matchStrength(ClusterableObject<T> obj) throws IncompatibleDimensionalityException;
 
     public abstract boolean isHighMatchGood();
 
     // Extract relevant metadata from the initial contents.
-    protected Cluster(ArrayList<ClusterableObject> initialContents) {
-    	contents = initialContents;
-	    clusterSize = initialContents.size();
-	    dimensionality = initialContents.get(0).getVector().size();
+    protected Cluster(ArrayList<ClusterableObject<T>> initialObjects) {
+        objects = new ArrayList<>(initialObjects);
+        dimension = initialObjects.get(0).getVector().size();
     }
 
-    protected abstract void updateMetadataAfterAdding(ClusterableObject msg);
+    protected abstract void updateMetadataAfterAdding(ClusterableObject<T> obj);
 
     // adding a new message to a clustering (during classification) should cause
     // clustering metadata to change accordingly.
-    public void addMessage(ClusterableObject msg) {
-        updateMetadataAfterAdding(msg);
-        contents.add(msg);
-        clusterSize++;
+    public void addObject(ClusterableObject<T> obj) {
+        updateMetadataAfterAdding(obj);
+        objects.add(obj);
     }
 
-    public List<Vector> getContentVecs() {
-        List<Message> messages = new ArrayList<>();
-        List<Vector> vectors = new ArrayList<>();
-        for (ClusterableObject obj : contents) {
-            if(obj instanceof ClusterableMessage)
-                messages.add(((ClusterableMessage) obj).getMessage());
-            else if(obj instanceof ClusterableWordAndOccurence)
-                vectors.add(((ClusterableWordAndOccurence)obj).getVec());
-        }
-
-        vectors.addAll(Clusterer.getVectoriser().doc2vec(messages));
-        return vectors;
+    public List<Vector> getVectors() {
+        return objects.stream().map(obj -> obj.getVector()).collect(Collectors.toList());
     }
 
-    // updateServer() method? Could take mailbox as argument and use Mailbox to
-    // update server. Update could also be in
-    // addMessage()
 }

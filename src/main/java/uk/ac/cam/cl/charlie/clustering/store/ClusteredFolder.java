@@ -13,7 +13,6 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.UIDFolder;
 
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
@@ -61,12 +60,12 @@ public class ClusteredFolder extends Folder {
         }
     }
 
-    public void addClusters(ClusterGroup clusterGroup) {
+    public void addClusters(ClusterGroup<Message> clusterGroup) {
         clusterMap.clear();
 
-        for (Cluster cluster : clusterGroup) {
-            for (ClusterableObject obj : cluster.getContents()) {
-                Message msg = ((ClusterableMessage) obj).getMessage();
+        for (Cluster<Message> cluster : clusterGroup) {
+            for (ClusterableObject<Message> obj : cluster.getObjects()) {
+                Message msg = obj.getObject();
                 long uid;
                 try {
                     uid = ((UIDFolder) msg.getFolder()).getUID(msg);

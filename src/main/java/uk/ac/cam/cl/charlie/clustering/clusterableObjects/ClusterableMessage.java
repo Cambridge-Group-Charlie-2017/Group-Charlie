@@ -6,26 +6,21 @@ import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
- * Created by M Boyce on 11/02/2017.
+ * @author M Boyce
+ * @author Gary Guo
  */
-public class ClusterableMessage extends ClusterableObject {
-    private Message message;
+public class ClusterableMessage extends ClusterableObject<Message> {
 
     public ClusterableMessage(Message msg) {
-        message = msg;
+        super(msg, null);
     }
 
     @Override
-    public Vector getVec() {
-        return Clusterer.getVectoriser().doc2vec(message);
+    public Vector getVector() {
+        if (vec == null) {
+            vec = Clusterer.getVectoriser().doc2vec(object);
+        }
+        return vec;
     }
 
-    @Override
-    public boolean equals(Object message2) {
-        return message.equals(((ClusterableMessage) message2).getMessage());
-    }
-
-    public Message getMessage() {
-        return message;
-    }
 }
