@@ -168,8 +168,7 @@ public class ClusterNamerTest {
         EMClusterer<Message> clusterer = new EMClusterer<>(clusterableMessages);
         ClusterGroup<Message> clusters = clusterer.getClusters();
         for (int i = 0; i < clusters.size(); i++) {
-            ClusterNamer.word2VecNaming(clusters.get(i));
-            System.out.println("Cluster Name: " + clusters.get(i).getName() + "\n");
+            System.out.println("Cluster Name: " + ClusterNamer.name(clusters.get(i)) + "\n");
             for (int j = 0; j < clusters.get(i).getObjects().size(); j++)
                 System.out.println(clusters.get(i).getObjects().get(j).getObject().getSubject() + "\n");
             System.out.println("\n\n\n");
