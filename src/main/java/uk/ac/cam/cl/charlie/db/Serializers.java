@@ -41,6 +41,28 @@ public final class Serializers {
 
     };
 
+    public static final Serializer<Boolean> BOOLEAN = new Serializer<Boolean>() {
+
+        @Override
+        public boolean typecheck(Object obj) {
+            return obj instanceof Boolean;
+        }
+
+        @Override
+        public byte[] serialize(Boolean object) {
+            return ByteBuffer.allocate(1).put(object.booleanValue() ? (byte) 1 : (byte) 0).array();
+        }
+
+        @Override
+        public Boolean deserialize(byte[] bytes) {
+            if (bytes.length != 1) {
+                throw new IllegalArgumentException("number of bytes must be 1");
+            }
+            return ByteBuffer.wrap(bytes).get() != 0;
+        }
+
+    };
+
     public static final Serializer<Integer> INTEGER = new Serializer<Integer>() {
 
         @Override
