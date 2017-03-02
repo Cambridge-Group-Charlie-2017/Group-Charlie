@@ -28,12 +28,14 @@ public class BasicFileWalker implements FileWalker {
     private Set<Path> rootDirs;
     private FileDB db;
     private WatchService watcher;
-    private HashMap<Path,WatchKey> watchedDirectories;
-    
+    private HashMap<Path, WatchKey> watchedDirectories;
+
+    private Thread daemon;
+
     private volatile boolean stopExecution = false;
 
     public BasicFileWalker() {
-    	db = FileDB.getInstance();
+        db = FileDB.getInstance();
         try {
             watcher = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
@@ -42,40 +44,36 @@ public class BasicFileWalker implements FileWalker {
 
         watchedDirectories = new HashMap<>();
         rootDirs = new HashSet<>();
-        
-        BackgroundChangeListener backgroundlistener = new BackgroundChangeListener();
-        Thread daemon = new Thread(backgroundlistener);
+
+        daemon = new Thread(this::run);
+        daemon.setDaemon(true);
         daemon.start();
     }
 
-    public void startWalking() throws FileWalkerNotInitalisedException {
-        if (watchedDirectories.isEmpty()) {
-            throw new FileWalkerNotInitalisedException();
-        }
-        // set off a background thread to process changes that are noticed during listening
-        BackgroundChangeListener backgroundListener = new BackgroundChangeListener();
-        Thread listener = new Thread(backgroundListener);
-        listener.start();
-    }
-    
+    @Override
     public void closeListener() {
-    	stopExecution = true;
+        stopExecution = true;
+        daemon.interrupt();
+        try {
+            daemon.wait();
+        } catch (InterruptedException e) {
+        }
     }
 
     @Override
     public void addRootDirectory(Path p) {
         p = p.toAbsolutePath();
-        if(!rootDirs.contains(p)) {
-        	rootDirs.add(p);
-        	walk(p);
-        	}
+        if (!rootDirs.contains(p)) {
+            rootDirs.add(p);
+            walk(p);
+        }
     }
 
     @Override
     public void removeRootDirectory(Path p) {
         p = p.toAbsolutePath();
         rootDirs.remove(p);
-        removeFromListen(p); //* Assuming you want to make this call here
+        removeFromListen(p); // * Assuming you want to make this call here
     }
 
     @Override
@@ -115,7 +113,8 @@ public class BasicFileWalker implements FileWalker {
     }
 
     private void removeFromListen(Path root) {
-        //Call cancel() on the WatchKey object representing the directory 'root', remove from hashmap.
+        // Call cancel() on the WatchKey object representing the directory
+        // 'root', remove from hashmap.
         try {
             Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
                 @Override
@@ -134,65 +133,60 @@ public class BasicFileWalker implements FileWalker {
         }
     }
 
+    private void run() {
+        // see:
+        // https://docs.oracle.com/javase/tutorial/essential/io/notification.html
+        // basically copied directly from this example
 
-    private class BackgroundChangeListener implements Runnable {
-        @SuppressWarnings("unchecked")
-		@Override
-        public void run() {
-            // see: https://docs.oracle.com/javase/tutorial/essential/io/notification.html
-            // basically copied directly from this example
+        while (!stopExecution) {
+            WatchKey key = null;
+            try {
+                key = watcher.take(); // blocking
+                if (stopExecution)
+                    break;// execution was stopped event might be caused by
+                          // clean up on folder structure
+            } catch (InterruptedException e) {
+                continue;
+            }
+            for (WatchEvent<?> event : key.pollEvents()) {
+                WatchEvent.Kind<?> kind = event.kind();
 
-            while (!stopExecution) {
-                WatchKey key = null;
-                try {
-                    key = watcher.take(); // blocking
-                    if(stopExecution) break;//execution was stopped event might be caused by clean up on folder structure
-                } catch (InterruptedException e) {
+                // have to check for overflow
+                if (kind == OVERFLOW) {
                     continue;
                 }
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    WatchEvent.Kind<?> kind = event.kind();
+                // cast:
+                Path dir = (Path) key.watchable();
+                Path relfilename = (Path) event.context();
+                Path fullFilename = dir.resolve(relfilename);
 
-                    // have to check for overflow
-                    if (kind == OVERFLOW) {
+                // decide what to do with the file event
+
+                if (kind == ENTRY_DELETE) {
+                    // get the db to process the deletion
+                    db.processDeletedFile(fullFilename);
+                } else {
+                    BasicFileAttributes attrs = null;
+                    try {
+                        attrs = Files.readAttributes(fullFilename, BasicFileAttributes.class);
+                    } catch (IOException e) {
                         continue;
                     }
-                    // cast:
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    Path dir = (Path)key.watchable();
-                    Path relfilename = ev.context();
-                    Path fullFilename = dir.resolve(relfilename);
 
-                    // decide what to do with the file event
-
-                    if (kind == ENTRY_DELETE) {
-                        // get the db to process the deletion
-                        db.processDeletedFile(fullFilename);
-                    } else {
-                        BasicFileAttributes attrs = null;
-                        try {
-                            attrs = Files.readAttributes(relfilename, BasicFileAttributes.class);
-                        } catch (IOException e) {
-                            continue;
-                        }
-
-                        if (kind == ENTRY_CREATE) {
-                            // add a new file to the db
-                            db.processNewFile(fullFilename, attrs);
-                        }
-                        else if (kind == ENTRY_MODIFY) {
-                            // modify an existing file - the hard case
-                            db.processModifiedFile(fullFilename, attrs);
-                        }
+                    if (kind == ENTRY_CREATE) {
+                        // add a new file to the db
+                        db.processNewFile(fullFilename, attrs);
+                    } else if (kind == ENTRY_MODIFY) {
+                        // modify an existing file - the hard case
+                        db.processModifiedFile(fullFilename, attrs);
                     }
                 }
+            }
 
-                // have to reset the key to receive further events
-                if(!key.reset()) {
-                    // path deleted
-                    key.cancel();
-                }
-
+            // have to reset the key to receive further events
+            if (!key.reset()) {
+                // path deleted
+                key.cancel();
             }
         }
     }

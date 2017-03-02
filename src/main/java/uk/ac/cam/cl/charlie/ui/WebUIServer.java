@@ -17,10 +17,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 
 import javax.mail.Address;
@@ -130,7 +132,23 @@ public class WebUIServer {
         staticFiles.externalLocation(System.getProperty("user.dir") + "/src/main/resources/public");
         // staticFileLocation("/public");
 
-        // Perform some operations
+        // Serve as the delegate of some operation initiated by the server
+        get("/api/native/select_file", (request, response) -> {
+            FileChooser chooser = new FileChooser();
+            String title = request.queryParams("title");
+            if (title != null) {
+                chooser.title(title);
+            }
+            String file = request.queryParams("file");
+            if (file != null) {
+                chooser.file(file);
+            }
+            File selected = chooser.open();
+            if (selected == null)
+                return "null";
+            return new JsonPrimitive(selected.getAbsolutePath()).toString();
+        });
+
         get("/api/native/select_folder", (request, response) -> {
             File file = new DirectoryChooser().open();
             if (file == null)
@@ -164,6 +182,8 @@ public class WebUIServer {
             client.startClustering();
             return "true";
         });
+
+        post("/api/suggestion", this::getFileSuggestion);
 
         post("/api/send", this::send);
 
@@ -237,6 +257,21 @@ public class WebUIServer {
         } else {
             return "\"NORMAL\"";
         }
+    }
+
+    private Object getFileSuggestion(Request req, Response res) throws Exception {
+        JsonElement element = new JsonParser().parse(req.body());
+        if (!element.isJsonObject()) {
+            res.status(400);
+            return "Invalid request format";
+        }
+        JsonObject object = element.getAsJsonObject();
+        String data = object.get("data").getAsString();
+        Optional<Path> path = client.getFileSuggestion(data);
+        if (!path.isPresent()) {
+            return "null";
+        }
+        return new JsonPrimitive(path.get().toString()).toString();
     }
 
     private Object send(Request req, Response res) throws Exception {
@@ -395,6 +430,7 @@ public class WebUIServer {
 
     public static void main(String[] args) {
         WebUIServer.getInstance();
+
     }
 
     private String parentFolder(String name) {

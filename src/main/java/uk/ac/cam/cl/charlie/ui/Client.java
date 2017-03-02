@@ -4,9 +4,15 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.mail.Message;
@@ -14,6 +20,10 @@ import javax.mail.MessagingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
@@ -23,6 +33,10 @@ import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
+import uk.ac.cam.cl.charlie.filewalker.BasicFileWalker;
+import uk.ac.cam.cl.charlie.filewalker.FileDB;
+import uk.ac.cam.cl.charlie.math.Vector;
+import uk.ac.cam.cl.charlie.vec.Document;
 
 /**
  * Central class for handling requests and actions
@@ -36,6 +50,27 @@ public class Client {
 
     private static Logger log = LoggerFactory.getLogger(WebUIServer.class);
     private CachedStore cstore;
+
+    private BasicFileWalker walker = new BasicFileWalker();
+    {
+        String roots = getConfiguration("filewalker.root");
+        if (roots != null) {
+            JsonArray array = new JsonParser().parse(roots).getAsJsonArray();
+            for (JsonElement e : array) {
+                Path path = Paths.get(e.getAsString());
+                walker.addRootDirectory(path);
+            }
+        }
+    }
+
+    private List<String> jsonListToStringList(String json) {
+        JsonArray array = new JsonParser().parse(json).getAsJsonArray();
+        List<String> list = new ArrayList<>(array.size());
+        for (JsonElement e : array) {
+            list.add(e.getAsString());
+        }
+        return list;
+    }
 
     public static Client getInstance() {
         if (instance == null) {
@@ -69,7 +104,31 @@ public class Client {
     }
 
     public void putConfiguration(String key, String value) {
+        switch (key) {
+        case "filewalker.root":
+            updateFilewalkerRoot(value);
+            break;
+        }
         Configuration.getInstance().put(key, value);
+    }
+
+    private void updateFilewalkerRoot(String newValue) {
+        List<String> oldValue = jsonListToStringList(getConfiguration("filewalker.root"));
+        List<String> newList = jsonListToStringList(newValue);
+
+        Set<String> removedElement = new HashSet<>(oldValue);
+        removedElement.removeAll(newList);
+
+        Set<String> newElement = new HashSet<>(newList);
+        newElement.removeAll(oldValue);
+
+        for (String s : newElement) {
+            walker.addRootDirectory(Paths.get(s));
+        }
+
+        for (String s : removedElement) {
+            walker.removeRootDirectory(Paths.get(s));
+        }
     }
 
     public void changeAccount() {
@@ -123,6 +182,13 @@ public class Client {
             return null;
         });
 
+    }
+
+    public Optional<Path> getFileSuggestion(String text) {
+        Document document = new Document(null, text);
+        Vector vec = Clusterer.getVectoriser().doc2vec(document);
+
+        return FileDB.getInstance().getMostRelevantFile(vec);
     }
 
 }

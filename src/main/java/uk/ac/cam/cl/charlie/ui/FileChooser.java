@@ -56,6 +56,7 @@ public class FileChooser {
         int bufferSize = 4 * (bufferLength + 1);
         Memory buffer = new Memory(bufferSize);
         buffer.clear();
+
         if (file != null) {
             buffer.setWideString(0, file);
         }

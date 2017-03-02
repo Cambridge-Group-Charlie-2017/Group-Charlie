@@ -35,8 +35,6 @@ public class FileReader {
         // tika can parse a lot of files we don't want to pass - e.g. i doubt extracting text from
         // .rar files is going to help us
         switch (mimeType) {
-            case "text/html":
-                return true;
             case "application/vnd.apple.iwork":
                 return true;
             case "application/vnd.apple.pages":
@@ -50,8 +48,6 @@ public class FileReader {
             case "application/pdf":
                 return true;
             case "text/plain":
-                return true;
-            case "application/rtf":
                 return true;
             default:
                 return false;

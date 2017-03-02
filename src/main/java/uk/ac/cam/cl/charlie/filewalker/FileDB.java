@@ -51,7 +51,7 @@ public final class FileDB {
     private VectorisingStrategy vectoriser;
 
     private static final int prioritySize = 100;
-    private static final double toleranceForSimilarity = 0.8;
+    private static final double toleranceForSimilarity = 0.6;
 
     private FileDB() {
         fullMap = Database.getInstance().getMap("files", new PathSerialiser(), new VectorSerialiser());
@@ -73,7 +73,10 @@ public final class FileDB {
     }
 
     private void processFile(Path p) {
-        // for now - just an auxilliary method; there is no difference between a modified and a new
+        log.info("Processing new file {}", p);
+
+        // for now - just an auxilliary method; there is no difference between a
+        // modified and a new
         // file really so far
         try {
             if (FileReader.isReadableFile(p)) {
@@ -128,6 +131,8 @@ public final class FileDB {
     }
 
     public void processDeletedFile(Path p) {
+        log.info("Processing deleted file {}", p);
+
         fullMap.remove(p);
         priorityFiles.remove(p);
     }
@@ -170,47 +175,23 @@ public final class FileDB {
 
     private static Optional<Path> getBestMatch(Vector v, Map<Path, Vector> map) {
         Path min = null;
-        double dotProd = 0.0; // dot product == cosine distance assuming normalisation
+        double dotProd = 0.0; // dot product == cosine distance assuming
+                              // normalisation
         for (Map.Entry<Path, Vector> entry : map.entrySet()) {
             double latestCosine = Math.abs(entry.getValue().dot(v));
-            if (min == null || latestCosine > dotProd) { // i think it's greater than?
+
+            if (min == null || latestCosine > dotProd) { // i think it's greater
+                                                         // than?
                 min = entry.getKey();
                 dotProd = latestCosine;
             }
         }
+        log.info("Best match {} with similarity {}", min, dotProd);
         if (dotProd > toleranceForSimilarity) {
             return Optional.of(min);
-        }
-        else {
+        } else {
             return Optional.empty();
         }
     }
 
-
-    /* Not needed anymore
-    private static Optional<Path> getBestMatch (Vector v, Set<PathVectorPair> s) {
->>>>>>> refs/heads/mailbox
-        Path min = null;
-        double dotProd = 0.0;
-
-        for (PathVectorPair pvp : s) {
-            double latestCosine = Math.abs(pvp.v.dot(v));
-            if (min == null || latestCosine > dotProd) {
-                min = pvp.p;
-                dotProd = latestCosine;
-            }
-        }
-<<<<<<< HEAD
-        if (dotProd > toleranceForSimilarity) {
-            return Optional.of(min);
-        }
-        else {
-            return Optional.empty();
-        }
-    }
-=======
-
-        return min;
-    }*/
-    
 }
