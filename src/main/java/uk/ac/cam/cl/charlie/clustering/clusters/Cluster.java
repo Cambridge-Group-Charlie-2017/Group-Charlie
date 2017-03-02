@@ -13,6 +13,7 @@ public abstract class Cluster<T> {
     protected String name;
     protected ArrayList<ClusterableObject<T>> objects;
     private int dimension;
+    private boolean nameConfidence = true;
 
     public int getDimension() {
         return dimension;
@@ -28,6 +29,14 @@ public abstract class Cluster<T> {
 
     public String getName() {
         return name;
+    }
+    
+    public boolean getNameConfidence() {
+    	return nameConfidence;
+    }
+    
+    public void setNameConfidence(boolean value) {
+    	nameConfidence = value;
     }
 
     // Naming is a separate process to clustering, so the name can be assigned

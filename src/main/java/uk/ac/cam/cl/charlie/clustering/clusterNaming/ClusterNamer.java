@@ -26,6 +26,10 @@ public abstract class ClusterNamer {
         public String getName() {
             return name;
         }
+        
+        public double getConfidence() {
+        	return confidence;
+        }
     }
 
     public abstract NamingResult name(Cluster<Message> cluster);
@@ -81,11 +85,12 @@ public abstract class ClusterNamer {
                 cluster.setName("Failed to name: " + Math.random());
             else
                 cluster.setName(subject);
+            cluster.setNameConfidence(false);
             return null;
         } else {
             cluster.setName(ret.name);
         }
-
+        
         return cluster.getName();
     }
 

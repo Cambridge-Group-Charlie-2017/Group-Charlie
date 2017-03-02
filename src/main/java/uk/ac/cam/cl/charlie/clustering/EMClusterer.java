@@ -28,7 +28,6 @@ public class EMClusterer<T> extends Clusterer<T> {
 
     // Note: currently set up to train on every vector. If this is uses too much
     // memory, could train on a subset.
-    // @Override
     @Override
     protected ClusterGroup<T> run(List<? extends ClusterableObject<T>> objects) throws Exception {
         // Assume dimensions are all the same

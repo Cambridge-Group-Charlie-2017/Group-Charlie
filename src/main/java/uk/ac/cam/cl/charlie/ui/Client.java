@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.mail.FetchProfile;
@@ -23,6 +24,7 @@ import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
@@ -113,22 +115,38 @@ public class Client {
 
         Clusterer.getVectoriser().train(msg);
 
-        EMClusterer<Message> cluster = new EMClusterer<>(
-                msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
+        clusters = cluster(msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
+        
+        createFolderForClusters("Inbox", clusters);
+        
+        for (Cluster<Message> c : clusters) {
+        	ClusterGroup<Message> subclusters;
+        	if(!c.getNameConfidence() && c.getSize() > 30) {
+        		subclusters = cluster(c.getObjects());
+        		createFolderForClusters("Inbox" + c.getName(), subclusters);
+            }
+        }
+    }
+    
+    private ClusterGroup<Message> cluster(List<ClusterableObject<Message>> msg) {
+    	ClusterGroup<Message> clusters;
+    	EMClusterer<Message> cluster = new EMClusterer<>(msg);
         clusters = cluster.getClusters();
 
         for (Cluster<Message> c : clusters) {
             ClusterNamer.doName(c);
         }
-
-        cstore.doFolderQuery("Inbox", folder -> {
+    	return clusters;
+    }
+    
+    private void createFolderForClusters(String parentFolder, ClusterGroup<Message> clusters) {
+    	cstore.doFolderQuery(parentFolder, folder -> {
             ClusteredFolder cfolder = (ClusteredFolder) folder;
             cfolder.addClusters(clusters);
             // Invalidate folder cache
             cstore.foldersLastUpdate = 0;
             return null;
         });
-
     }
 
 }
