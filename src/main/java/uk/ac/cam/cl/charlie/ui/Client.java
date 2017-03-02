@@ -51,6 +51,7 @@ public class Client {
 
     private static Logger log = LoggerFactory.getLogger(WebUIServer.class);
     private CachedStore cstore;
+    private ClusterGroup<Message> clusters;
 
     private BasicFileWalker walker = new BasicFileWalker();
     {
@@ -167,15 +168,15 @@ public class Client {
 
         EMClusterer<Message> cluster = new EMClusterer<>(
                 msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
-        ClusterGroup<Message> group = cluster.getClusters();
+        clusters = cluster.getClusters();
 
-        for (Cluster<Message> c : group) {
+        for (Cluster<Message> c : clusters) {
             ClusterNamer.doName(c);
         }
 
         cstore.doFolderQuery("Inbox", folder -> {
             ClusteredFolder cfolder = (ClusteredFolder) folder;
-            cfolder.addClusters(group);
+            cfolder.addClusters(clusters);
             // Invalidate folder cache
             cstore.foldersLastUpdate = 0;
             return null;

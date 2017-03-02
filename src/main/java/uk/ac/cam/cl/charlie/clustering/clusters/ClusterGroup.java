@@ -38,6 +38,13 @@ public class ClusterGroup<T> implements Iterable<Cluster<T>> {
         return clusters.get(i);
     }
 
+    public Cluster<T> get(String name) {
+        for (Cluster c : clusters)
+            if (c.getName().equals("name"))
+                return c;
+        return null;
+    }
+
     public void add(Cluster<T> c) throws IncompatibleDimensionalityException {
         if (c.getDimension() != dimension) {
             if (dimension == 0)
@@ -59,9 +66,9 @@ public class ClusterGroup<T> implements Iterable<Cluster<T>> {
         return -1;
     }
 
-    // int insert(Message) to insert a message into the best cluster. Returns
-    // index of cluster it inserted into.
-    public int insert(ClusterableObject<T> co) throws IncompatibleDimensionalityException {
+    // String insert(Message) to insert a message into the best cluster. Returns
+    // name of cluster it inserted into.
+    public String insert(ClusterableObject<T> co) throws IncompatibleDimensionalityException {
         int bestCluster = 0;
         boolean prioritiseHigh = clusters.get(0).isHighMatchGood();
 
@@ -73,8 +80,9 @@ public class ClusterGroup<T> implements Iterable<Cluster<T>> {
                 bestCluster = i;
             }
         }
-        clusters.get(bestCluster).addObject(co);
-        return bestCluster;
+        Cluster best = clusters.get(bestCluster);
+        best.addObject(co);
+        return best.getName();
     }
 
     @Override
