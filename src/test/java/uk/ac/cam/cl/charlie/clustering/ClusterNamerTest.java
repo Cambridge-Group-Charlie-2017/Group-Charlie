@@ -46,7 +46,7 @@ public class ClusterNamerTest {
         SenderNamer namer = new SenderNamer();
         NamingResult result = namer.name(c);
         assertNotNull(result);
-        assertEquals("companyname", result.getName());
+        assertEquals("companyname.com", result.getName());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class ClusterNamerTest {
         NamingResult result = namer.name(c);
         assertNotNull(result);
         System.out.println(result.getName());
-        assertEquals("Project X ", result.getName());
+        assertEquals("Project X", result.getName());
     }
 
     @Test
@@ -129,7 +129,7 @@ public class ClusterNamerTest {
 
         String name = ClusterNamer.doName(c);
         System.out.println(name);
-        assertEquals("Project X ", name);
+        assertEquals("Project X", name);
     }
 
     @Test

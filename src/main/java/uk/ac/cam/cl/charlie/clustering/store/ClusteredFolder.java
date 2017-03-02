@@ -61,12 +61,14 @@ public class ClusteredFolder extends Folder {
             throw new AssertionError(e);
         }
 
-        load();
+        load(true);
     }
 
-    private void load() {
-        virtualFolders.clear();
-        clusterGroup = new ClusterGroup();
+    private void load(boolean clear) {
+        if(clear) {
+            virtualFolders.clear();
+            clusterGroup = new ClusterGroup();
+        }
 
         //load virtualFolders
         for (Entry<Long, String> entry : clusterMap.entrySet()) {
@@ -106,8 +108,9 @@ public class ClusteredFolder extends Folder {
         }
     }
 
-    public void addClusters(ClusterGroup<Message> clusterGroup) {
-        clusterMap.clear();
+    public void addClusters(ClusterGroup<Message> clusterGroup,boolean clear) {
+        if(clear)
+            clusterMap.clear();
         this.clusterGroup = clusterGroup;
 
         for (Cluster<Message> cluster : clusterGroup) {
@@ -119,11 +122,12 @@ public class ClusteredFolder extends Folder {
                 } catch (MessagingException e) {
                     throw new Error(e);
                 }
-                clusterMap.put(uid, cluster.getName());
+                if(cluster.getName() != null)
+                    clusterMap.put(uid, cluster.getName());
             }
         }
 
-        load();
+        load(clear);
     }
 
     public void refreshMessages() {

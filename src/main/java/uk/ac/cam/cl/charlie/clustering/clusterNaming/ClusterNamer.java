@@ -90,6 +90,12 @@ public abstract class ClusterNamer {
         } else {
             cluster.setName(ret.name);
         }
+
+        //If confindence level is too low and cluster size is large enough to split set name confidence to false
+        if(ret.confidence < 0.3 && cluster.getSize() > 30){
+            cluster.setNameConfidence(false);
+        }
+
         
         return cluster.getName();
     }

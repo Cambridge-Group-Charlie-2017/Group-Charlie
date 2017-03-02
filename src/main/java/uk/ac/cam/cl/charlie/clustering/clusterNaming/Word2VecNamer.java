@@ -41,46 +41,60 @@ public class Word2VecNamer extends ClusterNamer {
             words.add(cw);
         }
 
-        EMClusterer<String> clusterer = new EMClusterer<>(words);
-        ClusterGroup<String> clusters = clusterer.getClusters();
-        String folderName = "";
-        // int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
+        try {
+            EMClusterer<String> clusterer = new EMClusterer<>(words);
+            ClusterGroup<String> clusters = clusterer.getClusters();
+            String folderName = "";
+            // int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
 
-        ArrayList<ClusterableWordAndOccurence> wordsToUse = new ArrayList<>();
+            ArrayList<ClusterableWordAndOccurence> wordsToUse = new ArrayList<>();
 
-        for (int i = 0; i < clusters.size(); i++) {
-            Cluster<String> gc = clusters.get(i);
-            ArrayList<ClusterableObject<String>> w = gc.getObjects();
+            for (int i = 0; i < clusters.size(); i++) {
+                Cluster<String> gc = clusters.get(i);
+                ArrayList<ClusterableObject<String>> w = gc.getObjects();
 
-            // Get most common word in a cluster
-            int mostCommonOccurences = 0;
-            ClusterableWordAndOccurence mostCommonWord = null;
-            for (int j = 0; j < w.size(); j++) {
-                ClusterableWordAndOccurence word = (ClusterableWordAndOccurence) w.get(j);
-                if (word.getOccurences() > mostCommonOccurences) {
-                    mostCommonOccurences = word.getOccurences();
-                    mostCommonWord = word;
+                // Get most common word in a cluster
+                int mostCommonOccurences = 0;
+                ClusterableWordAndOccurence mostCommonWord = null;
+                for (int j = 0; j < w.size(); j++) {
+                    ClusterableWordAndOccurence word = (ClusterableWordAndOccurence) w.get(j);
+                    if (word.getOccurences() > mostCommonOccurences) {
+                        mostCommonOccurences = word.getOccurences();
+                        mostCommonWord = word;
+                    }
+                }
+                wordsToUse.add(mostCommonWord);
+            }
+
+            // Sort words to use based on Average positions
+            for (int i = 0; i < wordsToUse.size(); i++) {
+                ClusterableWordAndOccurence tempWord = wordsToUse.get(i);
+                for (int j = i - 1; j >= 0 && wordsToUse.get(i).getPosition() < wordsToUse.get(j).getPosition(); j--) {
+                    wordsToUse.set(j + 1, wordsToUse.get(j));
+                    wordsToUse.set(j, tempWord);
                 }
             }
-            wordsToUse.add(mostCommonWord);
-        }
 
-        // Sort words to use based on Average positions
-        for (int i = 0; i < wordsToUse.size(); i++) {
-            ClusterableWordAndOccurence tempWord = wordsToUse.get(i);
-            for (int j = i - 1; j >= 0 && wordsToUse.get(i).getPosition() < wordsToUse.get(j).getPosition(); j--) {
-                wordsToUse.set(j + 1, wordsToUse.get(j));
-                wordsToUse.set(j, tempWord);
+            // Create clusterName
+            for (ClusterableWordAndOccurence aWordsToUse : wordsToUse) {
+                folderName += aWordsToUse.getObject() + " ";
             }
-        }
 
-        // Create clusterName
-        for (ClusterableWordAndOccurence aWordsToUse : wordsToUse) {
-            folderName += aWordsToUse.getObject() + " ";
-        }
 
-        // Set folderName
-        return new NamingResult(folderName, 0.6);
+            //Calculate confindence
+            double confidence = 0;
+            for (ClusterableWordAndOccurence word : wordsToUse) {
+                confidence += word.getOccurences();
+            }
+            confidence /= counter.getWordCount();
+            confidence /= wordsToUse.size();
+
+            // Set folderName
+            return new NamingResult(folderName, confidence);
+        }catch(Exception exp){
+            //Sometimes clusterer fails to vectorise any words so clusterer fails
+            return null;
+        }
     }
 
 }

@@ -19,7 +19,7 @@ import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
  */
 public class SenderNamer extends ClusterNamer {
 
-    private static double MIN_PROPORTION_CORRECT = 0.5;
+    private static double MIN_PROPORTION_CORRECT = 0.8;
     private static double MAX_CONFIDENCE = 0.9;
 
     @Override

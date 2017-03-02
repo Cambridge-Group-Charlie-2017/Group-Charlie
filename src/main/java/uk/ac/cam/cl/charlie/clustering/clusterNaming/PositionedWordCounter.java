@@ -6,7 +6,7 @@ import java.util.Set;
 import uk.ac.cam.cl.charlie.util.IntHolder;
 
 public class PositionedWordCounter {
-
+    private int totalNumberOfWords = 0;
     HashMap<String, IntHolder> frequency = new HashMap<>();
     HashMap<String, IntHolder> positions = new HashMap<>();
 
@@ -21,6 +21,7 @@ public class PositionedWordCounter {
         }
         h.value++;
         p.value += position;
+        totalNumberOfWords++;
     }
 
     public int frequency(String word) {
@@ -63,6 +64,10 @@ public class PositionedWordCounter {
                 continue;
             addWord(word.toLowerCase(), pos++);
         }
+    }
+
+    public int getWordCount(){
+        return totalNumberOfWords;
     }
 
 }

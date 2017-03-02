@@ -4,10 +4,7 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.mail.FetchProfile;
@@ -16,6 +13,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.search.FlagTerm;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +27,7 @@ import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
 import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
+import uk.ac.cam.cl.charlie.clustering.store.VirtualFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
 
 /**
@@ -117,15 +116,54 @@ public class Client {
 
         clusters = cluster(msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
         
-        createFolderForClusters("Inbox", clusters);
+        /*createFolderForClusters("Inbox", clusters);
         
         for (Cluster<Message> c : clusters) {
         	ClusterGroup<Message> subclusters;
         	if(!c.getNameConfidence() && c.getSize() > 30) {
         		subclusters = cluster(c.getObjects());
-        		createFolderForClusters("Inbox" + c.getName(), subclusters);
+        		createFolderForClusters("Inbox", subclusters);
             }
+        }*/
+
+        Queue<Cluster<Message>> queue = new CircularFifoQueue<>();
+        for(Cluster<Message> c : clusters)
+            queue.add(c);
+
+        int loop = 0;
+
+        ClusterGroup<Message> toAdd = new ClusterGroup<>();
+        boolean clear = true;
+
+        while(!queue.isEmpty() && loop < 30){
+            Cluster<Message> c = queue.remove();
+            ClusterGroup<Message> subclusters;
+            if(!c.getNameConfidence() && c.getSize() > 30) {
+                subclusters = cluster(c.getObjects());
+                Iterator<Cluster<Message>> iterator = subclusters.iterator();
+                while(iterator.hasNext()){
+                    Cluster<Message> subCluster = iterator.next();
+                    if(!subCluster.getNameConfidence() && subCluster.getSize() > 30 && loop<30) {
+                        queue.add(subCluster);
+                        iterator.remove();
+                        loop++;
+                    }
+                }
+                createFolderForClusters("Inbox", subclusters,clear);
+                if(clear)
+                    clear=false;
+            }else{
+                try {
+                    toAdd.add(c);
+                } catch (IncompatibleDimensionalityException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            createFolderForClusters("Inbox",toAdd,clear);
         }
+
+
     }
     
     private ClusterGroup<Message> cluster(List<ClusterableObject<Message>> msg) {
@@ -139,12 +177,14 @@ public class Client {
     	return clusters;
     }
     
-    private void createFolderForClusters(String parentFolder, ClusterGroup<Message> clusters) {
+    private void createFolderForClusters(String parentFolder, ClusterGroup<Message> clusters, boolean clear) {
     	cstore.doFolderQuery(parentFolder, folder -> {
-            ClusteredFolder cfolder = (ClusteredFolder) folder;
-            cfolder.addClusters(clusters);
-            // Invalidate folder cache
-            cstore.foldersLastUpdate = 0;
+    	    if(folder instanceof  ClusteredFolder) {
+                ClusteredFolder cfolder = (ClusteredFolder) folder;
+                cfolder.addClusters(clusters,clear);
+                // Invalidate folder cache
+                cstore.foldersLastUpdate = 0;
+            }
             return null;
         });
     }
