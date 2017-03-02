@@ -51,7 +51,6 @@ public class Client {
 
     private static Logger log = LoggerFactory.getLogger(WebUIServer.class);
     private CachedStore cstore;
-    private ClusterGroup<Message> clusters;
 
     private BasicFileWalker walker = new BasicFileWalker();
     {
@@ -168,7 +167,7 @@ public class Client {
 
         EMClusterer<Message> cluster = new EMClusterer<>(
                 msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
-        clusters = cluster.getClusters();
+        ClusterGroup<Message> clusters = cluster.getClusters();
 
         for (Cluster<Message> c : clusters) {
             ClusterNamer.doName(c);

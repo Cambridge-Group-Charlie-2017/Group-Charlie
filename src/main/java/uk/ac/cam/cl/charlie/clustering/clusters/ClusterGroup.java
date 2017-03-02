@@ -39,7 +39,7 @@ public class ClusterGroup<T> implements Iterable<Cluster<T>> {
     }
 
     public Cluster<T> get(String name) {
-        for (Cluster c : clusters)
+        for (Cluster<T> c : clusters)
             if (c.getName().equals("name"))
                 return c;
         return null;
@@ -80,7 +80,7 @@ public class ClusterGroup<T> implements Iterable<Cluster<T>> {
                 bestCluster = i;
             }
         }
-        Cluster best = clusters.get(bestCluster);
+        Cluster<T> best = clusters.get(bestCluster);
         best.addObject(co);
         return best.getName();
     }

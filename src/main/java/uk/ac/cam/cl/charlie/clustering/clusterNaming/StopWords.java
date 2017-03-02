@@ -16,12 +16,11 @@ public class StopWords {
     private StopWords() {
     }
 
-    @SuppressWarnings("unchecked")
     public static List<String> getStopWords() {
 
         try {
             if (stopWords == null)
-                stopWords = IOUtils.readLines(new FileInputStream("stopwords.txt"));
+                stopWords = IOUtils.readLines(new FileInputStream("stopwords.txt"), "UTF-8");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -1,7 +1,11 @@
 package uk.ac.cam.cl.charlie.clustering.store;
 
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.mail.Flags;
@@ -30,7 +34,6 @@ public class ClusteredFolder extends Folder {
     ClusterGroup clusterGroup;
     private ArrayList<Message> newMessages = new ArrayList<>();
 
-
     public ClusteredFolder(ClusteredStore store, Folder actual) {
         super(store);
         this.actual = actual;
@@ -38,7 +41,7 @@ public class ClusteredFolder extends Folder {
         MessageCountListener messageListener = new MessageCountListener() {
             @Override
             public void messagesAdded(MessageCountEvent e) {
-                //add to new messages
+                // add to new messages
                 Message[] msgs = e.getMessages();
                 for (Message m : msgs)
                     newMessages.add(m);
@@ -46,7 +49,7 @@ public class ClusteredFolder extends Folder {
 
             @Override
             public void messagesRemoved(MessageCountEvent e) {
-                //TODO: Should anything be done here?
+                // TODO: Should anything be done here?
             }
         };
         actual.addMessageCountListener(messageListener);
@@ -65,9 +68,9 @@ public class ClusteredFolder extends Folder {
 
     private void load() {
         virtualFolders.clear();
-        clusterGroup = new ClusterGroup();
+        clusterGroup = new ClusterGroup<Message>();
 
-        //load virtualFolders
+        // load virtualFolders
         for (Entry<Long, String> entry : clusterMap.entrySet()) {
             VirtualFolder vf = virtualFolders.get(entry.getValue());
 
@@ -84,14 +87,15 @@ public class ClusteredFolder extends Folder {
             }
         }
 
-        //load clusterGroup
+        // load clusterGroup
         HashMap<String, ArrayList<ClusterableMessage>> map = new HashMap<>();
         for (Entry<Long, String> entry : clusterMap.entrySet()) {
             if (!map.containsKey(entry.getValue()))
                 map.put(entry.getValue(), new ArrayList<>());
             try {
-                map.get(entry.getValue()).add(new ClusterableMessage(((UIDFolder) actual).getMessageByUID(entry.getKey())));
-            }   catch (MessagingException e) {
+                map.get(entry.getValue())
+                        .add(new ClusterableMessage(((UIDFolder) actual).getMessageByUID(entry.getKey())));
+            } catch (MessagingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
@@ -126,33 +130,35 @@ public class ClusteredFolder extends Folder {
 
     public void refreshMessages() {
         if (clusterGroup.size() == 0) {
-            return; //can't classify when no clusters exist.
+            return; // can't classify when no clusters exist.
         }
         for (Message m : newMessages) {
             String name;
             try {
-                //insert into clusterGroup and into the corresponding virtualFolder.
+                // insert into clusterGroup and into the corresponding
+                // virtualFolder.
                 name = clusterGroup.insert(new ClusterableMessage(m));
                 virtualFolders.get(name).addMessage(m);
             } catch (IncompatibleDimensionalityException e) {
                 e.printStackTrace();
             }
         }
-        //refresh ArrayList, all new messages now dealt with.
+        // refresh ArrayList, all new messages now dealt with.
         newMessages = new ArrayList<>();
     }
 
     public void initNewMailChecker() {
         Thread newMailTask = new Thread() {
+            @Override
             public void run() {
 
-                while(true) {
+                while (true) {
                     try {
-                        //sleep 1 min then classify new emails
+                        // sleep 1 min then classify new emails
                         sleep(60000);
                         refreshMessages();
                     } catch (InterruptedException e) {
-                        //shouldn't occur.
+                        // shouldn't occur.
                         e.printStackTrace();
                         throw new Error(e);
                     }
