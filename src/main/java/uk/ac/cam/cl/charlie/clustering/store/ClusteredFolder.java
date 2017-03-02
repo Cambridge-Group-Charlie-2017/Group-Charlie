@@ -27,8 +27,6 @@ public class ClusteredFolder extends Folder {
     Folder actual;
     Map<String, VirtualFolder> virtualFolders = new HashMap<>();
     PersistentMap<Long, String> clusterMap;
-
-    //TODO: how is clusterGroup loaded?
     ClusterGroup clusterGroup;
     private ArrayList<Message> newMessages = new ArrayList<>();
 
@@ -62,6 +60,7 @@ public class ClusteredFolder extends Folder {
         }
 
         load();
+        initNewMailChecker();
     }
 
     private void load() {
@@ -122,11 +121,13 @@ public class ClusteredFolder extends Folder {
                 clusterMap.put(uid, cluster.getName());
             }
         }
-
         load();
     }
 
     public void refreshMessages() {
+        if (clusterGroup.size() == 0) {
+            return; //can't classify when no clusters exist.
+        }
         for (Message m : newMessages) {
             String name;
             try {
