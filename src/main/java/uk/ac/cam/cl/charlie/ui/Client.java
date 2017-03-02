@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -53,17 +54,15 @@ public class Client {
 
     private BasicFileWalker walker = new BasicFileWalker();
     {
-        String roots = getConfiguration("filewalker.root");
-        if (roots != null) {
-            JsonArray array = new JsonParser().parse(roots).getAsJsonArray();
-            for (JsonElement e : array) {
-                Path path = Paths.get(e.getAsString());
-                walker.addRootDirectory(path);
-            }
+        for (String root : jsonListToStringList(getConfiguration("filewalker.root"))) {
+            walker.addRootDirectory(Paths.get(root));
         }
     }
 
     private List<String> jsonListToStringList(String json) {
+        if (json == null) {
+            return Collections.emptyList();
+        }
         JsonArray array = new JsonParser().parse(json).getAsJsonArray();
         List<String> list = new ArrayList<>(array.size());
         for (JsonElement e : array) {
