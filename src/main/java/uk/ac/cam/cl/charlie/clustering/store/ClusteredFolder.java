@@ -1,5 +1,6 @@
 package uk.ac.cam.cl.charlie.clustering.store;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -12,6 +13,7 @@ import javax.mail.UIDFolder;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
@@ -40,8 +42,21 @@ public class ClusteredFolder extends Folder {
             public void messagesAdded(MessageCountEvent e) {
                 //add to new messages
                 Message[] msgs = e.getMessages();
-                for (Message m : msgs)
-                    newMessages.add(m);
+                ArrayList<Message> msgArr = new ArrayList<>(Arrays.asList(msgs));
+
+               try {
+                   for (Message m : msgArr) {
+                       if (m.getSize() >= 65536) {
+                           msgArr.remove(m);
+                       } else {
+                           m.getContent();
+                       }
+                   }
+                   Clusterer.getVectoriser().train(msgArr);
+                   newMessages = msgArr;
+               } catch (MessagingException | IOException ex) {
+                   ex.printStackTrace();
+               }
             }
 
             @Override
@@ -60,6 +75,7 @@ public class ClusteredFolder extends Folder {
         }
 
         load();
+        //TODO: initNewMailChecker() called multiple times. Shouldn't be...
         initNewMailChecker();
     }
 
