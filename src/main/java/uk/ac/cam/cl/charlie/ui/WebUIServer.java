@@ -76,6 +76,12 @@ public class WebUIServer {
 
     private static HashSet<String> directOpenExtension = new HashSet<>();
     static {
+        // Pictures
+        directOpenExtension.add(".png");
+        directOpenExtension.add(".gif");
+        directOpenExtension.add(".jpg");
+
+        // Documents
         directOpenExtension.add(".doc");
         directOpenExtension.add(".docx");
         directOpenExtension.add(".pdf");
