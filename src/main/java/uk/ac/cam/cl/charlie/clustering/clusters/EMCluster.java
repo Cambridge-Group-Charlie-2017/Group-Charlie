@@ -73,8 +73,6 @@ public class EMCluster<T> extends Cluster<T> {
         return true;
     }
 
-    private final int elementsToCompare = 100;
-
     @Override
     public double matchStrength(ClusterableObject<T> msg) throws IncompatibleDimensionalityException {
         // return log of weighted Bayes probability. Assumes each category has
@@ -93,9 +91,8 @@ public class EMCluster<T> extends Cluster<T> {
             throw new IncompatibleDimensionalityException();
 
         int dimension = getDimension();
-        int interval = vec.size() / elementsToCompare;
         double logProb = 0;
-        for (int i = 0; i < dimension; i += interval) {
+        for (int i = 0; i < dimension; i++) {
             double diff = vec.get(i) - average.get(i);
 
             // Calculate Gaussian probability of membership of this cluster
