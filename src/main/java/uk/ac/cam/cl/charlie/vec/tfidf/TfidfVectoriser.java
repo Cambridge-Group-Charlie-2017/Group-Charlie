@@ -122,10 +122,12 @@ public class TfidfVectoriser implements VectorisingStrategy {
             // there may be different method calls for getting the body content
             // as a String.
             String body = Messages.getBodyText(msg);
+
             // Checks if sufficient emails are in the database
-            if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
-                throw new RuntimeException("Batch is too small");
-            }
+            // if (globalCounter.frequency(TOTAL_NUMBER_OF_DOCS) < 20) {
+            // throw new RuntimeException("Batch is too small");
+            // }
+
             // Adding the Subject to the feature vector passed to the clusterer
             // Done by concatening the Subject vector with the textbody vector
             // An alternative solution would be to take the weighted average
