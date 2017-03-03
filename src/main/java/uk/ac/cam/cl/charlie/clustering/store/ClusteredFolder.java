@@ -16,7 +16,9 @@ import javax.mail.UIDFolder;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 
-import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
@@ -25,14 +27,17 @@ import uk.ac.cam.cl.charlie.clustering.clusters.EMCluster;
 import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializers;
+import uk.ac.cam.cl.charlie.mail.Messages;
 
 public class ClusteredFolder extends Folder {
 
     Folder actual;
     Map<String, VirtualFolder> virtualFolders = new HashMap<>();
     PersistentMap<Long, String> clusterMap;
-    ClusterGroup clusterGroup;
-    private ArrayList<Message> newMessages = new ArrayList<>();
+    ClusterGroup<Message> clusterGroup;
+    long lastUid;
+
+    private static Logger log = LoggerFactory.getLogger(ClusteredFolder.class);
 
     public ClusteredFolder(ClusteredStore store, Folder actual) {
         super(store);
@@ -41,10 +46,7 @@ public class ClusteredFolder extends Folder {
         MessageCountListener messageListener = new MessageCountListener() {
             @Override
             public void messagesAdded(MessageCountEvent e) {
-                // add to new messages
-                Message[] msgs = e.getMessages();
-                for (Message m : msgs)
-                    newMessages.add(m);
+                processNewMessage(e.getMessages());
             }
 
             @Override
@@ -62,50 +64,56 @@ public class ClusteredFolder extends Folder {
             throw new AssertionError(e);
         }
 
-        load();
-        initNewMailChecker();
+        loadClusterGroup();
+        reloadVirtualFolders();
+
+        // Might be new messages after initialization of Folder but before we
+        // register the listener
+        checkNewMessage();
     }
 
-    private void load() {
+    private void loadClusterGroup() {
+        clusterGroup = new ClusterGroup<>();
+
+        HashMap<String, ArrayList<ClusterableObject<Message>>> map = new HashMap<>();
+
+        // Load all messages to map
+        for (Entry<Long, String> entry : clusterMap.entrySet()) {
+            Message message;
+            try {
+                message = ((UIDFolder) actual).getMessageByUID(entry.getKey());
+            } catch (MessagingException e) {
+                e.printStackTrace();
+                continue;
+            }
+            if (message == null) {
+                continue;
+            }
+
+            ArrayList<ClusterableObject<Message>> list = map.get(entry.getValue());
+
+            if (list == null) {
+                list = new ArrayList<>();
+                map.put(entry.getValue(), list);
+            }
+
+            list.add(new ClusterableMessage(message));
+
+            lastUid = entry.getKey();
+        }
+
+        for (Entry<String, ArrayList<ClusterableObject<Message>>> entry : map.entrySet()) {
+            EMCluster<Message> cluster = new EMCluster<>(entry.getValue());
+            cluster.setName(entry.getKey());
+            clusterGroup.add(cluster);
+        }
+    }
+
+    private void reloadVirtualFolders() {
         virtualFolders.clear();
-        clusterGroup = new ClusterGroup<Message>();
-
-        // load virtualFolders
-        for (Entry<Long, String> entry : clusterMap.entrySet()) {
-            VirtualFolder vf = virtualFolders.get(entry.getValue());
-
-            if (vf == null) {
-                vf = new VirtualFolder(getStore(), this, entry.getValue());
-                virtualFolders.put(entry.getValue(), vf);
-            }
-
-            try {
-                vf.addMessage(((UIDFolder) actual).getMessageByUID(entry.getKey()));
-            } catch (MessagingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-
-        // load clusterGroup
-        HashMap<String, ArrayList<ClusterableMessage>> map = new HashMap<>();
-        for (Entry<Long, String> entry : clusterMap.entrySet()) {
-            if (!map.containsKey(entry.getValue()))
-                map.put(entry.getValue(), new ArrayList<>());
-            try {
-                map.get(entry.getValue())
-                        .add(new ClusterableMessage(((UIDFolder) actual).getMessageByUID(entry.getKey())));
-            } catch (MessagingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        for (String s : map.keySet()) {
-            try {
-                clusterGroup.add(new EMCluster(map.get(s)));
-            } catch (IncompatibleDimensionalityException e) {
-                e.printStackTrace();
-            }
+        for (Cluster<Message> cluster : clusterGroup) {
+            VirtualFolder vf = new VirtualFolder(getStore(), this, cluster);
+            virtualFolders.put(vf.getName(), vf);
         }
     }
 
@@ -125,48 +133,38 @@ public class ClusteredFolder extends Folder {
                 clusterMap.put(uid, cluster.getName());
             }
         }
-        load();
+
+        reloadVirtualFolders();
     }
 
-    public void refreshMessages() {
-        if (clusterGroup.size() == 0) {
-            return; // can't classify when no clusters exist.
+    private void checkNewMessage() {
+        Message[] newMessages;
+        try {
+            newMessages = ((UIDFolder) actual).getMessagesByUID(lastUid + 1, UIDFolder.LASTUID);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            return;
         }
-        for (Message m : newMessages) {
-            String name;
+        processNewMessage(newMessages);
+    }
+
+    private void processNewMessage(Message[] messages) {
+        for (Message m : messages) {
+            long uid;
             try {
-                // insert into clusterGroup and into the corresponding
-                // virtualFolder.
-                name = clusterGroup.insert(new ClusterableMessage(m));
-                virtualFolders.get(name).addMessage(m);
-            } catch (IncompatibleDimensionalityException e) {
-                e.printStackTrace();
-            }
-        }
-        // refresh ArrayList, all new messages now dealt with.
-        newMessages = new ArrayList<>();
-    }
-
-    public void initNewMailChecker() {
-        Thread newMailTask = new Thread() {
-            @Override
-            public void run() {
-
-                while (true) {
-                    try {
-                        // sleep 1 min then classify new emails
-                        sleep(60000);
-                        refreshMessages();
-                    } catch (InterruptedException e) {
-                        // shouldn't occur.
-                        e.printStackTrace();
-                        throw new Error(e);
-                    }
+                // Too large, may took a while to download
+                if (m.getSize() > 65535) {
+                    continue;
                 }
+
+                uid = Messages.getUID(m);
+            } catch (MessagingException e) {
+                throw new Error(e);
             }
-        };
-        newMailTask.setDaemon(true);
-        newMailTask.start();
+            log.info("Classifying message {}", uid);
+            String name = clusterGroup.insert(new ClusterableMessage(m));
+            log.info("Classified message {} into {}", uid, name);
+        }
     }
 
     @Override

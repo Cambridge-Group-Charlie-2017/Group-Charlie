@@ -1,13 +1,12 @@
 package uk.ac.cam.cl.charlie.clustering.store;
 
-import java.util.ArrayList;
-import java.util.Collections;
-
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Store;
+
+import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
 
 /**
  * @author Matt Boyce
@@ -16,39 +15,28 @@ import javax.mail.Store;
  */
 public class VirtualFolder extends Folder {
 
-    private ArrayList<Message> messages = new ArrayList<>();
-    private String clusterName;
+    private Cluster<Message> cluster;
     private Folder parent;
 
-    protected VirtualFolder(Store store, Folder parent, String clusterName) {
+    protected VirtualFolder(Store store, Folder parent, Cluster<Message> cluster) {
         super(store);
 
         this.parent = parent;
-        this.clusterName = clusterName;
+        this.cluster = cluster;
     }
-
-    private static VirtualFolder root;
 
     private VirtualFolder(Store store) { // root folder
         super(store);
     }
 
-    public static VirtualFolder getRoot(Store store) { // singleton pattern for
-                                                       // root folder.
-        if (root == null) {
-            root = new VirtualFolder(store);
-        }
-        return root;
-    }
-
     @Override
     public String getName() {
-        return clusterName;
+        return cluster.getName();
     }
 
     @Override
     public String getFullName() {
-        return parent.getFullName() + '/' + clusterName;
+        return parent.getFullName() + '/' + getName();
     }
 
     @Override
@@ -125,13 +113,13 @@ public class VirtualFolder extends Folder {
 
     @Override
     public int getMessageCount() throws MessagingException {
-        return messages.size();
+        return cluster.getSize();
     }
 
     @Override
     public Message getMessage(int msgnum) throws MessagingException {
         // return a message with a given message number
-        return messages.get(msgnum - 1);
+        return cluster.getObjects().get(msgnum - 1).getObject();
     }
 
     @Override
@@ -144,11 +132,4 @@ public class VirtualFolder extends Folder {
         throw new UnsupportedOperationException();
     }
 
-    protected void addMessage(Message msg) {
-        messages.add(msg);
-    }
-
-    protected void addMessage(Message[] msgs) {
-        Collections.addAll(messages, msgs);
-    }
 }

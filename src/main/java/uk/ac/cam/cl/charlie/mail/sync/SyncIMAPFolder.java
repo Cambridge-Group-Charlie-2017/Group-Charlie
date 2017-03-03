@@ -749,6 +749,8 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
         SyncIMAPMessage msg = messages.get(uid);
         if (msg == null) {
             byte[] bytes = map.get(uid);
+            if (bytes == null)
+                return null;
             int tag = deserializeStatus(bytes);
             if (tag == 1)
                 msg = deserializeWithoutContent(bytes, uid);
@@ -765,7 +767,20 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
     @Override
     public Message[] getMessagesByUID(long start, long end) throws MessagingException {
-        throw new UnsupportedOperationException("getMessagesByUID(long, long) not implemented");
+        if (!exists) {
+            throw new MessagingException("Folder does not exist");
+        }
+
+        if (end == LASTUID)
+            end = lastseenuid;
+
+        List<Message> messages = new ArrayList<>();
+        for (long i = start; i <= end; i++) {
+            Message m = getMessageByUID(i);
+            if (m != null)
+                messages.add(m);
+        }
+        return messages.toArray(new Message[messages.size()]);
     }
 
     @Override

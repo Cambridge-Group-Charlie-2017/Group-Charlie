@@ -28,12 +28,6 @@ public class ClusteredStore extends Store {
     public ClusteredStore(Session session, URLName urlname, Store store) {
         super(session, urlname);
         this.store = store;
-
-        try {
-            loadFoldersFromStore();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
     }
 
     private void loadFoldersFromStore() throws MessagingException {
@@ -69,6 +63,12 @@ public class ClusteredStore extends Store {
     @Override
     public boolean protocolConnect(String host, int port, String user, String password) throws MessagingException {
         store.connect(host, port, user, password);
+
+        try {
+            loadFoldersFromStore();
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
         return true;
     }
 
