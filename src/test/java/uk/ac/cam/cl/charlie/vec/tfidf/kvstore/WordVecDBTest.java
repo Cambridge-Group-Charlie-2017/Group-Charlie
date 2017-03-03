@@ -1,12 +1,13 @@
 package uk.ac.cam.cl.charlie.vec.tfidf.kvstore;
 
-import org.junit.Test;
-import uk.ac.cam.cl.charlie.db.PersistentMap;
-import uk.ac.cam.cl.charlie.math.Vector;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+
+import uk.ac.cam.cl.charlie.math.Vector;
 
 /**
  * Created by shyam on 19/02/2017.
@@ -28,7 +29,7 @@ public class WordVecDBTest {
     @Test
     public void checkPut() {
         Optional<Vector> v = db.get("the");
-        assertNotEquals(Optional.of(Vector.zero(300)), db.get("the")) ;
+        assertNotEquals(Optional.of(Vector.zero(300)), db.get("the"));
         db.put("the", Vector.zero(300));
         assertEquals(Optional.of(Vector.zero(300)), db.get("the"));
         db.put("the", v.get());

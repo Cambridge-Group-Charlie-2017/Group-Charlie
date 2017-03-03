@@ -1,4 +1,8 @@
 package uk.ac.cam.cl.charlie.vec.tfidf;
+
+import java.io.File;
+import java.util.List;
+
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
@@ -10,17 +14,14 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Ben on 12/02/2017.
+ * 
  * @author Matthew Boyce
  */
 
-//Class for creating javax.mail.Message objects for testing purposes.
+// Class for creating javax.mail.Message objects for testing purposes.
 
 public class MessageCreator {
     public static Message createMessage(String to, String from, String subject, String body, List<File> attachments) {
