@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +26,9 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
 import javax.mail.Address;
 import javax.mail.FetchProfile;
 import javax.mail.Flags.Flag;
@@ -38,7 +42,9 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -322,7 +328,32 @@ public class WebUIServer {
         msg.setFrom(addr);
 
         msg.setSubject(object.get("subject").getAsString());
-        msg.setContent(object.get("content").getAsString(), "text/html");
+
+        List<String> attachment = new ArrayList<>();
+
+        for (JsonElement e : object.get("attachment").getAsJsonArray()) {
+            attachment.add(e.getAsString());
+        }
+
+        if (attachment.isEmpty()) {
+            msg.setContent(object.get("content").getAsString(), "text/html");
+        } else {
+            MimeMultipart multipart = new MimeMultipart();
+            MimeBodyPart bodyPart = new MimeBodyPart();
+            bodyPart.setContent(object.get("content").getAsString(), "text/html");
+            multipart.addBodyPart(bodyPart);
+
+            for (String att : attachment) {
+                File attFile = new File(att);
+                MimeBodyPart attPart = new MimeBodyPart();
+                DataSource source = new FileDataSource(attFile);
+                attPart.setDataHandler(new DataHandler(source));
+                attPart.setFileName(attFile.getName());
+                multipart.addBodyPart(attPart);
+            }
+
+            msg.setContent(multipart);
+        }
 
         String reply = object.get("inReplyTo").getAsString();
         if (!reply.isEmpty()) {
