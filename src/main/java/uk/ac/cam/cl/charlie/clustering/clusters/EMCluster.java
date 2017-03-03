@@ -4,9 +4,6 @@ package uk.ac.cam.cl.charlie.clustering.clusters;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.mail.Message;
-
-import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.math.Vector;
@@ -46,13 +43,13 @@ public class EMCluster<T> extends Cluster<T> {
             }
             // calculate mean and variance of element i
             double avgX = sum / n;
-            double varX = ((n - 1) / (double) n) * ((sumOfSquares / n) - avgX * avgX);
+            double varX = ((double) n / (n - 1)) * ((sumOfSquares / n) - avgX * avgX);
             averageData[i] = avgX;
             varianceData[i] = varX;
         }
 
         average = new Vector(averageData);
-        variance = new Vector(averageData);
+        variance = new Vector(varianceData);
     }
 
     /*
@@ -90,8 +87,7 @@ public class EMCluster<T> extends Cluster<T> {
         // only consider a subset of elements. if all probabilities are
         // multiplied then the resulting
         // probability becomes too small at high dimensions.
-        uk.ac.cam.cl.charlie.math.Vector vec;
-        vec = Clusterer.getVectoriser().doc2vec((Message) msg.getObject());
+        Vector vec = msg.getVector();
 
         if (vec.size() != getDimension())
             throw new IncompatibleDimensionalityException();
