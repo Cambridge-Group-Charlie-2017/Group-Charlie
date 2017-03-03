@@ -1,12 +1,18 @@
 package uk.ac.cam.cl.charlie.clustering.store;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import javax.mail.Flags;
 import javax.mail.Folder;
@@ -19,6 +25,9 @@ import javax.mail.event.MessageCountListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import uk.ac.cam.cl.charlie.clustering.Clusterer;
+import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
@@ -28,6 +37,7 @@ import uk.ac.cam.cl.charlie.db.Database;
 import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.mail.Messages;
+import uk.ac.cam.cl.charlie.ui.Client;
 
 public class ClusteredFolder extends Folder {
 
@@ -36,6 +46,12 @@ public class ClusteredFolder extends Folder {
     PersistentMap<Long, String> clusterMap;
     ClusterGroup<Message> clusterGroup;
     long lastUid;
+
+    private static final int MESSAGE_COUNT_THRESHOLD = 100;
+    private static final int MAX_COUNT_TO_CLUSTER = 500;
+
+    Thread daemonThread;
+    BlockingQueue<MessageCountEvent> queue = new LinkedBlockingQueue<>();
 
     private static Logger log = LoggerFactory.getLogger(ClusteredFolder.class);
 
@@ -46,7 +62,7 @@ public class ClusteredFolder extends Folder {
         MessageCountListener messageListener = new MessageCountListener() {
             @Override
             public void messagesAdded(MessageCountEvent e) {
-                processNewMessage(e.getMessages());
+                queue.add(e);
             }
 
             @Override
@@ -67,9 +83,99 @@ public class ClusteredFolder extends Folder {
         loadClusterGroup();
         reloadVirtualFolders();
 
+        daemonThread = new Thread(this::run);
+        daemonThread.setName("ClusteredFolder Daemon");
+        daemonThread.start();
+    }
+
+    private void runEmpty() {
+        try {
+            while (true) {
+                // Once we have more message than the threshold,
+                // we do initial clustering and complete
+                if (actual.getMessageCount() > MESSAGE_COUNT_THRESHOLD) {
+                    initialClustering();
+                    return;
+                }
+
+                // Take an element from queue and discard
+                try {
+                    queue.take();
+                } catch (InterruptedException e) {
+                    continue;
+                }
+            }
+        } catch (MessagingException e) {
+            throw new Error(e);
+        }
+    }
+
+    private void initialClustering() {
+        try {
+            int cnt = actual.getMessageCount();
+            Message[] messages = actual.getMessages(Math.max(1, cnt - MAX_COUNT_TO_CLUSTER), cnt);
+            ArrayList<Message> msg = new ArrayList<>(Arrays.asList(messages));
+            log.info("{}: Downloading messages", actual.getName());
+            try {
+                Iterator<Message> iter = msg.iterator();
+                while (iter.hasNext()) {
+                    Message m = iter.next();
+                    // If size is too large, we skip it to save time
+                    if (m.getSize() >= 65536) {
+                        iter.remove();
+                    } else {
+                        m.getContent();
+                    }
+                }
+            } catch (MessagingException | IOException e) {
+                e.printStackTrace();
+                return;
+            }
+            log.info("{}: Messages downloaded", actual.getName());
+
+            Clusterer.getVectoriser().train(msg);
+
+            log.info("{}: Start clustering", actual.getName());
+
+            EMClusterer<Message> cluster = new EMClusterer<>(
+                    msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
+            ClusterGroup<Message> clusters = cluster.getClusters();
+
+            log.info("{}: Clustered, start naming", actual.getName());
+
+            for (Cluster<Message> c : clusters) {
+                ClusterNamer.doName(c);
+            }
+
+            log.info("{}: Naming completed", actual.getName());
+
+            addClusters(clusters);
+        } catch (MessagingException e) {
+            throw new Error(e);
+        }
+    }
+
+    private void run() {
+        if (clusterMap.isEmpty()) {
+            runEmpty();
+        }
+
         // Might be new messages after initialization of Folder but before we
         // register the listener
         checkNewMessage();
+
+        while (true) {
+            MessageCountEvent event;
+            try {
+                event = queue.take();
+            } catch (InterruptedException e) {
+                continue;
+            }
+            if (event.getType() == MessageCountEvent.ADDED) {
+                Message[] newMessages = event.getMessages();
+                processNewMessage(newMessages);
+            }
+        }
     }
 
     private void loadClusterGroup() {
@@ -117,7 +223,7 @@ public class ClusteredFolder extends Folder {
         }
     }
 
-    public void addClusters(ClusterGroup<Message> clusterGroup) {
+    private void addClusters(ClusterGroup<Message> clusterGroup) {
         clusterMap.clear();
         this.clusterGroup = clusterGroup;
 
@@ -130,11 +236,15 @@ public class ClusteredFolder extends Folder {
                 } catch (MessagingException e) {
                     throw new Error(e);
                 }
+                if (uid > lastUid)
+                    lastUid = uid;
                 clusterMap.put(uid, cluster.getName());
             }
         }
 
         reloadVirtualFolders();
+
+        Client.getInstance().reload();
     }
 
     private void checkNewMessage() {
@@ -163,6 +273,7 @@ public class ClusteredFolder extends Folder {
             }
             log.info("Classifying message {}", uid);
             String name = clusterGroup.insert(new ClusterableMessage(m));
+            clusterMap.put(uid, name);
             log.info("Classified message {} into {}", uid, name);
         }
     }

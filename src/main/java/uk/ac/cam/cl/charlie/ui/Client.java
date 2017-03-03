@@ -7,17 +7,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.mail.Message;
-import javax.mail.MessagingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +21,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
-import uk.ac.cam.cl.charlie.clustering.EMClusterer;
-import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
-import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
-import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
-import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
-import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.db.Configuration;
 import uk.ac.cam.cl.charlie.filewalker.BasicFileWalker;
 import uk.ac.cam.cl.charlie.filewalker.FileDB;
@@ -137,50 +125,8 @@ public class Client {
         cstore = new CachedStore();
     }
 
-    public void startClustering() {
-        if (cstore == null) {
-            cstore = new CachedStore();
-        }
-        Message[] message = cstore.doFolderQuery("Inbox", folder -> {
-            int cnt = folder.getMessageCount();
-            return folder.getMessages(Math.max(1, cnt - 500), cnt);
-        });
-        ArrayList<Message> msg = new ArrayList<>(Arrays.asList(message));
-        log.info("Start downloading all emails");
-        try {
-            Iterator<Message> iter = msg.iterator();
-            while (iter.hasNext()) {
-                Message m = iter.next();
-                if (m.getSize() >= 65536) {
-                    iter.remove();
-                } else {
-                    m.getContent();
-                }
-            }
-        } catch (MessagingException | IOException e) {
-            e.printStackTrace();
-            return;
-        }
-        log.info("Downloaded all emails");
-
-        Clusterer.getVectoriser().train(msg);
-
-        EMClusterer<Message> cluster = new EMClusterer<>(
-                msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
-        ClusterGroup<Message> clusters = cluster.getClusters();
-
-        for (Cluster<Message> c : clusters) {
-            ClusterNamer.doName(c);
-        }
-
-        cstore.doFolderQuery("Inbox", folder -> {
-            ClusteredFolder cfolder = (ClusteredFolder) folder;
-            cfolder.addClusters(clusters);
-            // Invalidate folder cache
-            cstore.foldersLastUpdate = 0;
-            return null;
-        });
-
+    public void reload() {
+        cstore.foldersLastUpdate = 0;
     }
 
     public Optional<Path> getFileSuggestion(String text) {

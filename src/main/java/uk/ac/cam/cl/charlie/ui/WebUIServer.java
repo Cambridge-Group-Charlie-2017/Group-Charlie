@@ -178,8 +178,8 @@ public class WebUIServer {
         });
         put("/api/settings/config", this::putConfigs);
         post("/api/settings/changeAccount", this::changeAccount);
-        get("/api/settings/startClustering", (request, response) -> {
-            client.startClustering();
+        get("/api/settings/reload", (request, response) -> {
+            client.reload();
             return "true";
         });
 

@@ -350,7 +350,11 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
 
             imapFolder.open(READ_ONLY);
             try {
-                byte[] bytes = serializeWithContent((IMAPMessage) imapFolder.getMessageByUID(uid));
+                IMAPMessage message = (IMAPMessage) imapFolder.getMessageByUID(uid);
+                if (message == null) {
+                    return;
+                }
+                byte[] bytes = serializeWithContent(message);
                 map.put(uid, bytes);
             } finally {
                 imapFolder.close(false);
@@ -450,8 +454,6 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
                             map.put(uid, serialized);
                         }
                     }
-
-                    notifyMessageAddedListeners(message);
                 }
 
                 // Now checking flags of all fetched messages
@@ -540,7 +542,10 @@ public class SyncIMAPFolder extends Folder implements UIDFolder {
                 }
 
                 if (dirty.value) {
+                    long oldLastseen = lastseenuid;
                     rebuildUid();
+                    if (lastseenuid != oldLastseen)
+                        notifyMessageAddedListeners(getMessagesByUID(oldLastseen + 1, lastseenuid));
                 }
             } finally {
                 imapFolder.close(false);

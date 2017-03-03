@@ -202,6 +202,7 @@ public class SyncIMAPStore extends Store {
         }
 
         executor = new Thread(this::run);
+        executor.setName("SyncIMAPStore Daemon");
         executor.start();
         return true;
     }
