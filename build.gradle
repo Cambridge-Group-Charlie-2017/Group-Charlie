@@ -26,7 +26,7 @@ repositories {
 
 test {
     testLogging {
-        events "FAILED"
+        events "PASSED", "FAILED"
         exceptionFormat "full"
     }
 }
