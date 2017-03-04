@@ -54,10 +54,6 @@ public class BasicFileWalker implements FileWalker {
     public void closeListener() {
         stopExecution = true;
         daemon.interrupt();
-        try {
-            daemon.wait();
-        } catch (InterruptedException e) {
-        }
     }
 
     @Override
