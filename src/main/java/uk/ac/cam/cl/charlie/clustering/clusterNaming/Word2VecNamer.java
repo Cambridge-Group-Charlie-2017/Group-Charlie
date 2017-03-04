@@ -43,8 +43,8 @@ public class Word2VecNamer extends ClusterNamer {
             words.add(cw);
         }
 
-        EMClusterer<String> clusterer = new EMClusterer<>(words);
-        ClusterGroup<String> clusters = clusterer.getClusters();
+        EMClusterer<String> clusterer = new EMClusterer<>();
+        ClusterGroup<String> clusters = clusterer.cluster(words);
         String folderName = "";
         // int cuttOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
 
@@ -81,8 +81,7 @@ public class Word2VecNamer extends ClusterNamer {
             folderName += aWordsToUse.getObject() + " ";
         }
 
-
-        //Calculate confindence
+        // Calculate confindence
         double confidence = 0;
         for (ClusterableWordAndOccurence word : wordsToUse) {
             confidence += word.getOccurences();

@@ -141,8 +141,8 @@ public class ClusterNamerTest {
         System.out.println("Loaded messages into memory");
         Date loaded = new Date();
 
-        EMClusterer<Message> clusterer = new EMClusterer<>(clusterableMessages);
-        ClusterGroup<Message> clusters = clusterer.getClusters();
+        EMClusterer<Message> clusterer = new EMClusterer<>();
+        ClusterGroup<Message> clusters = clusterer.cluster(clusterableMessages);
         System.out.println("emails clustered");
         Date clustered = new Date();
 
@@ -170,8 +170,8 @@ public class ClusterNamerTest {
         PSTFile pstFile = new PSTFile(filename);
         ArrayList<ClusterableMessage> clusterableMessages = processFolder(pstFile.getRootFolder());
 
-        EMClusterer<Message> clusterer = new EMClusterer<>(clusterableMessages);
-        ClusterGroup<Message> clusters = clusterer.getClusters();
+        EMClusterer<Message> clusterer = new EMClusterer<>();
+        ClusterGroup<Message> clusters = clusterer.cluster(clusterableMessages);
         for (int i = 0; i < clusters.size(); i++) {
             System.out.println("Cluster Name: " + ClusterNamer.doName(clusters.get(i)) + "\n");
             for (int j = 0; j < clusters.get(i).getObjects().size(); j++)

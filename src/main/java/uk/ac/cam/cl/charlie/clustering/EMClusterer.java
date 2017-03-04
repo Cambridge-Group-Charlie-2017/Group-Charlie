@@ -21,23 +21,19 @@ import weka.filters.unsupervised.attribute.PrincipalComponents;
  * clustering.
  */
 public class EMClusterer<T> extends Clusterer<T> {
-    //
-    public EMClusterer(List<? extends ClusterableObject<T>> objects) {
-        evalClusters(objects,-1);
+
+    private int numClusters;
+
+    public EMClusterer() {
+        this(-1);
     }
 
-    public EMClusterer(List<? extends ClusterableObject<T>> objects,int numClusters) {
-        evalClusters(objects,numClusters);
+    public EMClusterer(int numClusters) {
+        this.numClusters = numClusters;
     }
 
-    // Note: currently set up to train on every vector. If this is uses too much
-    // memory, could train on a subset.
-    // @Override
     @Override
-    protected ClusterGroup<T> run(List<? extends ClusterableObject<T>> objects) throws Exception{
-        return run(objects,-1);
-    }
-    protected ClusterGroup<T> run(List<? extends ClusterableObject<T>> objects, int numClusters) throws Exception {
+    public ClusterGroup<T> cluster(List<? extends ClusterableObject<T>> objects) {
         // Assume dimensions are all the same
         int dimension = objects.get(0).getVector().size();
 
@@ -79,7 +75,7 @@ public class EMClusterer<T> extends Clusterer<T> {
             // If efficiency is a problem, could use random projection instead.
 
             // Initially cluster with no cluster number preference.
-            String[] options = { "-I", "5" ,"-N", Integer.toString(numClusters)};
+            String[] options = { "-I", "5", "-N", Integer.toString(numClusters) };
             cl.setOptions(options);
             cl.buildClusterer(data);
             ClusterEvaluation eval = new ClusterEvaluation();

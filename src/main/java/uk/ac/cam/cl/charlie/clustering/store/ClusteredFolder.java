@@ -2,8 +2,15 @@ package uk.ac.cam.cl.charlie.clustering.store;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -133,9 +140,9 @@ public class ClusteredFolder extends Folder {
 
             log.info("{}: Start clustering", actual.getName());
 
-            EMClusterer<Message> cluster = new EMClusterer<>(
-                    msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
-            ClusterGroup<Message> clusters = cluster.getClusters();
+            EMClusterer<Message> cluster = new EMClusterer<>();
+            ClusterGroup<Message> clusters = cluster
+                    .cluster(msg.stream().map(m -> new ClusterableMessage(m)).collect(Collectors.toList()));
 
             log.info("{}: Clustered, start naming", actual.getName());
 
@@ -143,23 +150,22 @@ public class ClusteredFolder extends Folder {
                 ClusterNamer.doName(c);
             }
 
-
             Queue<Cluster<Message>> queue = new CircularFifoQueue<>();
-            for(Cluster<Message> c : clusters)
+            for (Cluster<Message> c : clusters)
                 queue.add(c);
 
             int loop = 0;
 
             ClusterGroup<Message> toAdd = new ClusterGroup<>();
             boolean clear = true;
-            while(!queue.isEmpty() && loop < 30) {
+            while (!queue.isEmpty() && loop < 30) {
                 Cluster<Message> c = queue.remove();
                 ClusterGroup<Message> subclusters;
                 if (!c.getNameConfidence() && c.getSize() > 30) {
                     log.info("Spliting cluster: {}", c.getName());
-                    EMClusterer<Message> clusterer = new EMClusterer<>(
-                            c.getObjects().stream().map(m -> (ClusterableMessage)m).collect(Collectors.toList()),2);
-                    subclusters = clusterer.getClusters();
+                    EMClusterer<Message> clusterer = new EMClusterer<>(2);
+                    subclusters = clusterer.cluster(
+                            c.getObjects().stream().map(m -> (ClusterableMessage) m).collect(Collectors.toList()));
                     Iterator<Cluster<Message>> iterator = subclusters.iterator();
                     while (iterator.hasNext()) {
                         Cluster<Message> subCluster = iterator.next();
@@ -171,8 +177,8 @@ public class ClusteredFolder extends Folder {
                         }
                     }
 
-                    for(Cluster<Message> subcluster : subclusters) {
-                        log.info("Split into: {}" ,subcluster.getName());
+                    for (Cluster<Message> subcluster : subclusters) {
+                        log.info("Split into: {}", subcluster.getName());
                         toAdd.add(subcluster);
                     }
 
@@ -187,7 +193,7 @@ public class ClusteredFolder extends Folder {
                 }
             }
 
-            for(Cluster<Message> clust : queue)
+            for (Cluster<Message> clust : queue)
                 toAdd.add(clust);
 
 
@@ -269,21 +275,21 @@ public class ClusteredFolder extends Folder {
 
     private void addClusters(ClusterGroup<Message> clusterGroup) {
         clusterMap.clear();
-        ClusterGroup<Message> mergedClusterGroup = new ClusterGroup<Message>();
+        ClusterGroup<Message> mergedClusterGroup = new ClusterGroup<>();
         Map<String, Cluster<Message>> clusterNameToCluster = new HashMap<>();
-        //Merge clusters with the same name
+        // Merge clusters with the same name
         for (Cluster<Message> c : clusterGroup) {
-            //If  cluster name already exists merge clusters
-            if(clusterNameToCluster.containsKey(c.getName())){
+            // If cluster name already exists merge clusters
+            if (clusterNameToCluster.containsKey(c.getName())) {
                 Cluster<Message> existingCluster = clusterNameToCluster.get(c.getName());
-                for(ClusterableObject<Message> m: c.getObjects())
+                for (ClusterableObject<Message> m : c.getObjects())
                     existingCluster.addObject(m);
-            }else{//Add as new cluster
-                clusterNameToCluster.put(c.getName(),c);
+            } else {// Add as new cluster
+                clusterNameToCluster.put(c.getName(), c);
             }
         }
         Iterator<Cluster<Message>> iterator = clusterNameToCluster.values().iterator();
-        while(iterator.hasNext())
+        while (iterator.hasNext())
             mergedClusterGroup.add(iterator.next());
 
         this.clusterGroup = mergedClusterGroup;
