@@ -5,9 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import javax.mail.Message;
 
@@ -103,9 +105,13 @@ public class ClusteringTest {
         String filename = "src/main/resources/enron/bass-e.pst";
         Date initial = new Date();
         PSTFile pstFile = new PSTFile(filename);
-        ArrayList<ClusterableMessage> clusterableMessages = processFolder(pstFile.getRootFolder());
+        ArrayList<ClusterableMessage> clusterableMessages = new ArrayList<>();
+        processFolder(pstFile.getRootFolder(), clusterableMessages);
         System.out.println("Loaded messages into memory");
         Date loaded = new Date();
+
+        Clusterer.getVectoriser()
+                .train(clusterableMessages.stream().map(m -> m.getObject()).collect(Collectors.toList()));
 
         EMClusterer<Message> clusterer = new EMClusterer<>();
         ClusterGroup<Message> clusters = clusterer.cluster(clusterableMessages);
@@ -134,28 +140,25 @@ public class ClusteringTest {
         System.out.println("Loading stage: " + (named.getTime() - clustered.getTime()) + "ms");
     }
 
-    public ArrayList<ClusterableMessage> processFolder(final PSTFolder folder)
-            throws PSTException, java.io.IOException {
-        ArrayList<ClusterableMessage> messages = new ArrayList<>();
-
+    public ArrayList<ClusterableMessage> processFolder(final PSTFolder folder, ArrayList<ClusterableMessage> messages)
+            throws PSTException, IOException {
         if (folder.hasSubfolders()) {
             final Vector<PSTFolder> childFolders = folder.getSubFolders();
             for (final PSTFolder childFolder : childFolders) {
-                messages.addAll(this.processFolder(childFolder));
+                this.processFolder(childFolder, messages);
             }
         }
-        int count = 0;
+
         // and now the emails for this folder
         if (folder.getContentCount() > 0) {
             PSTMessage email = (PSTMessage) folder.getNextChild();
-            while (email != null && count < 250) {
+            while (email != null && messages.size() < 500) {
                 // System.out.println("Email: " + email.getDescriptorNodeId() +
                 // " - " + email.getSubject());
                 ClusterableMessage clusterableMessage = new ClusterableMessage(MessageCreator.createMessage("a@b.com",
                         email.getSenderEmailAddress(), email.getSubject(), email.getBody(), new ArrayList<File>()));
                 messages.add(clusterableMessage);
                 email = (PSTMessage) folder.getNextChild();
-                count++;
             }
         }
         return messages;

@@ -70,7 +70,7 @@ public class TfidfNamer extends ClusterNamer {
                 // Remove stop words
                 .filter(p -> !stopWords.contains(p.word))
                 // Sort according to TF-IDF
-                .sorted((p1, p2) -> p1.tfidfval < p2.tfidfval ? 1 : -1)
+                .sorted((p1, p2) -> Double.compare(p2.tfidfval, p1.tfidfval))
                 // Take only top 5
                 .limit(5)
                 // Convert back to word
