@@ -62,7 +62,7 @@ public class SenderNamer extends ClusterNamer {
         if (confidence < MIN_PROPORTION_CORRECT) {
             return null;
         }
-        return new NamingResult(domain, confidence * MAX_CONFIDENCE);
+        return new NamingResult("[SENDER]" + domain, confidence * MAX_CONFIDENCE);
     }
 
 }

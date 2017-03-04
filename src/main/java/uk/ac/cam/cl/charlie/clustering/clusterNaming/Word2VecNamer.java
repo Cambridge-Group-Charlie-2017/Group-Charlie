@@ -6,6 +6,8 @@ import java.util.List;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
+import org.apache.commons.lang.WordUtils;
+
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableWordAndOccurence;
@@ -80,7 +82,7 @@ public class Word2VecNamer extends ClusterNamer {
         }
 
         // Set folderName
-        return new NamingResult(folderName, 0.6);
+        return new NamingResult("[WORD2VEC]" + WordUtils.capitalize(folderName), 0.6);
     }
 
 }

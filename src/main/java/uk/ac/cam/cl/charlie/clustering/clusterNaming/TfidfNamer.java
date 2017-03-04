@@ -1,18 +1,21 @@
 package uk.ac.cam.cl.charlie.clustering.clusterNaming;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
+import org.apache.commons.lang.WordUtils;
+
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
 import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
-import uk.ac.cam.cl.charlie.vec.tfidf.BasicWordCounter;
 import uk.ac.cam.cl.charlie.vec.tfidf.PersistentWordCounter;
 
 public class TfidfNamer extends ClusterNamer {
+
+    private static final double MIN_PROPORTION_CORRECT = 0.2;
 
     private static class WordTFIDFPair implements Comparable<WordTFIDFPair> {
         public String word;
@@ -35,43 +38,57 @@ public class TfidfNamer extends ClusterNamer {
 
     @Override
     public NamingResult name(Cluster<Message> cluster) {
-        ArrayList<Message> messages = new ArrayList<>();
-        for (ClusterableObject<Message> obj : cluster.getObjects())
-            messages.add(obj.getObject());
+        List<ClusterableObject<Message>> messages = cluster.getObjects();
 
-        PersistentWordCounter documentFrequencies = PersistentWordCounter.getInstance();
-        BasicWordCounter termFrequencies = new BasicWordCounter();
+        PositionedWordCounter counter = new PositionedWordCounter();
 
-        for (Message msg : messages) {
+        for (ClusterableObject<Message> cm : messages) {
+            Message m = cm.getObject();
+
             try {
-                BasicWordCounter counter = BasicWordCounter.count(msg.getSubject());
-
-                for (String w : counter.words()) {
-                    termFrequencies.increment(w);
-                }
+                counter.count(m.getSubject());
             } catch (MessagingException e) {
-
+                e.printStackTrace();
             }
         }
+
+        PersistentWordCounter documentFrequencies = PersistentWordCounter.getInstance();
+
         // now need to zip the two counters together and produce a sorted list
         List<WordTFIDFPair> results = new ArrayList<>();
 
-        for (String w : termFrequencies.words()) {
+        for (String w : counter.words()) {
             double totalDocs = documentFrequencies.frequency("");
             double totalDocsWith = documentFrequencies.frequency(w);
-            double tfidf = termFrequencies.frequency(w) * Math.log(totalDocs / totalDocsWith);
+            double tfidf = counter.frequency(w) * Math.log(totalDocs / (totalDocsWith + 1));
             results.add(new WordTFIDFPair(w, tfidf));
         }
-        Collections.sort(results);
-        if (results.size() == 0) {
-            return null;
-        } else if (results.size() < 3) {
-            return new NamingResult(results.get(results.size() - 1).word, 1);
-        } else {
-            int i = results.size() - 1;
-            String res = results.get(i).word + " " + results.get(i - 1).word + " " + results.get(i - 2).word;
-            return new NamingResult(res, 1);
-        }
+
+        int cutOff = (int) (messages.size() * MIN_PROPORTION_CORRECT);
+
+        List<String> wordsToUse = results.stream()
+                // Remove stop words
+                .filter(p -> !stopWords.contains(p.word))
+                // Sort according to TF-IDF
+                .sorted((p1, p2) -> p1.tfidfval < p2.tfidfval ? 1 : -1)
+                // Take only top 5
+                .limit(5)
+                // Convert back to word
+                .map(pair -> pair.word)
+                // Cut-off
+                .filter(w -> counter.frequency(w) > cutOff)
+                // Sort in relative position order
+                .sorted((w1, w2) -> counter.position(w1) - counter.position(w2))
+                // Convert back to list
+                .collect(Collectors.toList());
+
+        // Generate cluster name
+        String clusterName = String.join(" ", wordsToUse);
+
+        if (!clusterName.isEmpty())
+            return new NamingResult("[TFIDF]" + WordUtils.capitalize(clusterName), 1);
+
+        return null;
     }
 
 }

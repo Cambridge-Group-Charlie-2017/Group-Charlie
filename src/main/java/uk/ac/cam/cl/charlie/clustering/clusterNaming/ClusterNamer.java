@@ -38,8 +38,8 @@ public abstract class ClusterNamer {
     static {
         namers.add(new SubjectNamer());
         namers.add(new SenderNamer());
+        namers.add(new TfidfNamer());
         namers.add(new Word2VecNamer());
-        // namers.add(new TfidfNamer());
     }
 
     /**
@@ -78,9 +78,9 @@ public abstract class ClusterNamer {
                 subject = "";
             }
             if (subject.equals(""))
-                cluster.setName("Failed to name: " + Math.random());
+                cluster.setName("[DEFAULT] Failed to name: " + Math.random());
             else
-                cluster.setName(subject);
+                cluster.setName("[DEFAULT]" + subject);
             return null;
         } else {
             cluster.setName(ret.name);

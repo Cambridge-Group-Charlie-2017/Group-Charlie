@@ -54,17 +54,6 @@ public class TfidfVectoriser implements VectorisingStrategy {
 
     }
 
-    // This method should only be called on subject header
-    // It is does not increment the number of documents as it is part of the
-    // email message.
-    private void train(String emailsubject) {
-        BasicWordCounter counter = BasicWordCounter.count(emailsubject);
-
-        for (String w : counter.words()) {
-            globalCounter.increment(w);
-        }
-    }
-
     private void train(Document doc) {
         BasicWordCounter docCounter = BasicWordCounter.count(doc.getContent());
 
@@ -78,9 +67,9 @@ public class TfidfVectoriser implements VectorisingStrategy {
     @Override
     public void train(Message msg) {
         try {
-            train(msg.getSubject());
-
-            BasicWordCounter counter = BasicWordCounter.count(Messages.getBodyText(msg));
+            // When training, don't separate subject and body text
+            // otherwise totalDocsWith might be greater than totalDocs!
+            BasicWordCounter counter = BasicWordCounter.count(msg.getSubject() + "\n" + Messages.getBodyText(msg));
 
             for (String w : counter.words()) {
                 globalCounter.increment(w);
