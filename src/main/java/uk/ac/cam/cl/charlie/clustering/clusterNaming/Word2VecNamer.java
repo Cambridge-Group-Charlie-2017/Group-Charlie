@@ -81,8 +81,17 @@ public class Word2VecNamer extends ClusterNamer {
             folderName += aWordsToUse.getObject() + " ";
         }
 
+
+        //Calculate confindence
+        double confidence = 0;
+        for (ClusterableWordAndOccurence word : wordsToUse) {
+            confidence += word.getOccurences();
+        }
+        confidence /= counter.getWordCount();
+        confidence /= wordsToUse.size();
+
         // Set folderName
-        return new NamingResult("[WORD2VEC]" + WordUtils.capitalize(folderName), 0.6);
+        return new NamingResult("[WORD2VEC]" + WordUtils.capitalize(folderName), confidence);
     }
 
 }

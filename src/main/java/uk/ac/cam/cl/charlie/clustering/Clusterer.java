@@ -31,10 +31,11 @@ public abstract class Clusterer<T> {
 
     // Produces clusters of messages.
     protected abstract ClusterGroup<T> run(List<? extends ClusterableObject<T>> objects) throws Exception;
+    protected abstract ClusterGroup<T> run(List<? extends ClusterableObject<T>> objects, int numClusters) throws Exception;
 
     // Should probably convert to run on wrapper types.
     // Can easily provide functions for conversion.
-    protected void evalClusters(List<? extends ClusterableObject<T>> objects) {
+    protected void evalClusters(List<? extends ClusterableObject<T>> objects,int numClusters) {
         // main method for evaluating clusters.
         // precondition: all Messages in 'message' are clear for clustering i.e.
         // are not in protected folders.
@@ -45,7 +46,7 @@ public abstract class Clusterer<T> {
 
         // sets 'clusters' field to new clusters based on the 'messages' input.
         try {
-            clusters = run(objects);
+            clusters = run(objects, numClusters);
         } catch (Exception e) {
             e.printStackTrace();
             return;

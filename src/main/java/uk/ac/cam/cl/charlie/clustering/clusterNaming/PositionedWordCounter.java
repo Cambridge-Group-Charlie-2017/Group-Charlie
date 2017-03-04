@@ -9,6 +9,7 @@ public class PositionedWordCounter {
 
     HashMap<String, IntHolder> frequency = new HashMap<>();
     HashMap<String, IntHolder> positions = new HashMap<>();
+    private int wordCount = 0;
 
     public void addWord(String word, int position) {
         IntHolder h = frequency.get(word);
@@ -21,6 +22,7 @@ public class PositionedWordCounter {
         }
         h.value++;
         p.value += position;
+        wordCount++;
     }
 
     public int frequency(String word) {
@@ -65,4 +67,7 @@ public class PositionedWordCounter {
         }
     }
 
+    public int getWordCount() {
+        return wordCount;
+    }
 }

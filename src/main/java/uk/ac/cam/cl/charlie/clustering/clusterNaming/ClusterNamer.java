@@ -50,6 +50,7 @@ public abstract class ClusterNamer {
      */
     public static String doName(Cluster<Message> cluster) {
         NamingResult ret = null;
+        cluster.setNameConfidence(false);
         for (ClusterNamer namer : namers) {
             // Try the namer
             NamingResult result = namer.name(cluster);
@@ -59,6 +60,7 @@ public abstract class ClusterNamer {
             // If the result is good enough, stop trying other namers
             if (result.confidence > SHORT_CIRCUIT_CONFIDENCE) {
                 ret = result;
+                cluster.setNameConfidence(true);
                 break;
             }
 

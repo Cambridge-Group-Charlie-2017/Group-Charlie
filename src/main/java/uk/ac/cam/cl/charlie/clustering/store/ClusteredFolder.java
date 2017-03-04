@@ -2,13 +2,7 @@ package uk.ac.cam.cl.charlie.clustering.store;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -22,11 +16,13 @@ import javax.mail.UIDFolder;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import uk.ac.cam.cl.charlie.clustering.Clusterer;
 import uk.ac.cam.cl.charlie.clustering.EMClusterer;
+import uk.ac.cam.cl.charlie.clustering.IncompatibleDimensionalityException;
 import uk.ac.cam.cl.charlie.clustering.clusterNaming.ClusterNamer;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableMessage;
 import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
@@ -147,9 +143,57 @@ public class ClusteredFolder extends Folder {
                 ClusterNamer.doName(c);
             }
 
+
+            Queue<Cluster<Message>> queue = new CircularFifoQueue<>();
+            for(Cluster<Message> c : clusters)
+                queue.add(c);
+
+            int loop = 0;
+
+            ClusterGroup<Message> toAdd = new ClusterGroup<>();
+            boolean clear = true;
+            while(!queue.isEmpty() && loop < 30) {
+                Cluster<Message> c = queue.remove();
+                ClusterGroup<Message> subclusters;
+                if (!c.getNameConfidence() && c.getSize() > 30) {
+                    log.info("Spliting cluster: {}", c.getName());
+                    EMClusterer<Message> clusterer = new EMClusterer<>(
+                            c.getObjects().stream().map(m -> (ClusterableMessage)m).collect(Collectors.toList()),2);
+                    subclusters = clusterer.getClusters();
+                    Iterator<Cluster<Message>> iterator = subclusters.iterator();
+                    while (iterator.hasNext()) {
+                        Cluster<Message> subCluster = iterator.next();
+                        ClusterNamer.doName(subCluster);
+                        if (!subCluster.getNameConfidence() && subCluster.getSize() > 30 && loop < 30) {
+                            queue.add(subCluster);
+                            iterator.remove();
+                            loop++;
+                        }
+                    }
+
+                    for(Cluster<Message> subcluster : subclusters) {
+                        log.info("Split into: {}" ,subcluster.getName());
+                        toAdd.add(subcluster);
+                    }
+
+                    if (clear)
+                        clear = false;
+                } else {
+                    try {
+                        toAdd.add(c);
+                    } catch (IncompatibleDimensionalityException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            for(Cluster<Message> clust : queue)
+                toAdd.add(clust);
+
+
             log.info("{}: Naming completed", actual.getName());
 
-            addClusters(clusters);
+            addClusters(toAdd);
         } catch (MessagingException e) {
             throw new Error(e);
         }
@@ -225,9 +269,26 @@ public class ClusteredFolder extends Folder {
 
     private void addClusters(ClusterGroup<Message> clusterGroup) {
         clusterMap.clear();
-        this.clusterGroup = clusterGroup;
+        ClusterGroup<Message> mergedClusterGroup = new ClusterGroup<Message>();
+        Map<String, Cluster<Message>> clusterNameToCluster = new HashMap<>();
+        //Merge clusters with the same name
+        for (Cluster<Message> c : clusterGroup) {
+            //If  cluster name already exists merge clusters
+            if(clusterNameToCluster.containsKey(c.getName())){
+                Cluster<Message> existingCluster = clusterNameToCluster.get(c.getName());
+                for(ClusterableObject<Message> m: c.getObjects())
+                    existingCluster.addObject(m);
+            }else{//Add as new cluster
+                clusterNameToCluster.put(c.getName(),c);
+            }
+        }
+        Iterator<Cluster<Message>> iterator = clusterNameToCluster.values().iterator();
+        while(iterator.hasNext())
+            mergedClusterGroup.add(iterator.next());
 
-        for (Cluster<Message> cluster : clusterGroup) {
+        this.clusterGroup = mergedClusterGroup;
+
+        for (Cluster<Message> cluster : mergedClusterGroup) {
             for (ClusterableObject<Message> obj : cluster.getObjects()) {
                 Message msg = obj.getObject();
                 long uid;

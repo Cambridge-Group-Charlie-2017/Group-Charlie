@@ -13,6 +13,7 @@ public abstract class Cluster<T> {
     protected String name;
     protected ArrayList<ClusterableObject<T>> objects;
     private int dimension;
+    private boolean nameConfidence;
 
     public int getDimension() {
         return dimension;
@@ -69,4 +70,11 @@ public abstract class Cluster<T> {
         return objects.stream().map(obj -> obj.getVector()).collect(Collectors.toList());
     }
 
+    public boolean getNameConfidence() {
+        return nameConfidence;
+    }
+
+    public void setNameConfidence(boolean nameConfidence) {
+        this.nameConfidence = nameConfidence;
+    }
 }
