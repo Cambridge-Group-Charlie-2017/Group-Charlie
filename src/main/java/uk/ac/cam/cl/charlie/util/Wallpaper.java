@@ -9,7 +9,7 @@ import com.sun.jna.platform.win32.WinReg;
 
 public class Wallpaper {
 
-    private static boolean USE_SYSTEM_WALLPAPER = false;
+    private static boolean USE_SYSTEM_WALLPAPER = true;
 
     public static String getWallpaper() {
         if (!USE_SYSTEM_WALLPAPER)
