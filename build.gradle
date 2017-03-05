@@ -5,42 +5,100 @@
  * For more details take a look at the Java Quickstart chapter in the Gradle
  * user guide available at https://docs.gradle.org/3.3/userguide/tutorial_java_projects.html
  */
-
+plugins {
+    id "de.undercouch.download" version "3.2.0"
+}
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 
 // Apply the application plugin to add support for building an application
 apply plugin: 'application'
 
+import de.undercouch.gradle.tasks.download.Download
+
 // In this section you declare where to find the dependencies of your project
 repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
+    mavenCentral()
 }
 
 test {
     testLogging {
-        events "PASSED", "STARTED", "FAILED", "SKIPPED"
-        showStandardStreams true
+        events "PASSED", "FAILED"
         exceptionFormat "full"
     }
 }
 
 dependencies {
-    // The production code uses Guava
-    compile 'com.google.guava:guava:20.0'
+    //weka clustering algorithms
+    compile "nz.ac.waikato.cms.weka:XMeans:1.0.4"
+    compile "nz.ac.waikato.cms.weka:weka-dev:3.9.1"
+
+    // Java mail
+    compile 'javax.mail:mail:1.5.0-b01'
 
     // Logging frameworks
-    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:slf4j-api:1.7.22'
     compile 'org.slf4j:slf4j-simple:1.7.22'
 
-    compile 'org.hsqldb:hsqldb:2.3.4'
+    // Database
+    compile 'org.iq80.leveldb:leveldb:0.9'
+    
+    // Web UI services
+    compile 'com.sparkjava:spark-core:2.5.4'
+    compile 'com.google.code.gson:gson:2.8.0'
+
+    // Native interface
+    compile 'net.java.dev.jna:jna:4.3.0'
+    compile 'net.java.dev.jna:jna-platform:4.3.0'
+
+    // HTML parsing
+    compile 'org.jsoup:jsoup:1.10.2'
 
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
+
+    // Apache Commons
+    compile group: 'commons-lang', name: 'commons-lang', version: '2.6'
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
+
+    // Time
+    compile group: 'joda-time', name: 'joda-time', version: '2.9.7'
+
+
+    // Mail server test framework
+    testCompile 'com.icegreen:greenmail:1.5.3'
+    testCompile 'com.pff:java-libpst:0.8.1'
+
+    // text extraction for nearly anything vaguely common
+    compile 'org.apache.tika:tika-parsers:1.14'
 }
 
 // Define the main class for the application
-mainClassName = 'App'
+mainClassName = 'uk.ac.cam.cl.charlie.ui.WebUIServer'
 
+task downloadWord2Vec(type: Download) {
+    src 'https://www.dropbox.com/s/8q626nhgrx6ez5m/wordvectors.txt?dl=1'
+    dest 'src/main/resources/word2vec/wordvectors.txt'
+    overwrite false
+}
+
+task downloadDataset(type: Download) {
+    src 'https://www.dropbox.com/s/6uq3skacxqq6vft/bass-e.pst?dl=1'
+    dest 'src/main/resources/enron/bass-e.pst'
+    overwrite false
+}
+
+task populateDB (type: JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'uk.ac.cam.cl.charlie.PopulateDB'
+    outputs.upToDateWhen( { return true } );
+    inputs.file('src/main/resources/word2vec/wordvectors.txt')
+}
+build.dependsOn downloadDataset
+test.dependsOn downloadDataset
+build.dependsOn downloadWord2Vec
+test.dependsOn downloadWord2Vec
+populateDB.dependsOn downloadWord2Vec
