@@ -58,11 +58,11 @@ public class Wallpaper {
             try {
                 Process process = Runtime.getRuntime().exec(new String[] { "osascript", "-e",
                         "tell application \"System Events\" to picture of desktop 1" });
-                String url = IOUtils.readString(process.getInputStream());
-                if (url.isEmpty()) {
+                String result = IOUtils.readString(process.getInputStream());
+                if (result.isEmpty()) {
                     return null;
                 }
-                return new URL(url).getPath();
+                return result;
             } catch (IOException e) {
                 return null;
             }
