@@ -135,14 +135,17 @@ public class WebUIServer {
 
     private Object resourcesBackground(Request req, Response res) throws IOException {
         String wallpaper = Wallpaper.getWallpaper();
-        if (wallpaper == null) {
-            try (InputStream is = getClass().getClassLoader().getResourceAsStream("wallpaper.jpg")) {
-                res.type("image/jpeg");
+        if (wallpaper != null) {
+            try (InputStream is = new BufferedInputStream(new FileInputStream(wallpaper))) {
+                res.type(URLConnection.guessContentTypeFromStream(is));
                 return IOUtils.readBytes(is);
+            } catch (IOException e) {
+                // Revert to default wallpaper in case of exception
             }
         }
-        try (InputStream is = new BufferedInputStream(new FileInputStream(wallpaper))) {
-            res.type(URLConnection.guessContentTypeFromStream(is));
+
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("wallpaper.jpg")) {
+            res.type("image/jpeg");
             return IOUtils.readBytes(is);
         }
     }
@@ -205,6 +208,7 @@ public class WebUIServer {
             client.reload();
             return "true";
         });
+        post("/api/settings/recluster", this::recluster);
 
         post("/api/suggestion", this::getFileSuggestion);
 
@@ -282,6 +286,14 @@ public class WebUIServer {
         } else {
             return "\"NORMAL\"";
         }
+    }
+
+    private Object recluster(Request req, Response res) throws Exception {
+        ClusteredFolder folder = client.getStore().doFolderQuery("Inbox", f -> {
+            return (ClusteredFolder) f;
+        });
+        folder.recluster();
+        return "true";
     }
 
     private Object getClustererStatus(Request req, Response res) throws Exception {

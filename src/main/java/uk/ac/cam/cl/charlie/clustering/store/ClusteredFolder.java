@@ -41,6 +41,7 @@ import uk.ac.cam.cl.charlie.db.PersistentMap;
 import uk.ac.cam.cl.charlie.db.Serializers;
 import uk.ac.cam.cl.charlie.mail.Messages;
 import uk.ac.cam.cl.charlie.ui.Client;
+import uk.ac.cam.cl.charlie.vec.tfidf.TfidfVectoriser;
 
 public class ClusteredFolder extends Folder {
 
@@ -55,6 +56,7 @@ public class ClusteredFolder extends Folder {
 
     Thread daemonThread;
     BlockingQueue<MessageCountEvent> queue = new LinkedBlockingQueue<>();
+    boolean stopDaemon = false;
 
     private static Logger log = LoggerFactory.getLogger(ClusteredFolder.class);
 
@@ -70,7 +72,7 @@ public class ClusteredFolder extends Folder {
 
             @Override
             public void messagesRemoved(MessageCountEvent e) {
-                // TODO: Should anything be done here?
+                // TODO: Should remove message from cluster here
             }
         };
         actual.addMessageCountListener(messageListener);
@@ -86,14 +88,31 @@ public class ClusteredFolder extends Folder {
         loadClusterGroup();
         reloadVirtualFolders();
 
+        startDaemon();
+    }
+
+    private void startDaemon() {
+        log.info("Starting daemon");
+        stopDaemon = false;
         daemonThread = new Thread(this::run);
         daemonThread.setName("ClusteredFolder Daemon");
+        daemonThread.setDaemon(true);
         daemonThread.start();
+    }
+
+    private void stopDaemon() {
+        log.info("Stopping daemon");
+        stopDaemon = true;
+        daemonThread.interrupt();
+        try {
+            daemonThread.join();
+        } catch (InterruptedException e) {
+        }
     }
 
     private void runEmpty() {
         try {
-            while (true) {
+            while (!stopDaemon) {
                 // Once we have more message than the threshold,
                 // we do initial clustering and complete
                 if (actual.getMessageCount() > MESSAGE_COUNT_THRESHOLD) {
@@ -114,6 +133,7 @@ public class ClusteredFolder extends Folder {
     }
 
     private void initialClustering() {
+        TfidfVectoriser.getVectoriser().empty();
         try {
             int cnt = actual.getMessageCount();
             Message[] messages = actual.getMessages(Math.max(1, cnt - MAX_COUNT_TO_CLUSTER), cnt);
@@ -213,7 +233,7 @@ public class ClusteredFolder extends Folder {
         // register the listener
         checkNewMessage();
 
-        while (true) {
+        while (!stopDaemon) {
             MessageCountEvent event;
             try {
                 event = queue.take();
@@ -452,5 +472,12 @@ public class ClusteredFolder extends Folder {
 
     public ClusterGroup<Message> getClusterGroup() {
         return clusterGroup;
+    }
+
+    public void recluster() {
+        stopDaemon();
+        log.info("Start reclustering");
+        initialClustering();
+        startDaemon();
     }
 }
