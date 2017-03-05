@@ -86,7 +86,7 @@ public class TfidfNamer extends ClusterNamer {
         String clusterName = String.join(" ", wordsToUse);
 
         if (!clusterName.isEmpty())
-            return new NamingResult("[TFIDF]" + WordUtils.capitalize(clusterName), 1);
+            return new NamingResult(WordUtils.capitalize(clusterName), 1);
 
         return null;
     }

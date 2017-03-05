@@ -48,7 +48,7 @@ public class ClusteringTest {
         SenderNamer namer = new SenderNamer();
         NamingResult result = namer.name(c);
         assertNotNull(result);
-        assertEquals("[SENDER]companyname.com", result.getName());
+        assertEquals("companyname.com", result.getName());
     }
 
     @Test
@@ -97,7 +97,7 @@ public class ClusteringTest {
         NamingResult result = namer.name(c);
         assertNotNull(result);
         System.out.println(result.getName());
-        assertEquals("[SUBJECT]Project X", result.getName());
+        assertEquals("Project X", result.getName());
     }
 
     @Test

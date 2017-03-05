@@ -90,7 +90,7 @@ public class Word2VecNamer extends ClusterNamer {
         confidence /= wordsToUse.size();
 
         // Set folderName
-        return new NamingResult("[WORD2VEC]" + WordUtils.capitalize(folderName), confidence);
+        return new NamingResult(WordUtils.capitalize(folderName), confidence);
     }
 
 }
