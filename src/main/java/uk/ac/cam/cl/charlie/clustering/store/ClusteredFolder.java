@@ -196,7 +196,6 @@ public class ClusteredFolder extends Folder {
             for (Cluster<Message> clust : queue)
                 toAdd.add(clust);
 
-
             log.info("{}: Naming completed", actual.getName());
 
             addClusters(toAdd);
@@ -449,5 +448,9 @@ public class ClusteredFolder extends Folder {
     @Override
     public Message[] expunge() throws MessagingException {
         return actual.expunge();
+    }
+
+    public ClusterGroup<Message> getClusterGroup() {
+        return clusterGroup;
     }
 }

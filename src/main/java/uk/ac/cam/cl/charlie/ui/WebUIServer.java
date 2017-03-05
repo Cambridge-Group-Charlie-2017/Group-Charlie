@@ -60,10 +60,21 @@ import spark.Request;
 import spark.Response;
 import spark.Spark;
 import spark.utils.StringUtils;
+import uk.ac.cam.cl.charlie.clustering.clusterableObjects.ClusterableObject;
+import uk.ac.cam.cl.charlie.clustering.clusters.Cluster;
+import uk.ac.cam.cl.charlie.clustering.clusters.ClusterGroup;
+import uk.ac.cam.cl.charlie.clustering.store.ClusteredFolder;
 import uk.ac.cam.cl.charlie.mail.Messages;
+import uk.ac.cam.cl.charlie.math.Vector;
 import uk.ac.cam.cl.charlie.util.IOUtils;
 import uk.ac.cam.cl.charlie.util.IntHolder;
 import uk.ac.cam.cl.charlie.util.Wallpaper;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.PrincipalComponents;
 
 public class WebUIServer {
 
@@ -202,6 +213,8 @@ public class WebUIServer {
         get("/resources/background", this::resourcesBackground);
 
         get("/api/status", this::getStatus);
+        get("/api/status/clusterer", this::getClustererStatus);
+
         get("/api/folders", this::getFolders);
         get("/api/folders/:folder/messages", this::getMessageCollections);
         get("/api/messages/:msgid", this::getMessage);
@@ -269,6 +282,71 @@ public class WebUIServer {
         } else {
             return "\"NORMAL\"";
         }
+    }
+
+    private Object getClustererStatus(Request req, Response res) throws Exception {
+        ClusteredFolder folder = client.getStore().doFolderQuery("Inbox", f -> {
+            return (ClusteredFolder) f;
+        });
+        ClusterGroup<Message> group = folder.getClusterGroup();
+
+        // Calculate total size
+        int totalSize = 0;
+        for (Cluster<Message> cluster : group) {
+            totalSize += cluster.getSize();
+        }
+
+        // Assume dimensions are all the same
+        int dimension = group.get(0).getObjects().get(0).getVector().size();
+
+        // Create attributes
+        ArrayList<Attribute> attributes = new ArrayList<>();
+        for (int i = 0; i < dimension; i++) {
+            attributes.add(new Attribute("e" + i));
+        }
+
+        // Fill data into instances
+        Instances data = new Instances("vectors", attributes, totalSize);
+
+        for (Cluster<Message> cluster : group) {
+            for (ClusterableObject<Message> obj : cluster.getObjects()) {
+                Instance instance = new DenseInstance(dimension);
+                Vector vec = obj.getVector();
+                for (int i = 0; i < dimension; i++) {
+                    instance.setValue(attributes.get(i), vec.get(i));
+                }
+                data.add(instance);
+            }
+        }
+
+        // Reduce dimension to 2 so we can show it on plane
+        PrincipalComponents pca = new PrincipalComponents();
+        pca.setInputFormat(data);
+        pca.setMaximumAttributes(2);
+
+        // apply filter
+        data = Filter.useFilter(data, pca);
+
+        JsonArray json = new JsonArray();
+
+        int i = 0;
+        for (Cluster<Message> cluster : group) {
+            for (ClusterableObject<Message> obj : cluster.getObjects()) {
+                Instance instance = data.get(i++);
+                double x = instance.value(0);
+                double y = instance.value(1);
+
+                JsonObject jsonObj = new JsonObject();
+                jsonObj.addProperty("subject", obj.getObject().getSubject());
+                jsonObj.addProperty("x", x);
+                jsonObj.addProperty("y", y);
+                jsonObj.addProperty("cluster", cluster.getName());
+
+                json.add(jsonObj);
+            }
+        }
+
+        return json.toString();
     }
 
     private Object getFileSuggestion(Request req, Response res) throws Exception {
