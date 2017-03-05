@@ -54,6 +54,18 @@ public class Wallpaper {
             } catch (IOException e) {
                 return null;
             }
+        } else if (OS.isMacOS()) {
+            try {
+                Process process = Runtime.getRuntime().exec(new String[] { "osascript", "-e",
+                        "tell application \"System Events\" to picture of desktop 1" });
+                String url = IOUtils.readString(process.getInputStream());
+                if (url.isEmpty()) {
+                    return null;
+                }
+                return new URL(url).getPath();
+            } catch (IOException e) {
+                return null;
+            }
         }
         return null;
     }
