@@ -46,7 +46,7 @@ public class Wallpaper {
             try {
                 Process process = Runtime.getRuntime()
                         .exec(new String[] { "gsettings", "get", "org.gnome.desktop.background picture-uri" });
-                String url = IOUtils.readString(process.getInputStream());
+                String url = IOUtils.readString(process.getInputStream()).trim();
                 if (url.isEmpty()) {
                     return null;
                 }
@@ -58,7 +58,7 @@ public class Wallpaper {
             try {
                 Process process = Runtime.getRuntime().exec(new String[] { "osascript", "-e",
                         "tell application \"System Events\" to picture of desktop 1" });
-                String result = IOUtils.readString(process.getInputStream());
+                String result = IOUtils.readString(process.getInputStream()).trim();
                 if (result.isEmpty()) {
                     return null;
                 }
