@@ -45,8 +45,10 @@ public class Wallpaper {
         } else if (OS.isLinux()) {
             try {
                 Process process = Runtime.getRuntime()
-                        .exec(new String[] { "gsettings", "get", "org.gnome.desktop.background picture-uri" });
+                        .exec(new String[] { "gsettings", "get", "org.gnome.desktop.background", "picture-uri" });
                 String url = IOUtils.readString(process.getInputStream()).trim();
+                // Remove the quote
+                url = url.substring(1, url.length() - 1);
                 if (url.isEmpty()) {
                     return null;
                 }
